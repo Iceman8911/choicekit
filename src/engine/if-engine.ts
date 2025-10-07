@@ -39,13 +39,13 @@ const defaultConfig = {
 
 	compressSave: true,
 
+	eventOptimization: "accuracy",
+
 	loadOnStart: true,
 
 	maxStateCount: 100,
 
 	regenSeed: "passage",
-
-	stateMergeCount: 1,
 
 	saveCompatibilityMode: "strict",
 
@@ -53,7 +53,7 @@ const defaultConfig = {
 
 	saveVersion: `0.0.1`,
 
-	eventOptimization: "accuracy",
+	stateMergeCount: 1,
 } as const satisfies SugarBoxConfig;
 
 const MINIMUM_SAVE_SLOT_INDEX = 0;
@@ -858,16 +858,16 @@ class SugarboxEngine<
 
 			const deleted = await persistence.delete(saveSlotKey);
 
-			this.#emitCustomEvent(":deleteEnd", { type: "success", slot });
+			this.#emitCustomEvent(":deleteEnd", { slot, type: "success" });
 
 			return deleted;
 		} catch (e) {
 			const sanitizedError = sanitiseError(e);
 
 			this.#emitCustomEvent(":deleteEnd", {
-				type: "error",
 				error: sanitizedError,
 				slot,
+				type: "error",
 			});
 
 			throw sanitizedError;
@@ -962,16 +962,16 @@ class SugarboxEngine<
 							migratedState = migrater(currentStateToMigrate);
 
 							this.#emitCustomEvent(":migrationEnd", {
-								type: "success",
 								fromVersion: currentSaveVersion,
 								toVersion: to,
+								type: "success",
 							});
 						} catch (error) {
 							this.#emitCustomEvent(":migrationEnd", {
-								type: "error",
+								error: sanitiseError(error),
 								fromVersion: currentSaveVersion,
 								toVersion: to,
-								error: sanitiseError(error),
+								type: "error",
 							});
 							throw error;
 						}
@@ -1035,11 +1035,11 @@ class SugarboxEngine<
 			);
 
 			if (key === this.#getStorageKey()) {
-				yield { type: "autosave", data: saveData };
+				yield { data: saveData, type: "autosave" };
 			} else {
 				const slotNumber = Number(key.match(/slot(\d+)/)?.[1] ?? "-1");
 
-				yield { type: "normal", slot: slotNumber, data: saveData };
+				yield { data: saveData, slot: slotNumber, type: "normal" };
 			}
 		}
 	}
@@ -1068,17 +1068,17 @@ class SugarboxEngine<
 					TSettingsData,
 					TAchievementData
 				> = {
+					achievements: this.#achievements,
 					saveData: {
 						intialState: this.#initialState,
 						lastPassageId: this.passageId,
-						saveVersion: this.#config.saveVersion,
 
 						savedOn: new Date(),
+						saveVersion: this.#config.saveVersion,
 						snapshots: this.#stateSnapshots,
 						storyIndex: this.#index,
 					},
 					settings: this.#settings,
-					achievements: this.#achievements,
 				};
 
 				const stringifiedExportData = stringify(exportData);
@@ -1475,16 +1475,16 @@ class SugarboxEngine<
 			const result = await callback();
 
 			this.#emitCustomEvent(endEvent, {
-				type: "success",
 				slot,
+				type: "success",
 			});
 
 			return result;
 		} catch (e) {
 			this.#emitCustomEvent(endEvent, {
-				type: "error",
 				error: sanitiseError(e),
 				slot,
+				type: "error",
 			});
 
 			throw e;

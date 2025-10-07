@@ -93,11 +93,11 @@ const transformForSerialization = (
 		// Handle Map objects
 		if (obj instanceof Map) {
 			const transformedMap: TransformedMap = {
-				__type: "map",
 				__data: [...obj].map(([k, v]) => [
 					transformForSerialization(k),
 					transformForSerialization(v),
 				]),
+				__type: "map",
 			};
 
 			return transformedMap;
