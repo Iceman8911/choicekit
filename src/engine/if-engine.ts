@@ -1163,18 +1163,20 @@ class SugarboxEngine<
 
 		const keys = await persistence.keys?.();
 
+		const autosaveKey = this.#getStorageKey();
+
 		if (keys) {
 			// Filter out the keys that are not save slots
+			const saveSlotKeyPrefix = `sugarbox-${this.name}-slot` as const;
+
 			for (const key of keys) {
-				if (key.includes(`slot`) || key.includes("autosave")) {
+				if (key.startsWith(saveSlotKeyPrefix) || key === autosaveKey) {
 					//@ts-expect-error TS doesn't know that the key is a SugarBoxSaveKey
 					yield key;
 				}
 			}
 		} else {
 			// Fallback to using get() to get the keys
-			const autosaveKey = this.#getStorageKey();
-
 			if (await persistence.get(autosaveKey)) {
 				yield autosaveKey;
 			}
