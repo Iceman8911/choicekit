@@ -37,16 +37,16 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.0",
-		"@commitlint/cli": "^19.8.1",
-		"@commitlint/config-conventional": "^19.8.1",
+		"@biomejs/biome": "^2.2.5",
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^20.0.0",
 		"@stardazed/streams-polyfill": "^2.4.0",
-		"@types/bun": "^1.2.20",
-		"bumpp": "^10.2.3",
-		"bunup": "^0.9.3",
+		"@types/bun": "^1.2.23",
+		"bumpp": "^10.3.1",
+		"bunup": "^0.14.19",
 		"husky": "^9.1.7",
-		"quick-lru": "^7.0.1",
-		"typescript": "^5.9.2"
+		"quick-lru": "^7.2.0",
+		"typescript": "^5.9.3"
 	},
 	"repository": {
 		"type": "git",
