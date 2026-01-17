@@ -1,0 +1,65 @@
+{ 
+	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
+	"version": "0.8.0",
+	"type": "module",
+ 
+	"scripts": {
+		"build": "bunup",
+		"dev": "bunup --watch",
+		"lint": "biome check ./src",
+		"lint:fix": "biome check --write ./src",
+		"format": "biome format ./src",
+		"format:fix": "biome format --write ./src",
+		"tsc": "tsc --noEmit",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"test:coverage": "bun test --coverage",
+		"release": "bumpp --commit --push --tag",
+		"publish:ci": "bunx npm publish --access public --no-git-checks",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.5",
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^20.0.0",
+		"@stardazed/streams-polyfill": "^2.4.0",
+		"@types/bun": "^1.2.23",
+		"bumpp": "^10.3.1",
+		"bunup": "^0.14.19",
+		"husky": "^9.1.7",
+		"quick-lru": "^7.2.0",
+		"turbo": "^2.7.5",
+		"typescript": "^5.9.3"
+	},
+	"exports": {
+		".": {
+			"import": {
+				"default": "./dist/index.js",
+				"types": "./dist/index.d.ts"
+			},
+			"require": {
+				"default": "./dist/index.cjs",
+				"types": "./dist/index.d.cts"
+			}
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"license": "MIT",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"name": "@apps/library",
+	"peerDependencies": {
+		"typescript": ">=4.5.0"
+	},
+	"peerDependenciesMeta": {
+		"typescript": {
+			"optional": true
+		}
+	}, 
+	"dependencies": {
+		"@iceman8911/tiny-prng": "^0.1.2",
+		"@zalari/string-compression-utils": "^0.1.1"
+	}
+}
