@@ -36,7 +36,7 @@ class GamePlayerData {
 	}
 
 	addFriend(name: string, level: number, lastSeen: Date): void {
-		this.friends.set(name, { level, lastSeen });
+		this.friends.set(name, { lastSeen, level });
 	}
 
 	visitZone(zoneId: number): void {
@@ -45,11 +45,11 @@ class GamePlayerData {
 
 	toJSON() {
 		return {
-			name: this.name,
-			level: this.level,
-			inventory: this.inventory,
 			achievements: this.achievements,
 			friends: this.friends,
+			inventory: this.inventory,
+			level: this.level,
+			name: this.name,
 			visitedZones: this.visitedZones,
 		};
 	}
@@ -234,7 +234,7 @@ describe("Serializer Map and Set Tests", () => {
 				}
 
 				addComplexItem(key: ItemKey, quantity: number, quality: string): void {
-					this.complexItems.set(key, { quantity, quality });
+					this.complexItems.set(key, { quality, quantity });
 				}
 
 				toJSON() {
@@ -312,8 +312,8 @@ describe("Serializer Map and Set Tests", () => {
 
 				toJSON() {
 					return {
-						regionZones: this.regionZones,
 						playerStats: this.playerStats,
+						regionZones: this.regionZones,
 					};
 				}
 
@@ -333,7 +333,7 @@ describe("Serializer Map and Set Tests", () => {
 			const nested = new NestedCollections();
 			nested.addRegion("Forest", [1, 2, 3, 4]);
 			nested.addRegion("Desert", [10, 11, 12]);
-			nested.addPlayerStats({ strength: 25, dexterity: 18, intelligence: 22 });
+			nested.addPlayerStats({ dexterity: 18, intelligence: 22, strength: 25 });
 			nested.addPlayerStats({ health: 100, mana: 75 });
 
 			const serialized = serialize(nested);
@@ -507,10 +507,10 @@ describe("Serializer Map and Set Tests", () => {
 
 				toJSON() {
 					return {
-						stringKeys: this.stringKeys,
-						numberKeys: this.numberKeys,
 						booleanKeys: this.booleanKeys,
 						mixedKeys: this.mixedKeys,
+						numberKeys: this.numberKeys,
+						stringKeys: this.stringKeys,
 					};
 				}
 
@@ -580,8 +580,8 @@ describe("Serializer Map and Set Tests", () => {
 
 				toJSON() {
 					return {
-						mixedValues: this.mixedValues,
 						bigIntValues: this.bigIntValues,
+						mixedValues: this.mixedValues,
 					};
 				}
 
