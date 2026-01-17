@@ -10,12 +10,17 @@ type SugarBoxVariables<
 
 /** Special information attached to every state snapshot */
 type SugarBoxMetadata = {
-	/** Passage ID for the state snapshot */
+	/** Passage ID for the state snapshot
+	 * 
+	 * @internal
+	 */
 	__id: string;
 
 	/** Current seed of the state at the moment.
 	 *
 	 * **Is a number between 0 and 2^32 - 1 (inclusive).**
+	 * 
+	 * @internal
 	 */
 	__seed: number;
 };
