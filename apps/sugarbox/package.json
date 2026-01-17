@@ -1,23 +1,9 @@
-{ 
-	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
-	"version": "0.8.0",
-	"type": "module",
- 
-	"scripts": {
-		"build": "bunup",
-		"dev": "bunup --watch",
-		"lint": "biome check ./src",
-		"lint:fix": "biome check --write ./src",
-		"format": "biome format ./src",
-		"format:fix": "biome format --write ./src",
-		"tsc": "tsc --noEmit",
-		"test": "bun test",
-		"test:watch": "bun test --watch",
-		"test:coverage": "bun test --coverage",
-		"release": "bumpp --commit --push --tag",
-		"publish:ci": "bunx npm publish --access public --no-git-checks",
-		"prepare": "husky"
+{
+	"dependencies": {
+		"@iceman8911/tiny-prng": "^0.1.2",
+		"@zalari/string-compression-utils": "^0.1.1"
 	},
+	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.5",
 		"@commitlint/cli": "^20.1.0",
@@ -57,9 +43,21 @@
 		"typescript": {
 			"optional": true
 		}
-	}, 
-	"dependencies": {
-		"@iceman8911/tiny-prng": "^0.1.2",
-		"@zalari/string-compression-utils": "^0.1.1"
-	}
+	},
+	"scripts": {
+		"build": "bunup",
+		"dev": "bunup --watch",
+		"format": "biome format --write ./src",
+		"lint": "biome check --write ./src",
+		"prepare": "husky",
+		"publish:ci": "bunx npm publish --access public --no-git-checks",
+		"release": "bumpp --commit --push --tag",
+		"test": "bun test",
+		"test:coverage": "bun test --coverage",
+		"test:watch": "bun test --watch",
+		"tsc": "tsc --noEmit"
+	},
+	"type": "module",
+	"types": "./dist/index.d.ts",
+	"version": "0.8.0"
 }
