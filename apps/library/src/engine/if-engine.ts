@@ -408,7 +408,7 @@ class SugarboxEngine<
 	 *
 	 * May be expensive to calculate depending on the history of the story.
 	 */
-	get vars(): Readonly<TVariables> {
+	get vars(): Readonly<StateWithMetadata<TVariables>> {
 		return this.#varsWithMetadata;
 	}
 

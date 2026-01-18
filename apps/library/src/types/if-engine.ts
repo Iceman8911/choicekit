@@ -12,6 +12,8 @@ type SugarBoxVariables<TStructure extends GenericObject = GenericObject> =
 type SugarBoxMetadata = {
 	/** Passage ID for the state snapshot
 	 *
+	 * Do **not** modify this property if you're using this library.
+	 *
 	 * @internal
 	 */
 	__id: string;
@@ -19,6 +21,8 @@ type SugarBoxMetadata = {
 	/** Current seed of the state at the moment.
 	 *
 	 * **Is a number between 0 and 2^32 - 1 (inclusive).**
+	 *
+	 * Do **not** modify this property if you're using this library.
 	 *
 	 * @internal
 	 */
