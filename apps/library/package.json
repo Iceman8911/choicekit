@@ -46,8 +46,9 @@
 		}
 	},
 	"scripts": {
-		"build": "bunup",
-		"dev": "bunup --watch",
+		"build": "bunup & bun run docgen",
+		"dev": "bunup --watch  & bun run docgen",
+		"docgen": "typedoc src/index.ts --json ../docs/src/generated/docs.json",
 		"format": "biome format --write ./src",
 		"lint": "biome check --write ./src",
 		"prepare": "husky",

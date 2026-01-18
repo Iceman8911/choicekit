@@ -34,7 +34,6 @@
       "dependencies": {
         "@iceman8911/tiny-prng": "^0.1.2",
         "@zalari/string-compression-utils": "^0.1.1",
-        "typedoc": "^0.28.16",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
@@ -47,6 +46,7 @@
         "husky": "^9.1.7",
         "quick-lru": "^7.2.0",
         "turbo": "^2.7.5",
+        "typedoc": "^0.28.16",
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
