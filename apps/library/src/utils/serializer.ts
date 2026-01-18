@@ -30,20 +30,20 @@ const stringify = (obj: unknown): string =>
 // biome-ignore lint/suspicious/noExplicitAny: <Impractical to specify all types here>
 const parse = (str: string): any => transformFromSerialization(JSON.parse(str));
 
+const tranformObjPropsForSerialization = (obj: object) => {
+	const result: GenericObject = {};
+
+	for (const key in obj) {
+		//@ts-expect-error This is not an error
+		result[key] = transformForSerialization(obj[key]);
+	}
+
+	return result;
+};
+
 const transformForSerialization = (
 	obj: unknown,
 ): TransformedDataType | unknown => {
-	const tranformObjPropsForSerialization = (obj: object) => {
-		const result: GenericObject = {};
-
-		for (const key in obj) {
-			//@ts-expect-error This is not an error
-			result[key] = transformForSerialization(obj[key]);
-		}
-
-		return result;
-	};
-
 	if (obj == null) {
 		return obj;
 	}
