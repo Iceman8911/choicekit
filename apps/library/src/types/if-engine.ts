@@ -202,7 +202,10 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 	emitMode?: "perf" | "acc";
 };
 
-type SugarBoxPassage<TPassageType, TPassageTag extends string = string> = {
+type SugarBoxPassage<
+	TPassageType,
+	TPassageTag extends string = string,
+> = Readonly<{
 	/** Unique identifier for the passage in the engine */
 	name: string;
 	/** Passage data. Whatever this is is up to you. */
@@ -210,8 +213,8 @@ type SugarBoxPassage<TPassageType, TPassageTag extends string = string> = {
 	/** Optional tags for querying this and related passages.
 	 *
 	 */
-	tags?: TPassageTag[];
-};
+	tags?: ReadonlyArray<TPassageTag>;
+}>;
 
 export type {
 	SugarBoxVariables,
