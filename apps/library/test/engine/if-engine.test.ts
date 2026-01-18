@@ -3,6 +3,7 @@
 import "@stardazed/streams-polyfill";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { SugarboxEngine } from "../../src";
+import type { GenericObject } from "../../src/types/shared";
 import type {
 	SugarBoxCompatibleClassConstructorCheck,
 	SugarBoxCompatibleClassInstance,
@@ -66,7 +67,7 @@ async function initEngine() {
 	return SugarboxEngine.init({
 		classes: [Player],
 		config: {
-			maxStateCount: 100,
+			maxStates: 100,
 			persistence: createPersistenceAdapter(),
 		},
 		name: "Test",
@@ -83,8 +84,8 @@ async function initEngine() {
 }
 
 async function initEngineWithExtraSettings<
-	TAchievementData extends Record<string, unknown>,
-	TSettingsData extends Record<string, unknown>,
+	TAchievementData extends GenericObject,
+	TSettingsData extends GenericObject,
 >(
 	persistence: ReturnType<typeof createPersistenceAdapter>,
 	achievements?: TAchievementData,
@@ -93,7 +94,7 @@ async function initEngineWithExtraSettings<
 	// This is a simplified version of the main initEngine for test purposes
 	return SugarboxEngine.init<
 		string,
-		Record<string, unknown>,
+		GenericObject,
 		TAchievementData,
 		TSettingsData
 	>({
@@ -559,7 +560,7 @@ describe("Advanced Saving and Loading", () => {
 
 		await engine.saveToSaveSlot(3);
 
-		const saves: Record<string, unknown>[] = [];
+		const saves: GenericObject[] = [];
 
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal") {
@@ -651,7 +652,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.saveToSaveSlot(2);
 
 		// Verify both saves exist
-		const savesBeforeDelete: Record<string, unknown>[] = [];
+		const savesBeforeDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal") {
 				savesBeforeDelete.push(save);
@@ -663,7 +664,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.deleteSaveSlot(1);
 
 		// Verify only slot 2 remains
-		const savesAfterDelete: Record<string, unknown>[] = [];
+		const savesAfterDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal") {
 				savesAfterDelete.push(save);
@@ -746,7 +747,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.saveToSaveSlot();
 
 		// Verify all saves exist
-		const savesBeforeDelete: Record<string, unknown>[] = [];
+		const savesBeforeDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			savesBeforeDelete.push(save);
 		}
@@ -756,7 +757,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.deleteAllSaveSlots();
 
 		// Verify no saves remain
-		const savesAfterDelete: Record<string, unknown>[] = [];
+		const savesAfterDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			savesAfterDelete.push(save);
 		}
@@ -765,7 +766,7 @@ describe("Advanced Saving and Loading", () => {
 
 	test("deleteAllSaveSlots should handle empty save list gracefully", async () => {
 		// Ensure no saves exist
-		const saves: Record<string, unknown>[] = [];
+		const saves: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			saves.push(save);
 		}
@@ -778,7 +779,7 @@ describe("Advanced Saving and Loading", () => {
 	test("deleteSaveSlot should throw when persistence is not available", async () => {
 		// Create an engine without persistence
 		const engineWithoutPersistence = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {},
 			name: "Test",
 			otherPassages: [],
@@ -799,7 +800,7 @@ describe("Advanced Saving and Loading", () => {
 	test("deleteAllSaveSlots should throw when persistence is not available", async () => {
 		// Create an engine without persistence
 		const engineWithoutPersistence = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {},
 			name: "Test",
 			otherPassages: [],
@@ -826,7 +827,7 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
 				saveVersion: `0.1.0`,
@@ -848,7 +849,7 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine2 = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
 				saveVersion: `0.2.0`,
@@ -1034,7 +1035,7 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine1 = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
 				saveVersion: `0.1.0`,
@@ -1049,10 +1050,10 @@ describe("Advanced Saving and Loading", () => {
 
 		// Initialize engine2 with a higher minor version but liberal compatibility
 		const engine2 = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
-				saveCompatibilityMode: "liberal",
+				saveCompat: "liberal",
 				saveVersion: `0.2.0`,
 			},
 			migrations: [], // No migrations defined, as it should be compatible
@@ -1109,7 +1110,7 @@ describe("Advanced Saving and Loading", () => {
 		//@ts-expect-error
 		const engine2 = await SugarboxEngine.init({
 			...engineArgs,
-			config: { ...engineArgs.config, compressSave: false },
+			config: { ...engineArgs.config, compress: false },
 			name: ENGINE_NAME2,
 		});
 
@@ -1154,7 +1155,7 @@ describe("Advanced Saving and Loading", () => {
 		//@ts-expect-error
 		const engine2 = await SugarboxEngine.init({
 			...engineArgs,
-			config: { ...engineArgs.config, compressSave: false },
+			config: { ...engineArgs.config, compress: false },
 		});
 
 		await engine2.loadFromSaveSlot(2);
@@ -1458,7 +1459,7 @@ describe("Events", () => {
 	test("should emit delete events on error", async () => {
 		// Create engine without persistence to trigger error
 		const engineWithoutPersistence = await SugarboxEngine.init({
-			achievements: {} as Record<string, unknown>,
+			achievements: {} as GenericObject,
 			config: {},
 			name: "Test",
 			otherPassages: [],
@@ -1789,7 +1790,7 @@ describe("State Change Events", () => {
 		const performanceEngine = await SugarboxEngine.init({
 			achievements: {},
 			config: {
-				eventOptimization: "performance",
+				emitMode: "perf",
 			},
 			name: "PerformanceTest",
 			otherPassages: [],
@@ -1829,7 +1830,7 @@ describe("State Change Events", () => {
 		// Create engine with performance mode
 		const perfEngine = await SugarboxEngine.init({
 			achievements: {},
-			config: { eventOptimization: "performance" },
+			config: { emitMode: "perf" },
 			name: "PerfTest2",
 			otherPassages: [],
 			startPassage: { name: "Start", passage: "Start" },
@@ -1947,7 +1948,7 @@ describe("Load-Related Events", () => {
 		const perfEngine = await SugarboxEngine.init({
 			achievements: {},
 			config: {
-				eventOptimization: "performance",
+				emitMode: "perf",
 				persistence: createPersistenceAdapter(),
 			},
 			name: "PerfLoadTest",
@@ -2150,7 +2151,7 @@ describe("Load-Related Events", () => {
 			SugarboxEngine.init({
 				achievements: {},
 				config: {
-					eventOptimization: "accuracy",
+					emitMode: "acc",
 					persistence: createPersistenceAdapter(),
 				},
 				name: "AccuracyTest",
@@ -2161,7 +2162,7 @@ describe("Load-Related Events", () => {
 			SugarboxEngine.init({
 				achievements: {},
 				config: {
-					eventOptimization: "performance",
+					emitMode: "perf",
 					persistence: createPersistenceAdapter(),
 				},
 				name: "PerformanceTest",
@@ -2172,7 +2173,7 @@ describe("Load-Related Events", () => {
 		]);
 
 		for (const [index, testEngine] of testEngines.entries()) {
-			const mode = index === 0 ? "accuracy" : "performance";
+			const mode = index === 0 ? "acc" : "perf";
 
 			// Set up state
 			testEngine.setVars((state) => {
@@ -2203,7 +2204,7 @@ describe("Load-Related Events", () => {
 			expect(typeof stateEvent.newState).toBe("object");
 
 			// In accuracy mode, states should be properly isolated
-			if (mode === "accuracy") {
+			if (mode === "acc") {
 				// Test that modifying the oldState doesn't affect the current engine state
 				const originalEngineValue = testEngine.vars.shared.value;
 				stateEvent.oldState.shared.value = 999;

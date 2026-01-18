@@ -2,29 +2,29 @@ import { mock } from "bun:test";
 import QuickLru from "quick-lru";
 import type { SugarBoxCacheAdapter } from "../../src/types/adapters";
 
-const createCacheAdapter: () => SugarBoxCacheAdapter<string, string> = mock(
-	() => {
-		const store = new QuickLru<string, string>({ maxSize: 10 });
+const createCacheAdapter: () => SugarBoxCacheAdapter<{}> = mock(() => {
+	const store = new QuickLru<string, string>({ maxSize: 10 });
 
-		const adapter: SugarBoxCacheAdapter<string, string> = {
-			clear() {
-				store.clear();
-			},
+	const adapter: SugarBoxCacheAdapter<{}> = {
+		clear() {
+			store.clear();
+		},
 
-			delete(key) {
-				store.delete(key);
-			},
-			get(key) {
-				return store.get(key);
-			},
+		delete(key) {
+			store.delete(`${key}`);
+		},
+		get(key) {
+			const val = store.get(`${key}`);
 
-			set(key, val) {
-				store.set(key, val);
-			},
-		};
+			return val ? JSON.parse(val) : null;
+		},
 
-		return adapter;
-	},
-);
+		set(key, val) {
+			store.set(`${key}`, JSON.stringify(val));
+		},
+	};
+
+	return adapter;
+});
 
 export { createCacheAdapter };
