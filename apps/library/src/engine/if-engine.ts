@@ -71,11 +71,6 @@ type SnapshotWithMetadata<TVariables extends GenericObject> = Partial<
 	TVariables & SugarBoxSnapshotMetadata
 >;
 
-type Config<TState extends GenericObject> = Partial<
-	// Didn't use the metadata type since this will be exposed to the consumer
-	SugarBoxConfig<TState>
->;
-
 type SaveStartEvent = { slot: "autosave" | "export" | "recent" | number };
 
 type SaveEndEvent =
@@ -195,17 +190,42 @@ class SugarboxEngine<
 	TAchievementData extends GenericObject = Record<string, boolean>,
 	TSettingsData extends GenericObject = GenericObject,
 > {
+	private declare _type: {
+		engine: SugarboxEngine<
+			TPassageType,
+			TVariables,
+			TAchievementData,
+			TSettingsData
+		>;
+		passage: SugarBoxPassage<TPassageType>;
+		config: SugarBoxConfig<TVariables>;
+		state: {
+			complete: StateWithMetadata<TVariables>;
+			snapshot: SnapshotWithMetadata<TVariables>;
+		};
+		saveData: SugarBoxSaveData<TVariables>;
+		adapter: {
+			cache: SugarBoxCacheAdapter<TVariables>;
+		};
+		events: SugarBoxEvents<
+			TPassageType,
+			TVariables,
+			TAchievementData,
+			TSettingsData
+		>;
+	};
+
 	/** Contains partial updates to the state as a result of moving forwards in the story.
 	 *
 	 * This is also the "state history"
 	 */
-	#stateSnapshots: Array<SnapshotWithMetadata<TVariables>>;
+	#stateSnapshots: Array<typeof this._type.state.snapshot>;
 
 	/**  Contains the structure of stateful variables in the engine.
 	 *
 	 * Will not be modified after initialization.
 	 */
-	#initialState: Readonly<StateWithMetadata<TVariables>>;
+	#initialState: Readonly<typeof this._type.state.complete>;
 
 	/** The current position in the state history that the engine is playing.
 	 *
@@ -213,7 +233,7 @@ class SugarboxEngine<
 	 */
 	#index: number;
 
-	readonly #config: SugarBoxConfig<TVariables>;
+	readonly #config: typeof this._type.config;
 
 	/** Indexed by the passage id.
 	 *
@@ -222,7 +242,7 @@ class SugarboxEngine<
 	#passages = new Map<string, TPassageType>();
 
 	/** Since recalculating the current state can be expensive */
-	#stateCache?: SugarBoxCacheAdapter<TVariables>;
+	#stateCache?: typeof this._type.adapter.cache;
 
 	#eventTarget = new EventTarget();
 
@@ -250,19 +270,12 @@ class SugarboxEngine<
 		readonly name: string,
 		initialState:
 			| TVariables
-			| ((
-					engine: SugarboxEngine<
-						TPassageType,
-						TVariables,
-						TAchievementData,
-						TSettingsData
-					>,
-			  ) => TVariables),
-		startPassage: SugarBoxPassage<TPassageType>,
+			| ((engine: typeof this._type.engine) => TVariables),
+		startPassage: typeof this._type.passage,
 		achievements: TAchievementData,
 		settings: TSettingsData,
-		config: Config<TVariables>,
-		otherPassages: SugarBoxPassage<TPassageType>[],
+		config: Partial<typeof this._type.config>,
+		otherPassages: ReadonlyArray<typeof this._type.passage>,
 	) {
 		const { cache, saveSlots, initialSeed = getRandomInteger() } = config;
 
@@ -346,7 +359,7 @@ class SugarboxEngine<
 		/** Settings data that is not tied to save data, like audio volume, font size, etc */
 		settings?: TSettingsData;
 
-		config?: Config<TVariables>;
+		config?: Partial<SugarBoxConfig<TVariables>>;
 
 		/** If the engine had been intialised before with a lower version.
 		 *
@@ -408,7 +421,7 @@ class SugarboxEngine<
 	 *
 	 * May be expensive to calculate depending on the history of the story.
 	 */
-	get vars(): Readonly<StateWithMetadata<TVariables>> {
+	get vars(): Readonly<typeof this._type.state.complete> {
 		return this.#varsWithMetadata;
 	}
 
@@ -452,6 +465,7 @@ class SugarboxEngine<
 						target[prop] = clone(previousStateValue);
 					}
 				}
+
 				return Reflect.get(target, prop, receiver);
 			},
 		});
@@ -685,24 +699,10 @@ class SugarboxEngine<
 	 *
 	 * @returns a function that can be used to unsubscribe from the event.
 	 */
-	on<
-		TEventType extends keyof SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>,
-	>(
+	on<TEventType extends keyof typeof this._type.events>(
 		type: TEventType,
 		listener: (
-			event: CustomEvent<
-				SugarBoxEvents<
-					TPassageType,
-					TVariables,
-					TAchievementData,
-					TSettingsData
-				>[TEventType]
-			>,
+			event: CustomEvent<(typeof this._type.events)[TEventType]>,
 		) => void,
 		options?: boolean | AddEventListenerOptions,
 	): () => void {
@@ -715,26 +715,10 @@ class SugarboxEngine<
 	}
 
 	/** Unsubscribe from an event */
-	off<
-		TEventType extends keyof SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>,
-	>(
+	off<TEventType extends keyof typeof this._type.events>(
 		type: TEventType,
 		listener:
-			| ((
-					event: CustomEvent<
-						SugarBoxEvents<
-							TPassageType,
-							TVariables,
-							TAchievementData,
-							TSettingsData
-						>[TEventType]
-					>,
-			  ) => void)
+			| ((event: CustomEvent<(typeof this._type.events)[TEventType]>) => void)
 			| null,
 		options?: boolean | AddEventListenerOptions,
 	): void {
@@ -905,13 +889,8 @@ class SugarboxEngine<
 	 *
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	loadSaveFromData(save: SugarBoxSaveData<TVariables>): void {
-		const {
-			intialState,
-			snapshots,
-			storyIndex,
-			saveVersion,
-		}: SugarBoxSaveData<TVariables> = save;
+	loadSaveFromData(save: typeof this._type.saveData): void {
+		const { intialState, snapshots, storyIndex, saveVersion } = save;
 
 		const oldPassage = this.passage;
 
@@ -1401,29 +1380,10 @@ class SugarboxEngine<
 		this.#stateCache?.clear();
 	}
 
-	#createCustomEvent<
-		TEventType extends keyof SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>,
-	>(
+	#createCustomEvent<TEventType extends keyof typeof this._type.events>(
 		name: TEventType,
-		data: SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>[TEventType],
-	): CustomEvent<
-		SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>[TEventType]
-	> {
+		data: (typeof this._type.events)[TEventType],
+	): CustomEvent<(typeof this._type.events)[TEventType]> {
 		return new CustomEvent(name, { detail: data });
 	}
 
@@ -1431,21 +1391,9 @@ class SugarboxEngine<
 		return this.#eventTarget.dispatchEvent(event);
 	}
 
-	#emitCustomEvent<
-		TEventType extends keyof SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>,
-	>(
+	#emitCustomEvent<TEventType extends keyof typeof this._type.events>(
 		name: TEventType,
-		data: SugarBoxEvents<
-			TPassageType,
-			TVariables,
-			TAchievementData,
-			TSettingsData
-		>[TEventType],
+		data: (typeof this._type.events)[TEventType],
 	): boolean {
 		const dispatchResult = this.#dispatchCustomEvent(
 			this.#createCustomEvent(name, data),
