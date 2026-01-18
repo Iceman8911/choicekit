@@ -9,7 +9,7 @@ type SugarBoxVariables<TStructure extends GenericObject = GenericObject> =
 	TStructure;
 
 /** Special information attached to every state snapshot */
-type SugarBoxMetadata = {
+type SugarBoxSnapshotMetadata = {
 	/** Passage ID for the state snapshot
 	 *
 	 * Do **not** modify this property if you're using this library.
@@ -54,9 +54,11 @@ type SugarBoxAnyKey =
  */
 type SugarBoxSaveData<TStructure extends GenericObject = GenericObject> =
 	Readonly<{
-		intialState: SugarBoxVariables<TStructure> & SugarBoxMetadata;
+		intialState: SugarBoxVariables<TStructure> & SugarBoxSnapshotMetadata;
 
-		snapshots: Partial<SugarBoxVariables<TStructure> & SugarBoxMetadata>[];
+		snapshots: Partial<
+			SugarBoxVariables<TStructure> & SugarBoxSnapshotMetadata
+		>[];
 
 		storyIndex: number;
 
@@ -209,7 +211,7 @@ type SugarBoxPassage<TPassageType> = {
 export type {
 	SugarBoxVariables,
 	SugarBoxConfig,
-	SugarBoxMetadata,
+	SugarBoxSnapshotMetadata,
 	SugarBoxNormalSaveKey,
 	SugarBoxAnyKey,
 	SugarBoxSaveKey,

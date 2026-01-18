@@ -14,12 +14,12 @@ import type {
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
 	SugarBoxExportData,
-	SugarBoxMetadata,
 	SugarBoxNormalSaveKey,
 	SugarBoxPassage,
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
 	SugarBoxSettingsKey,
+	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
 import type { GenericObject } from "../types/shared";
 import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
@@ -65,10 +65,10 @@ const MINIMUM_SAVE_SLOTS = 1;
 const SAVE_COMPRESSION_FORMAT = "gzip" satisfies CompressionFormat;
 
 type StateWithMetadata<TVariables extends GenericObject> = TVariables &
-	SugarBoxMetadata;
+	SugarBoxSnapshotMetadata;
 
 type SnapshotWithMetadata<TVariables extends GenericObject> = Partial<
-	TVariables & SugarBoxMetadata
+	TVariables & SugarBoxSnapshotMetadata
 >;
 
 type Config<TState extends GenericObject> = Partial<
