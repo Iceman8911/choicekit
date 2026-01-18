@@ -104,7 +104,7 @@ type SugarBoxConfig<
 	TStructure extends Record<string, unknown> = Record<string, unknown>,
 > = {
 	/** Maximum number of individual states that will be stored before old ones get merged into each other */
-	maxStateCount: number;
+	maxStates: number;
 
 	/** Number of individual states that will be merged into one when the state fills up */
 	stateMergeCount: number;
@@ -131,7 +131,7 @@ type SugarBoxConfig<
 	 *
 	 * @default "strict"
 	 */
-	saveCompatibilityMode: SugarBoxSaveVersionCompatiblityMode;
+	saveCompat: SugarBoxSaveVersionCompatiblityMode;
 
 	/** If set to `passage`, the story variables are saved on every passage navigation to a special save slot
 	 *
@@ -148,11 +148,11 @@ type SugarBoxConfig<
 	 */
 	loadOnStart: boolean;
 
-	/** Determines whether or not save data will be compresses.
+	/** Determines whether or not save/achievement/settings data will be compressed.
 	 *
 	 * @default true
 	 */
-	compressSave: boolean;
+	compress: boolean;
 
 	/** Intial seed for predictable rng.
 	 *
@@ -186,17 +186,17 @@ type SugarBoxConfig<
 	 * `:stateChange` events, balancing between performance and data accuracy.
 	 *
 	 * **Performance Impact:**
-	 * - `accuracy`: Deep clones the old state before modifications, ensuring complete
+	 * - `acc` (acc): Deep clones the old state before modifications, ensuring complete
 	 *   isolation between `oldState` and `newState` objects. Use when you need
 	 *   guaranteed data integrity but may impact performance with large state objects.
 	 *
-	 * - `performance`: Avoids deep cloning for better performance. In rare edge cases
+	 * - `perf` (performance): Avoids deep cloning for better performance. In rare edge cases
 	 *   with complex state caching scenarios, `oldState` and `newState` might reference
 	 *   the same object, but provides significant performance benefits for large states.
 	 *
 	 * @default "accuracy"
 	 */
-	eventOptimization?: "performance" | "accuracy";
+	emitMode?: "perf" | "acc";
 };
 
 type SugarBoxPassage<TPassageType> = {

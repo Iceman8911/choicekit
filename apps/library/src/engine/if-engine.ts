@@ -37,17 +37,17 @@ import {
 const defaultConfig = {
 	autoSave: false,
 
-	compressSave: true,
+	compress: true,
 
-	eventOptimization: "accuracy",
+	emitMode: "acc",
 
 	loadOnStart: true,
 
-	maxStateCount: 100,
+	maxStates: 100,
 
 	regenSeed: "passage",
 
-	saveCompatibilityMode: "strict",
+	saveCompat: "strict",
 
 	saveSlots: 20,
 
@@ -446,9 +446,8 @@ class SugarboxEngine<
 						//@ts-expect-error TS is confused
 						target[prop] = clone(previousStateValue);
 					}
-
-					return Reflect.get(target, prop, receiver);
 				}
+				return Reflect.get(target, prop, receiver);
 			},
 		});
 
@@ -781,7 +780,11 @@ class SugarboxEngine<
 			"save",
 			saveSlot,
 			async () => {
-				const { persistence, saveVersion, compressSave } = this.#config;
+				const {
+					persistence,
+					saveVersion,
+					compress: compressSave,
+				} = this.#config;
 
 				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
 
@@ -908,7 +911,8 @@ class SugarboxEngine<
 
 		const oldState = this.#shouldCloneOldState ? clone(this.vars) : this.vars;
 
-		const { saveCompatibilityMode, saveVersion: engineVersion } = this.#config;
+		const { saveCompat: saveCompatibilityMode, saveVersion: engineVersion } =
+			this.#config;
 
 		const saveCompatibility = isSaveCompatibleWithEngine(
 			saveVersion,
@@ -1083,7 +1087,7 @@ class SugarboxEngine<
 
 				const stringifiedExportData = stringify(exportData);
 
-				if (this.#config.compressSave) {
+				if (this.#config.compress) {
 					return compress(stringifiedExportData, SAVE_COMPRESSION_FORMAT);
 				}
 
@@ -1244,7 +1248,7 @@ class SugarboxEngine<
 	 * This will replace any existing state at the current index + 1.
 	 */
 	#addNewSnapshot(): SnapshotWithMetadata<TVariables> {
-		const { maxStateCount, stateMergeCount } = this.#config;
+		const { maxStates: maxStateCount, stateMergeCount } = this.#config;
 
 		if (this.#snapshotCount >= maxStateCount) {
 			// If the maximum number of states is reached, merge the last two snapshots
@@ -1557,7 +1561,7 @@ class SugarboxEngine<
 	}
 
 	get #shouldCloneOldState(): boolean {
-		return this.#config.eventOptimization !== "performance";
+		return this.#config.emitMode !== "perf";
 	}
 }
 
