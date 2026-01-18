@@ -185,7 +185,7 @@ type SugarBoxSaveMigrationMap<
  * Dispatches custom events that can be listened to with "addEventListener"
  */
 class SugarboxEngine<
-	TPassageType,
+	TPassageData,
 	TVariables extends GenericObject = GenericObject,
 	TPassageTag extends string = string,
 	TAchievementData extends GenericObject = Record<string, boolean>,
@@ -193,13 +193,13 @@ class SugarboxEngine<
 > {
 	private declare _type: {
 		engine: SugarboxEngine<
-			TPassageType,
+			TPassageData,
 			TVariables,
 			TPassageTag,
 			TAchievementData,
 			TSettingsData
 		>;
-		passage: SugarBoxPassage<TPassageType, TPassageTag>;
+		passage: SugarBoxPassage<TPassageData, TPassageTag>;
 		config: SugarBoxConfig<TVariables>;
 		state: {
 			complete: StateWithMetadata<TVariables>;
@@ -210,7 +210,7 @@ class SugarboxEngine<
 			cache: SugarBoxCacheAdapter<TVariables>;
 		};
 		events: SugarBoxEvents<
-			TPassageType,
+			TPassageData,
 			TVariables,
 			TAchievementData,
 			TSettingsData
@@ -241,7 +241,7 @@ class SugarboxEngine<
 	 *
 	 * Each value is the passage data, which could be a html string, markdown string, regular string, or more complex things like a jsx component, etc.
 	 */
-	#passages = new Map<string, TPassageType>();
+	#passages = new Map<string, TPassageData>();
 
 	/** Since recalculating the current state can be expensive */
 	#stateCache?: typeof this._type.adapter.cache;
@@ -511,7 +511,7 @@ class SugarboxEngine<
 	 *
 	 * If the passage does not exist, returns `null`.
 	 */
-	get passage(): TPassageType | null {
+	get passage(): TPassageData | null {
 		return this.#passages.get(this.passageId) ?? null;
 	}
 
@@ -642,12 +642,12 @@ class SugarboxEngine<
 	 *
 	 * If the passage already exists, it will be overwritten.
 	 */
-	addPassage(passageId: string, passageData: TPassageType): void {
+	addPassage(passageId: string, passageData: TPassageData): void {
 		this.#passages.set(passageId, passageData);
 	}
 
 	/** Like `addPassage`, but takes in a collection */
-	addPassages(passages: SugarBoxPassage<TPassageType>[]): void {
+	addPassages(passages: SugarBoxPassage<TPassageData>[]): void {
 		for (const { name, passage } of passages) {
 			this.addPassage(name, passage);
 		}
