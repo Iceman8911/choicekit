@@ -72,7 +72,7 @@ async function initEngine() {
 		},
 		name: "Test",
 		otherPassages: [...SAMPLE_PASSAGES] as { name: string; passage: string }[],
-		startPassage: { name: "Start", passage: "This is the start passage" },
+		startPassage: { data: "This is the start passage", name: "Start" },
 		variables: {
 			others: {
 				hoursPlayed: 1.5,
@@ -107,7 +107,7 @@ async function initEngineWithExtraSettings<
 		otherPassages: [],
 		//@ts-expect-error Generic woes
 		settings: settings ?? {},
-		startPassage: { name: "Start", passage: "This is the start passage" },
+		startPassage: { data: "This is the start passage", name: "Start" },
 		variables: {},
 	});
 }
@@ -468,8 +468,8 @@ describe("Autosave", () => {
 				persistence,
 			},
 			name: "AutoSaveTest",
-			otherPassages: [{ name: "Next", passage: "Next passage." }],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			otherPassages: [{ data: "Next passage.", name: "Next" }],
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { counter: 0 },
 		});
 
@@ -509,7 +509,7 @@ describe("Autosave", () => {
 			},
 			name: "AutoSaveTest2",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { counter: 0 },
 		});
 
@@ -783,7 +783,7 @@ describe("Advanced Saving and Loading", () => {
 			config: {},
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -804,7 +804,7 @@ describe("Advanced Saving and Loading", () => {
 			config: {},
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -834,7 +834,7 @@ describe("Advanced Saving and Loading", () => {
 			},
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { prop1: 12, prop2: "45" } as Version_0_1_0_Variables,
 		});
 
@@ -871,7 +871,7 @@ describe("Advanced Saving and Loading", () => {
 			],
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: {
 				prop1: "1",
 				prop2: 12,
@@ -935,7 +935,7 @@ describe("Advanced Saving and Loading", () => {
 			],
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: {} as Version_0_3_0_Variables,
 		});
 
@@ -987,7 +987,7 @@ describe("Advanced Saving and Loading", () => {
 			migrations,
 			name: "migration-events-test",
 			otherPassages: [],
-			startPassage: { name: "start", passage: "Start" },
+			startPassage: { data: "Start", name: "start" },
 			variables: { bar: 0, baz: false, foo: "init" },
 		});
 
@@ -1042,7 +1042,7 @@ describe("Advanced Saving and Loading", () => {
 			},
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { prop1: 123, prop2: "abc" } as Version_0_1_0_Variables,
 		});
 
@@ -1059,7 +1059,7 @@ describe("Advanced Saving and Loading", () => {
 			migrations: [], // No migrations defined, as it should be compatible
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { prop1: 0, prop2: "" } as Version_0_1_0_Variables, // Variables type should match the loaded save structure
 		});
 
@@ -1463,7 +1463,7 @@ describe("Events", () => {
 			config: {},
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -1794,7 +1794,7 @@ describe("State Change Events", () => {
 			},
 			name: "PerformanceTest",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: { counter: 0, data: { value: 1 } },
 		});
 
@@ -1833,7 +1833,7 @@ describe("State Change Events", () => {
 			config: { emitMode: "perf" },
 			name: "PerfTest2",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start" },
+			startPassage: { data: "Start", name: "Start" },
 			variables: { counter: 0, test: { value: 1 } },
 		});
 
@@ -1952,8 +1952,8 @@ describe("Load-Related Events", () => {
 				persistence: createPersistenceAdapter(),
 			},
 			name: "PerfLoadTest",
-			otherPassages: [{ name: "Test", passage: "Test passage" }],
-			startPassage: { name: "Start", passage: "Start passage" },
+			otherPassages: [{ data: "Test passage", name: "Test" }],
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: { counter: 0, data: { value: 1 } },
 		});
 
@@ -2025,8 +2025,8 @@ describe("Load-Related Events", () => {
 				persistence,
 			},
 			name: "AutoLoadTest",
-			otherPassages: [{ name: "Auto", passage: "Auto passage" }],
-			startPassage: { name: "Start", passage: "Start passage" },
+			otherPassages: [{ data: "Auto passage", name: "Auto" }],
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: { test: "initial" },
 		});
 
@@ -2156,7 +2156,7 @@ describe("Load-Related Events", () => {
 				},
 				name: "AccuracyTest",
 				otherPassages: [],
-				startPassage: { name: "Start", passage: "Start" },
+				startPassage: { data: "Start", name: "Start" },
 				variables: { shared: { value: 1 } },
 			}),
 			SugarboxEngine.init({
@@ -2167,7 +2167,7 @@ describe("Load-Related Events", () => {
 				},
 				name: "PerformanceTest",
 				otherPassages: [],
-				startPassage: { name: "Start", passage: "Start" },
+				startPassage: { data: "Start", name: "Start" },
 				variables: { shared: { value: 1 } },
 			}),
 		]);
@@ -2582,7 +2582,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "Test1",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2593,7 +2593,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "Test2",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2622,7 +2622,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "NoRegen",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2632,8 +2632,8 @@ describe("PRNG and Random Number Generation", () => {
 				regenSeed: "passage",
 			},
 			name: "WithRegen",
-			otherPassages: [{ name: "Next", passage: "Next passage" }],
-			startPassage: { name: "Start", passage: "Start passage" },
+			otherPassages: [{ data: "Next passage", name: "Next" }],
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2662,10 +2662,10 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "PassageRegen",
 			otherPassages: [
-				{ name: "Passage1", passage: "First passage" },
-				{ name: "Passage2", passage: "Second passage" },
+				{ data: "First passage", name: "Passage1" },
+				{ data: "Second passage", name: "Passage2" },
 			],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2694,7 +2694,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "EachCallRegen",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2719,7 +2719,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "SaveLoadRandom",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2759,10 +2759,10 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "HistoryRandom",
 			otherPassages: [
-				{ name: "Passage1", passage: "First passage" },
-				{ name: "Passage2", passage: "Second passage" },
+				{ data: "First passage", name: "Passage1" },
+				{ data: "Second passage", name: "Passage2" },
 			],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2795,7 +2795,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "RangeTest",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2815,7 +2815,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "ExportImportRandom",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Start passage" },
+			startPassage: { data: "Start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -2923,7 +2923,7 @@ describe("PRNG and Random Number Generation", () => {
 			},
 			name: "RecursiveObjectTest",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Test passage" },
+			startPassage: { data: "Test passage", name: "Start" },
 			variables: {
 				chestInventory: new Inventory("treasure-chest"),
 				playerInventory: new Inventory("player"),
@@ -3030,7 +3030,7 @@ describe("Error Conditions and Edge Cases", () => {
 			},
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { testProp: "oldValue" },
 		});
 		await engine1.saveToSaveSlot(1);
@@ -3056,7 +3056,7 @@ describe("Error Conditions and Edge Cases", () => {
 			],
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: { testProp: "defaultValue" },
 		});
 
@@ -3080,7 +3080,7 @@ describe("Error Conditions and Edge Cases", () => {
 			config: { persistence },
 			name: "Test",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			startPassage: { data: "This is the start passage", name: "Start" },
 			variables: {},
 		});
 
@@ -3153,7 +3153,7 @@ describe("Dynamic Initial State", () => {
 			},
 			name: "StaticTest",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Welcome!" },
+			startPassage: { data: "Welcome!", name: "Start" },
 			variables: staticVariables,
 		});
 
@@ -3175,7 +3175,7 @@ describe("Dynamic Initial State", () => {
 			},
 			name: "DynamicTest",
 			otherPassages: [],
-			startPassage: { name: "Start", passage: "Welcome!" },
+			startPassage: { data: "Welcome!", name: "Start" },
 			variables: dynamicVariables,
 		});
 
@@ -3223,7 +3223,7 @@ describe("Dynamic Initial State", () => {
 			name: "PropertyAccessTest",
 			otherPassages: [],
 			settings: { volume: 0.8 },
-			startPassage: { name: "TestStart", passage: "Test content" },
+			startPassage: { data: "Test content", name: "TestStart" },
 			variables: dynamicVariables,
 		});
 
@@ -3248,7 +3248,7 @@ describe("Dynamic Initial State", () => {
 			},
 			name: "PreservePropsTest",
 			otherPassages: [],
-			startPassage: { name: "CorrectStart", passage: "Content" },
+			startPassage: { data: "Content", name: "CorrectStart" },
 			variables: dynamicVariables,
 		});
 

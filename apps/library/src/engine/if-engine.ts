@@ -210,7 +210,7 @@ class SugarboxEngine<
 			cache: SugarBoxCacheAdapter<TVariables>;
 		};
 		events: SugarBoxEvents<
-			TPassageData,
+			SugarBoxPassage<TPassageData, TPassageTag>,
 			TVariables,
 			TAchievementData,
 			TSettingsData
@@ -241,7 +241,7 @@ class SugarboxEngine<
 	 *
 	 * Each value is the passage data, which could be a html string, markdown string, regular string, or more complex things like a jsx component, etc.
 	 */
-	#passages = new Map<string, TPassageData>();
+	#passages = new Map<string, typeof this._type.passage>();
 
 	/** Since recalculating the current state can be expensive */
 	#stateCache?: typeof this._type.adapter.cache;
@@ -294,7 +294,7 @@ class SugarboxEngine<
 
 		this.#config = { ...defaultConfig, ...config };
 
-		this.addPassages([startPassage, ...otherPassages]);
+		this.addPassages(startPassage, ...otherPassages);
 
 		if (cache) {
 			this.#stateCache = cache;
@@ -511,7 +511,7 @@ class SugarboxEngine<
 	 *
 	 * If the passage does not exist, returns `null`.
 	 */
-	get passage(): TPassageData | null {
+	get passage(): typeof this._type.passage | null {
 		return this.#passages.get(this.passageId) ?? null;
 	}
 
@@ -642,14 +642,14 @@ class SugarboxEngine<
 	 *
 	 * If the passage already exists, it will be overwritten.
 	 */
-	addPassage(passageId: string, passageData: TPassageData): void {
-		this.#passages.set(passageId, passageData);
+	addPassage(passageData: typeof this._type.passage): void {
+		this.#passages.set(passageData.name, passageData);
 	}
 
 	/** Like `addPassage`, but takes in a collection */
-	addPassages(passages: SugarBoxPassage<TPassageData>[]): void {
-		for (const { name, passage } of passages) {
-			this.addPassage(name, passage);
+	addPassages(...passageData: ReadonlyArray<typeof this._type.passage>): void {
+		for (const passageDatum of passageData) {
+			this.addPassage(passageDatum);
 		}
 	}
 
