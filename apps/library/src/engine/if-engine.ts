@@ -411,7 +411,7 @@ class SugarboxEngine<
 		await Promise.allSettled([
 			engine.#loadAchievements(),
 			engine.#loadSettings(),
-			loadOnStart ? engine.loadRecentSave() : Promise.resolve(null),
+			loadOnStart ? engine.loadRecentSave() : Promise.resolve(),
 		]);
 
 		return engine;
