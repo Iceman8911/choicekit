@@ -1,41 +1,47 @@
-import { defineConfig } from "@solidjs/start/config";
 import { withSolidBase } from "@kobalte/solidbase/config";
+import { defineConfig } from "@solidjs/start/config";
 
-export default defineConfig(withSolidBase(
-  // SolidStart config
-  {
-    server: {
-      prerender: {
-        crawlLinks: true
-      }
-    }
-  },
-  // SolidBase config
-  {
-    title: "SolidBase",
-    titleTemplate: ":title - SolidBase",
-    description: "Fully featured, fully customisable static site generation for SolidStart",
-    themeConfig: {
-      sidebar: {
-        "/": {
-          items: [
-            {
-              title: "Overview",
-              collapsed: false,
-              items: [
-                {
-                  title: "Home",
-                  link: "/"
-                },
-                {
-                  title: "About",
-                  link: "/about"
-                }
-              ]
-            }
-          ]
-        }
-      }
-    }
-  }
-));
+export default defineConfig(
+	withSolidBase(
+		// SolidStart config
+		{
+			server: {
+				prerender: {
+					crawlLinks: true,
+				},
+			},
+		},
+		// SolidBase config
+		{
+			description:
+				"Twine Sugarcube-inspired headless interative fiction library.",
+
+			editPath: "https://github.com/Iceman8911/sugarbox/edit/main/docs/:path",
+			issueAutolink: "https://github.com/Iceman8911/sugarbox/issues/:issue",
+			themeConfig: {
+				sidebar: {
+					"/": {
+						items: [
+							{
+								collapsed: false,
+								items: [
+									{
+										link: "/",
+										title: "Home",
+									},
+									{
+										link: "/about",
+										title: "About",
+									},
+								],
+								title: "Overview",
+							},
+						],
+					},
+				},
+			},
+			title: "Sugarbox",
+			titleTemplate: ":title - SolidBase",
+		},
+	),
+);
