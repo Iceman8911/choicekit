@@ -1073,6 +1073,8 @@ class SugarboxEngine<
 			"save",
 			"export",
 			async () => {
+				const { saveVersion, compress } = this.#config;
+
 				const exportData: SugarBoxExportData<
 					TVariables,
 					TSettingsData,
@@ -1084,7 +1086,7 @@ class SugarboxEngine<
 						lastPassageId: this.passageId,
 
 						savedOn: new Date(),
-						saveVersion: this.#config.saveVersion,
+						saveVersion,
 						snapshots: this.#stateSnapshots,
 						storyIndex: this.#index,
 					},
@@ -1095,7 +1097,7 @@ class SugarboxEngine<
 
 				const finalDataToExport = await maybeCompressString(
 					stringifiedExportData,
-					this.#config.compress,
+					compress,
 				);
 
 				return finalDataToExport;
