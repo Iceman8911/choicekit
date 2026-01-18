@@ -417,14 +417,6 @@ class SugarboxEngine<
 		return engine;
 	}
 
-	/** Returns a readonly copy of the current state of stored variables.
-	 *
-	 * May be expensive to calculate depending on the history of the story.
-	 */
-	get vars(): Readonly<typeof this._type.state.complete> {
-		return this.#varsWithMetadata;
-	}
-
 	/** Immer-style way of updating story variables
 	 *
 	 * Use this **solely** for setting values. If you must read a value, use `this.vars`
@@ -443,9 +435,7 @@ class SugarboxEngine<
 
 		const snapshot = self.#getSnapshotAtIndex(self.#index);
 
-		const oldState = this.#shouldCloneOldState
-			? clone(self.#varsWithMetadata)
-			: self.#varsWithMetadata;
+		const oldState = this.#shouldCloneOldState ? clone(self.vars) : self.vars;
 
 		type SnapshotProp = keyof typeof snapshot | symbol;
 
@@ -494,9 +484,16 @@ class SugarboxEngine<
 		}
 	}
 
+	/** Returns a readonly copy of the current state of stored variables.
+	 *
+	 * May be expensive to calculate depending on the history of the story. */
+	get vars(): Readonly<typeof this._type.state.complete> {
+		return this.#getStateAtIndex(this.#index);
+	}
+
 	/** Returns the id to the appropriate passage for the current state */
 	get passageId(): string {
-		return this.#varsWithMetadata.__id;
+		return this.vars.__id;
 	}
 
 	/** Returns the passage data for the current state.
@@ -663,7 +660,7 @@ class SugarboxEngine<
 
 		const newSnapshot = this.#addNewSnapshot();
 
-		if (this.#varsWithMetadata.__id !== passageId) {
+		if (this.vars.__id !== passageId) {
 			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `__id` property
 			newSnapshot.__id = passageId;
 		}
@@ -946,8 +943,7 @@ class SugarboxEngine<
 						});
 
 						try {
-							const currentStateToMigrate =
-								migratedState ?? this.#varsWithMetadata;
+							const currentStateToMigrate = migratedState ?? this.vars;
 							migratedState = migrater(currentStateToMigrate);
 
 							this.#emitCustomEvent(":migrationEnd", {
@@ -1214,9 +1210,7 @@ class SugarboxEngine<
 
 		const oldPassage = this.passage;
 
-		const oldState = this.#shouldCloneOldState
-			? clone(this.#varsWithMetadata)
-			: this.#varsWithMetadata;
+		const oldState = this.#shouldCloneOldState ? clone(this.vars) : this.vars;
 
 		this.#index = val;
 
@@ -1256,11 +1250,6 @@ class SugarboxEngine<
 
 	get #lastSnapshotIndex(): number {
 		return this.#snapshotCount - 1;
-	}
-
-	/** Since `this.vars` is purposely limited typescript-wise */
-	get #varsWithMetadata(): Readonly<StateWithMetadata<TVariables>> {
-		return this.#getStateAtIndex(this.#index);
 	}
 
 	/** Inclusively combines the snapshots within the given range of indexes to free up space.
@@ -1516,7 +1505,7 @@ class SugarboxEngine<
 	}
 
 	get #currentStatePrngSeed(): number {
-		return this.#varsWithMetadata.__seed;
+		return this.vars.__seed;
 	}
 
 	/** Since the seed is stored in each snapshot and reinitializing the class isn't expensive, there's not much use in having a dedicated prng prop */
