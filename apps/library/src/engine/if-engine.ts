@@ -21,6 +21,7 @@ import type {
 	SugarBoxSaveKey,
 	SugarBoxSettingsKey,
 } from "../types/if-engine";
+import type { GenericObject } from "../types/shared";
 import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
 import { clone } from "../utils/clone";
 import { isStringJsonObjectOrCompressedString } from "../utils/compression";
@@ -62,14 +63,14 @@ const MINIMUM_SAVE_SLOTS = 1;
 
 const SAVE_COMPRESSION_FORMAT = "gzip" satisfies CompressionFormat;
 
-type StateWithMetadata<TVariables extends Record<string, unknown>> =
-	TVariables & SugarBoxMetadata;
+type StateWithMetadata<TVariables extends GenericObject> = TVariables &
+	SugarBoxMetadata;
 
-type SnapshotWithMetadata<TVariables extends Record<string, unknown>> = Partial<
+type SnapshotWithMetadata<TVariables extends GenericObject> = Partial<
 	TVariables & SugarBoxMetadata
 >;
 
-type Config<TState extends Record<string, unknown>> = Partial<
+type Config<TState extends GenericObject> = Partial<
 	// Didn't use the metadata type since this will be exposed to the consumer
 	SugarBoxConfig<TState>
 >;
@@ -189,9 +190,9 @@ type SugarBoxSaveMigrationMap<
  */
 class SugarboxEngine<
 	TPassageType,
-	TVariables extends Record<string, unknown> = Record<string, unknown>,
-	TAchievementData extends Record<string, unknown> = Record<string, boolean>,
-	TSettingsData extends Record<string, unknown> = Record<string, unknown>,
+	TVariables extends GenericObject = GenericObject,
+	TAchievementData extends GenericObject = Record<string, boolean>,
+	TSettingsData extends GenericObject = GenericObject,
 > {
 	/** Contains partial updates to the state as a result of moving forwards in the story.
 	 *
@@ -302,9 +303,9 @@ class SugarboxEngine<
 	/** Use this to initialize the engine */
 	static async init<
 		TPassageType,
-		TVariables extends Record<string, unknown> = Record<string, unknown>,
-		TAchievementData extends Record<string, unknown> = Record<string, boolean>,
-		TSettingsData extends Record<string, unknown> = Record<string, unknown>,
+		TVariables extends GenericObject = GenericObject,
+		TAchievementData extends GenericObject = Record<string, boolean>,
+		TSettingsData extends GenericObject = GenericObject,
 	>(args: {
 		/** Name of the engine. Engines initalized with the same name have access to the same saves, acheivements, and story-specific settings */
 		name: string;

@@ -7,6 +7,7 @@ import type {
 	TransformedRegex,
 	TransformedSet,
 } from "../types/serializer";
+import type { GenericObject } from "../types/shared";
 import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
 
 type ClassConstructor = SugarBoxCompatibleClassConstructor<unknown>;
@@ -33,7 +34,7 @@ const transformForSerialization = (
 	obj: unknown,
 ): TransformedDataType | unknown => {
 	const tranformObjPropsForSerialization = (obj: object) => {
-		const result: Record<string, unknown> = {};
+		const result: GenericObject = {};
 
 		for (const key in obj) {
 			//@ts-expect-error This is not an error
@@ -189,7 +190,7 @@ const transformFromSerialization = (obj: unknown): unknown => {
 			}
 		} else {
 			// Handle regular objects
-			const result: Record<string, unknown> = {};
+			const result: GenericObject = {};
 
 			for (const key in obj) {
 				//@ts-expect-error This is not an error

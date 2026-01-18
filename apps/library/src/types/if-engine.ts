@@ -3,10 +3,10 @@ import type {
 	SugarBoxCacheAdapter,
 	SugarBoxPersistenceAdapter,
 } from "./adapters";
+import type { GenericObject } from "./shared";
 
-type SugarBoxVariables<
-	TStructure extends Record<string, unknown> = Record<string, unknown>,
-> = TStructure;
+type SugarBoxVariables<TStructure extends GenericObject = GenericObject> =
+	TStructure;
 
 /** Special information attached to every state snapshot */
 type SugarBoxMetadata = {
@@ -48,40 +48,39 @@ type SugarBoxAnyKey =
  *
  * Contains initial state, snapshots, current story index and other relevant metadata
  */
-type SugarBoxSaveData<
-	TStructure extends Record<string, unknown> = Record<string, unknown>,
-> = Readonly<{
-	intialState: SugarBoxVariables<TStructure> & SugarBoxMetadata;
+type SugarBoxSaveData<TStructure extends GenericObject = GenericObject> =
+	Readonly<{
+		intialState: SugarBoxVariables<TStructure> & SugarBoxMetadata;
 
-	snapshots: Partial<SugarBoxVariables<TStructure> & SugarBoxMetadata>[];
+		snapshots: Partial<SugarBoxVariables<TStructure> & SugarBoxMetadata>[];
 
-	storyIndex: number;
+		storyIndex: number;
 
-	// Save metadata
-	/** When the save was created */
-	savedOn: Date;
+		// Save metadata
+		/** When the save was created */
+		savedOn: Date;
 
-	/** ID of the last passage that was navigated to */
-	lastPassageId: string;
+		/** ID of the last passage that was navigated to */
+		lastPassageId: string;
 
-	/** A user-provided description for the save. TODO */
-	// description?: string;
+		/** A user-provided description for the save. TODO */
+		// description?: string;
 
-	/** Total play time in seconds. TODO */
-	// playtimeInSeconds: number;
+		/** Total play time in seconds. TODO */
+		// playtimeInSeconds: number;
 
-	/** The version of the story associated with this save */
-	saveVersion: SugarBoxSemanticVersionString;
-}>;
+		/** The version of the story associated with this save */
+		saveVersion: SugarBoxSemanticVersionString;
+	}>;
 
 /** Export data structure used for saving the state of the engine to disk.
  *
  * Contains save data, settings, and achievements
  */
 type SugarBoxExportData<
-	TSaveData extends Record<string, unknown> = Record<string, unknown>,
-	TSettingsData extends Record<string, unknown> = Record<string, unknown>,
-	TAchievementData extends Record<string, unknown> = Record<string, boolean>,
+	TSaveData extends GenericObject = GenericObject,
+	TSettingsData extends GenericObject = GenericObject,
+	TAchievementData extends GenericObject = Record<string, boolean>,
 > = {
 	saveData: SugarBoxSaveData<TSaveData>;
 
@@ -100,9 +99,7 @@ type SugarBoxExportData<
  */
 type SugarBoxSaveVersionCompatiblityMode = "strict" | "liberal";
 
-type SugarBoxConfig<
-	TStructure extends Record<string, unknown> = Record<string, unknown>,
-> = {
+type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 	/** Maximum number of individual states that will be stored before old ones get merged into each other */
 	maxStates: number;
 

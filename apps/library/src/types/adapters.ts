@@ -1,4 +1,5 @@
 import type { SugarBoxAnyKey, SugarBoxMetadata } from "./if-engine";
+import type { GenericObject } from "./shared";
 
 /** Interface that any cache infrastructure must abide to */
 type CacheAdapter<TKey, TData> = {
@@ -12,8 +13,10 @@ type CacheAdapter<TKey, TData> = {
 };
 
 /** Cache Adapter specifically for caching the state of variables */
-type SugarBoxCacheAdapter<TStateVariables extends Record<string, unknown>> =
-	CacheAdapter<number, TStateVariables & SugarBoxMetadata>;
+type SugarBoxCacheAdapter<TStateVariables extends GenericObject> = CacheAdapter<
+	number,
+	TStateVariables & SugarBoxMetadata
+>;
 
 /** Interface that any persistence infrastructure must abide to */
 type PersistenceAdapter<TKey, TData> = {
