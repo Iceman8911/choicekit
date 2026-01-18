@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { clone } from "../../src/utils/clone";
 import {
+	clone,
 	deserialize,
 	registerClass,
 	serialize,
-} from "../../src/utils/serializer";
+} from "@packages/serializer";
 
 // Custom class that contains Map and Set for testing
 class GamePlayerData {

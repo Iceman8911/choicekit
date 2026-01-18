@@ -1,6 +1,7 @@
 {
 	"dependencies": {
 		"@iceman8911/tiny-prng": "^0.1.2",
+		"@packages/serializer": "workspace:*",
 		"@zalari/string-compression-utils": "^0.1.1"
 	},
 	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",

@@ -6,6 +6,12 @@
 // - The current state snapshot is the last state in the list, which is mutable.
 
 import { PRNG } from "@iceman8911/tiny-prng";
+import {
+	clone,
+	deserialize as parse,
+	registerClass,
+	serialize as stringify,
+} from "@packages/serializer";
 import { compress, decompress } from "@zalari/string-compression-utils";
 import type { SugarBoxCacheAdapter } from "../types/adapters";
 import type {
@@ -23,13 +29,7 @@ import type {
 } from "../types/if-engine";
 import type { GenericObject } from "../types/shared";
 import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
-import { clone } from "../utils/clone";
 import { isStringJsonObjectOrCompressedString } from "../utils/compression";
-import {
-	deserialize as parse,
-	registerClass,
-	serialize as stringify,
-} from "../utils/serializer";
 import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
