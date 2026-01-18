@@ -653,6 +653,48 @@ class SugarboxEngine<
 		}
 	}
 
+	/** Returns an array of passages that match the specified tags.
+	 *
+	 * @param tags - Optional. An array of tags to filter the passages.
+	 * @returns An array of passages that match the specified tags.
+	 */
+	getPassages(
+		query:
+			| {
+					/** Matches any passage that has all of the given tags */
+					type: "all";
+					tags: ReadonlyArray<TPassageTag>;
+			  }
+			| {
+					/** Matches any passage that has at least one of the given tags */
+					type: "any";
+					tags: ReadonlyArray<TPassageTag>;
+			  },
+	): ReadonlyArray<typeof this._type.passage> {
+		const matchedPasages: (typeof this._type.passage)[] = [];
+
+		const doesMatchPassageDataTags = (
+			tag: TPassageTag,
+			passageData: typeof this._type.passage,
+		) => !!passageData.tags?.includes(tag);
+
+		const { type, tags } = query;
+
+		for (const [_, passageData] of this.#passages) {
+			if (type === "any") {
+				if (tags.some((tag) => doesMatchPassageDataTags(tag, passageData))) {
+					matchedPasages.push(passageData);
+				}
+			} else {
+				if (tags.every((tag) => doesMatchPassageDataTags(tag, passageData))) {
+					matchedPasages.push(passageData);
+				}
+			}
+		}
+
+		return matchedPasages;
+	}
+
 	/** Creates and moves the index over to a new snapshot with the given passage id (or the previous one) and returns a reference to it.
 	 *
 	 * This is essentially the way of linking between passages in the story.
