@@ -61,6 +61,7 @@ const MINIMUM_SAVE_SLOT_INDEX = 0;
 
 const MINIMUM_SAVE_SLOTS = 1;
 
+/** Changing this will BREAK saves */
 const SAVE_COMPRESSION_FORMAT = "gzip" satisfies CompressionFormat;
 
 type StateWithMetadata<TVariables extends GenericObject> = TVariables &
@@ -225,12 +226,15 @@ class SugarboxEngine<
 
 	#eventTarget = new EventTarget();
 
-	/** Achievements meant to be persisted across saves */
+	/** Achievements meant to be persisted across saves
+	 *
+	 * **Must be serializable and deserializable by JSON.stringify / parse**
+	 */
 	#achievements: TAchievementData;
 
 	/** Settings data that is not tied to save data, like audio volume, font size, etc
 	 *
-	 * Must be serializable and deserializable by JSON.stringify / parse
+	 * **Must be serializable and deserializable by JSON.stringify / parse**
 	 */
 	#settings: TSettingsData;
 
@@ -784,7 +788,7 @@ class SugarboxEngine<
 				const {
 					persistence,
 					saveVersion,
-					compress: compressSave,
+					compress: shouldCompressSave,
 				} = this.#config;
 
 				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
@@ -802,9 +806,10 @@ class SugarboxEngine<
 
 				const stringifiedSaveData = stringify(saveData);
 
-				const dataToStore = compressSave
-					? await compress(stringifiedSaveData, SAVE_COMPRESSION_FORMAT)
-					: stringifiedSaveData;
+				const dataToStore = await maybeCompressString(
+					stringifiedSaveData,
+					shouldCompressSave,
+				);
 
 				await persistence.set(saveKey, dataToStore);
 			},
@@ -1088,11 +1093,12 @@ class SugarboxEngine<
 
 				const stringifiedExportData = stringify(exportData);
 
-				if (this.#config.compress) {
-					return compress(stringifiedExportData, SAVE_COMPRESSION_FORMAT);
-				}
+				const finalDataToExport = await maybeCompressString(
+					stringifiedExportData,
+					this.#config.compress,
+				);
 
-				return stringifiedExportData;
+				return finalDataToExport;
 			},
 		);
 	}
@@ -1503,9 +1509,14 @@ class SugarboxEngine<
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
+		const dataToStore = await maybeCompressString(
+			JSON.stringify(this.#achievements),
+			this.#config.compress,
+		);
+
 		await persistenceAdapter.set(
 			this.#getStorageKey("achievements"),
-			JSON.stringify(this.#achievements),
+			dataToStore,
 		);
 	}
 
@@ -1519,7 +1530,9 @@ class SugarboxEngine<
 		);
 
 		if (serializedAchievements) {
-			this.#achievements = JSON.parse(serializedAchievements);
+			this.#achievements = JSON.parse(
+				await decompressJsonStringIfCompressed(serializedAchievements),
+			);
 		}
 	}
 
@@ -1528,10 +1541,12 @@ class SugarboxEngine<
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
-		await persistenceAdapter.set(
-			this.#getStorageKey("settings"),
+		const dataToStore = await maybeCompressString(
 			JSON.stringify(this.#settings),
+			this.#config.compress,
 		);
+
+		await persistenceAdapter.set(this.#getStorageKey("settings"), dataToStore);
 	}
 
 	async #loadSettings(): Promise<void> {
@@ -1544,7 +1559,9 @@ class SugarboxEngine<
 		);
 
 		if (serializedSettings) {
-			this.#settings = JSON.parse(serializedSettings);
+			this.#settings = JSON.parse(
+				await decompressJsonStringIfCompressed(serializedSettings),
+			);
 		}
 	}
 
@@ -1577,5 +1594,13 @@ const sanitiseError = (possibleError: unknown) =>
 	possibleError instanceof Error ? possibleError : Error(String(possibleError));
 
 const getRandomInteger = () => Math.floor(Math.random() * 2 ** 32);
+
+const maybeCompressString = async (
+	strToMaybeCompress: string,
+	shouldCompress: boolean,
+): Promise<string> =>
+	shouldCompress
+		? compress(strToMaybeCompress, SAVE_COMPRESSION_FORMAT)
+		: strToMaybeCompress;
 
 export { SugarboxEngine };
