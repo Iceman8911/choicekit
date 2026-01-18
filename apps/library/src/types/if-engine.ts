@@ -197,7 +197,7 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 	 *   with complex state caching scenarios, `oldState` and `newState` might reference
 	 *   the same object, but provides significant performance benefits for large states.
 	 *
-	 * @default "accuracy"
+	 * @default "acc"
 	 */
 	emitMode?: "perf" | "acc";
 };
