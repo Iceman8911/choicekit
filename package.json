@@ -1,72 +1,35 @@
 {
-	"name": "sugarbox",
-	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
-	"version": "0.8.1",
-	"type": "module",
-	"files": [
-		"dist"
-	],
-	"module": "./dist/index.js",
-	"main": "./dist/index.cjs",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"import": {
-				"types": "./dist/index.d.ts",
-				"default": "./dist/index.js"
-			},
-			"require": {
-				"types": "./dist/index.d.cts",
-				"default": "./dist/index.cjs"
-			}
-		}
+	"bugs": {
+		"url": "https://github.com/Iceman8911/sugarbox/issues"
 	},
-	"scripts": {
-		"build": "bunup",
-		"dev": "bunup --watch",
-		"lint": "biome check ./src",
-		"lint:fix": "biome check --write ./src",
-		"format": "biome format ./src",
-		"format:fix": "biome format --write ./src",
-		"tsc": "tsc --noEmit",
-		"test": "bun test",
-		"test:watch": "bun test --watch",
-		"test:coverage": "bun test --coverage",
-		"release": "bumpp --commit --push --tag",
-		"publish:ci": "bunx npm publish --access public --no-git-checks",
-		"prepare": "husky"
+	"dependencies": {
+		"lint-staged": "^16.2.7"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.0",
-		"@commitlint/cli": "^19.8.1",
-		"@commitlint/config-conventional": "^19.8.1",
-		"@stardazed/streams-polyfill": "^2.4.0",
-		"@types/bun": "^1.2.20",
-		"bumpp": "^10.2.3",
-		"bunup": "^0.9.3",
-		"husky": "^9.1.7",
-		"quick-lru": "^7.0.1",
-		"typescript": "^5.9.2"
+		"@biomejs/biome": "^2.2.5",
+		"turbo": "^2.7.5",
+		"typescript": "^5.9.3"
 	},
+	"homepage": "https://github.com/Iceman8911/sugarbox#readme",
+	"lint-staged": {
+		"*.{js,jsx,ts,tsx,json,css}": "bunx biome check --write"
+	},
+	"name": "sugarbox",
+	"packageManager": "bun@1.3.0",
+	"private": true,
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/Iceman8911/sugarbox.git"
 	},
-	"peerDependencies": {
-		"typescript": ">=4.5.0"
+	"scripts": {
+		"build": "turbo build",
+		"dev": "turbo dev",
+		"format": "turbo format",
+		"lint": "turbo lint",
+		"test": "turbo test"
 	},
-	"peerDependenciesMeta": {
-		"typescript": {
-			"optional": true
-		}
-	},
-	"homepage": "https://github.com/Iceman8911/sugarbox#readme",
-	"bugs": {
-		"url": "https://github.com/Iceman8911/sugarbox/issues"
-	},
-	"license": "MIT",
-	"dependencies": {
-		"@iceman8911/tiny-prng": "^0.1.2",
-		"@zalari/string-compression-utils": "^0.1.1"
-	}
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	]
 }

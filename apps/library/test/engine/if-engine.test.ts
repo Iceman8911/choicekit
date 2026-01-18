@@ -3,6 +3,7 @@
 import "@stardazed/streams-polyfill";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { SugarboxEngine } from "../../src";
+import type { GenericObject } from "../../src/types/shared";
 import type {
 	SugarBoxCompatibleClassConstructorCheck,
 	SugarBoxCompatibleClassInstance,
@@ -27,8 +28,8 @@ async function initEngine() {
 		level = 6;
 		location = "Tavern";
 		inventory = {
-			gold: 123,
 			gems: 12,
+			gold: 123,
 			items: ["Black Sword", "Slug Shield", "Old Cloth"],
 		};
 
@@ -64,27 +65,27 @@ async function initEngine() {
 	>;
 
 	return SugarboxEngine.init({
+		classes: [Player],
+		config: {
+			maxStates: 100,
+			persistence: createPersistenceAdapter(),
+		},
 		name: "Test",
 		otherPassages: [...SAMPLE_PASSAGES] as { name: string; passage: string }[],
 		startPassage: { name: "Start", passage: "This is the start passage" },
 		variables: {
-			player: new Player(),
 			others: {
 				hoursPlayed: 1.5,
 				stage: 3,
 			},
+			player: new Player(),
 		},
-		config: {
-			maxStateCount: 100,
-			persistence: createPersistenceAdapter(),
-		},
-		classes: [Player],
 	});
 }
 
 async function initEngineWithExtraSettings<
-	TAchievementData extends Record<string, unknown>,
-	TSettingsData extends Record<string, unknown>,
+	TAchievementData extends GenericObject,
+	TSettingsData extends GenericObject,
 >(
 	persistence: ReturnType<typeof createPersistenceAdapter>,
 	achievements?: TAchievementData,
@@ -93,21 +94,21 @@ async function initEngineWithExtraSettings<
 	// This is a simplified version of the main initEngine for test purposes
 	return SugarboxEngine.init<
 		string,
-		Record<string, unknown>,
+		GenericObject,
 		TAchievementData,
 		TSettingsData
 	>({
-		name: "Test",
-		startPassage: { name: "Start", passage: "This is the start passage" },
+		//@ts-expect-error Generic woes
+		achievements: achievements ?? {},
 		config: {
 			persistence,
 		},
+		name: "Test",
 		otherPassages: [],
-		variables: {},
-		//@ts-expect-error Generic woes
-		achievements: achievements ?? {},
 		//@ts-expect-error Generic woes
 		settings: settings ?? {},
+		startPassage: { name: "Start", passage: "This is the start passage" },
+		variables: {},
 	});
 }
 
@@ -169,7 +170,7 @@ describe("State Variables and History", () => {
 	});
 
 	test("replacing the story's state with a new object should work", () => {
-		const testObj = { others: { stage: -10 }, newProp: "I'm here now :D" };
+		const testObj = { newProp: "I'm here now :D", others: { stage: -10 } };
 
 		engine.setVars((_) => testObj);
 
@@ -464,15 +465,15 @@ describe("Autosave", () => {
 	test("should autosave on passage change when autoSave is 'passage'", async () => {
 		const persistence = createPersistenceAdapter();
 		const engine = await SugarboxEngine.init({
-			name: "AutoSaveTest",
-			startPassage: { name: "Start", passage: "This is the start passage" },
-			config: {
-				persistence,
-				autoSave: "passage",
-			},
-			otherPassages: [{ name: "Next", passage: "Next passage." }],
-			variables: { counter: 0 },
 			achievements: {},
+			config: {
+				autoSave: "passage",
+				persistence,
+			},
+			name: "AutoSaveTest",
+			otherPassages: [{ name: "Next", passage: "Next passage." }],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: { counter: 0 },
 		});
 
 		// Change state and navigate to trigger autosave
@@ -504,15 +505,15 @@ describe("Autosave", () => {
 		const persistence = createPersistenceAdapter();
 
 		const engine = await SugarboxEngine.init({
-			name: "AutoSaveTest2",
-			startPassage: { name: "Start", passage: "This is the start passage" },
-			config: {
-				persistence,
-				autoSave: "state",
-			},
-			otherPassages: [],
-			variables: { counter: 0 },
 			achievements: {},
+			config: {
+				autoSave: "state",
+				persistence,
+			},
+			name: "AutoSaveTest2",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: { counter: 0 },
 		});
 
 		// Change state to trigger autosave
@@ -562,7 +563,7 @@ describe("Advanced Saving and Loading", () => {
 
 		await engine.saveToSaveSlot(3);
 
-		const saves: Record<string, unknown>[] = [];
+		const saves: GenericObject[] = [];
 
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal") {
@@ -654,7 +655,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.saveToSaveSlot(2);
 
 		// Verify both saves exist
-		const savesBeforeDelete: Record<string, unknown>[] = [];
+		const savesBeforeDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal") {
 				savesBeforeDelete.push(save);
@@ -666,7 +667,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.deleteSaveSlot(1);
 
 		// Verify only slot 2 remains
-		const savesAfterDelete: Record<string, unknown>[] = [];
+		const savesAfterDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal") {
 				savesAfterDelete.push(save);
@@ -749,7 +750,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.saveToSaveSlot();
 
 		// Verify all saves exist
-		const savesBeforeDelete: Record<string, unknown>[] = [];
+		const savesBeforeDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			savesBeforeDelete.push(save);
 		}
@@ -759,7 +760,7 @@ describe("Advanced Saving and Loading", () => {
 		await engine.deleteAllSaveSlots();
 
 		// Verify no saves remain
-		const savesAfterDelete: Record<string, unknown>[] = [];
+		const savesAfterDelete: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			savesAfterDelete.push(save);
 		}
@@ -768,7 +769,7 @@ describe("Advanced Saving and Loading", () => {
 
 	test("deleteAllSaveSlots should handle empty save list gracefully", async () => {
 		// Ensure no saves exist
-		const saves: Record<string, unknown>[] = [];
+		const saves: GenericObject[] = [];
 		for await (const save of engine.getSaves()) {
 			saves.push(save);
 		}
@@ -781,12 +782,12 @@ describe("Advanced Saving and Loading", () => {
 	test("deleteSaveSlot should throw when persistence is not available", async () => {
 		// Create an engine without persistence
 		const engineWithoutPersistence = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {},
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
 			variables: {},
-			achievements: {} as Record<string, unknown>,
 		});
 
 		let didThrow = false;
@@ -802,12 +803,12 @@ describe("Advanced Saving and Loading", () => {
 	test("deleteAllSaveSlots should throw when persistence is not available", async () => {
 		// Create an engine without persistence
 		const engineWithoutPersistence = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {},
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
 			variables: {},
-			achievements: {} as Record<string, unknown>,
 		});
 
 		let didThrow = false;
@@ -829,15 +830,15 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
 				saveVersion: `0.1.0`,
 			},
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
 			variables: { prop1: 12, prop2: "45" } as Version_0_1_0_Variables,
-			achievements: {} as Record<string, unknown>,
 		});
 
 		await engine.saveToSaveSlot(1);
@@ -851,24 +852,14 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine2 = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
 				saveVersion: `0.2.0`,
 			},
-			otherPassages: [],
-			variables: {
-				prop1: "1",
-				prop2: 12,
-				prop3: { nestedprop: true },
-			} as Version_0_2_0_Variables,
-			achievements: {} as Record<string, unknown>,
 			migrations: [
 				{
-					from: `0.1.0`,
 					data: {
-						to: `0.2.0`,
 						migrater: (data: Version_0_1_0_Variables) => {
 							return {
 								prop1: data.prop1.toString(),
@@ -876,9 +867,19 @@ describe("Advanced Saving and Loading", () => {
 								prop3: { nestedprop: true },
 							} as Version_0_2_0_Variables;
 						},
+						to: `0.2.0`,
 					},
+					from: `0.1.0`,
 				},
 			],
+			name: "Test",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: {
+				prop1: "1",
+				prop2: 12,
+				prop3: { nestedprop: true },
+			} as Version_0_2_0_Variables,
 		});
 
 		await engine2.loadFromSaveSlot(1);
@@ -898,20 +899,14 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine3 = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {},
 			config: {
 				persistence,
 				saveVersion: `0.3.0`,
 			},
-			otherPassages: [],
-			variables: {} as Version_0_3_0_Variables,
-			achievements: {},
 			migrations: [
 				{
-					from: `0.1.0`,
 					data: {
-						to: `0.2.0`,
 						migrater: (data: Version_0_1_0_Variables) => {
 							return {
 								prop1: data.prop1.toString(),
@@ -919,26 +914,32 @@ describe("Advanced Saving and Loading", () => {
 								prop3: { nestedprop: true },
 							} as Version_0_2_0_Variables;
 						},
+						to: `0.2.0`,
 					},
+					from: `0.1.0`,
 				},
 				{
-					from: `0.2.0`,
 					data: {
-						to: `0.3.0`,
 						migrater: (data: Version_0_2_0_Variables) => {
 							return {
 								prop1: data.prop1,
 								prop2: [data.prop2, 0],
 								prop3: {
-									nestedprop: data.prop3.nestedprop ? "true" : "false",
 									nestedProp2: data.prop3.nestedprop,
+									nestedprop: data.prop3.nestedprop ? "true" : "false",
 								},
 								prop4: "newProp",
 							} as Version_0_3_0_Variables;
 						},
+						to: `0.3.0`,
 					},
+					from: `0.2.0`,
 				},
 			],
+			name: "Test",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: {} as Version_0_3_0_Variables,
 		});
 
 		await engine3.loadFromSaveSlot(1);
@@ -968,29 +969,29 @@ describe("Advanced Saving and Loading", () => {
 
 		const migrations = [
 			{
-				from: "0.1.0",
 				data: {
-					to: "0.2.0",
 					migrater: (old: V010): V020 => ({ ...old, bar: 42 }),
+					to: "0.2.0",
 				},
+				from: "0.1.0",
 			} as const,
 			{
-				from: "0.2.0",
 				data: {
-					to: "0.3.0",
 					migrater: (old: V020): V030 => ({ ...old, baz: true }),
+					to: "0.3.0",
 				},
+				from: "0.2.0",
 			} as const,
 		];
 
 		const engine = await SugarboxEngine.init({
-			name: "migration-events-test",
-			variables: { foo: "init", bar: 0, baz: false },
-			startPassage: { name: "start", passage: "Start" },
-			migrations,
-			config: { saveVersion: "0.3.0", persistence },
-			otherPassages: [],
 			achievements: {},
+			config: { persistence, saveVersion: "0.3.0" },
+			migrations,
+			name: "migration-events-test",
+			otherPassages: [],
+			startPassage: { name: "start", passage: "Start" },
+			variables: { bar: 0, baz: false, foo: "init" },
 		});
 
 		const migrationEvents: unknown[] = [];
@@ -1006,24 +1007,24 @@ describe("Advanced Saving and Loading", () => {
 
 		expect(migrationEvents).toEqual([
 			{
-				type: "start",
 				fromVersion: "0.1.0",
 				toVersion: "0.2.0",
+				type: "start",
 			},
 			{
-				type: "success",
 				fromVersion: "0.1.0",
 				toVersion: "0.2.0",
-			},
-			{
-				type: "start",
-				fromVersion: "0.2.0",
-				toVersion: "0.3.0",
-			},
-			{
 				type: "success",
+			},
+			{
 				fromVersion: "0.2.0",
 				toVersion: "0.3.0",
+				type: "start",
+			},
+			{
+				fromVersion: "0.2.0",
+				toVersion: "0.3.0",
+				type: "success",
 			},
 		]);
 	});
@@ -1037,32 +1038,32 @@ describe("Advanced Saving and Loading", () => {
 		};
 
 		const engine1 = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
 				saveVersion: `0.1.0`,
 			},
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
 			variables: { prop1: 123, prop2: "abc" } as Version_0_1_0_Variables,
-			achievements: {} as Record<string, unknown>,
 		});
 
 		await engine1.saveToSaveSlot(1);
 
 		// Initialize engine2 with a higher minor version but liberal compatibility
 		const engine2 = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {
 				persistence,
+				saveCompat: "liberal",
 				saveVersion: `0.2.0`,
-				saveCompatibilityMode: "liberal",
 			},
-			otherPassages: [],
-			variables: { prop1: 0, prop2: "" } as Version_0_1_0_Variables, // Variables type should match the loaded save structure
-			achievements: {} as Record<string, unknown>,
 			migrations: [], // No migrations defined, as it should be compatible
+			name: "Test",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: { prop1: 0, prop2: "" } as Version_0_1_0_Variables, // Variables type should match the loaded save structure
 		});
 
 		await engine2.loadFromSaveSlot(1);
@@ -1078,23 +1079,23 @@ describe("Advanced Saving and Loading", () => {
 		const ENGINE_NAME = "Test1";
 
 		const engineArgs = {
+			config: { compressSave: true, persistence },
 			name: ENGINE_NAME,
-			startPassage: { name: ":p", passage: "TTTT" },
 			otherPassages: [],
+			startPassage: { name: ":p", passage: "TTTT" },
 			variables: {
 				pain: true,
-				test: { nested: "pain" },
 				pain2: {
 					pain: true,
-					test: { nested: "pain" },
 					pain3: {
 						pain: true,
-						test: { nested: "pain" },
 						pain2: { pain: true, test: { nested: "pain" } },
+						test: { nested: "pain" },
 					},
+					test: { nested: "pain" },
 				},
+				test: { nested: "pain" },
 			},
-			config: { persistence, compressSave: true },
 		} as const;
 
 		//@ts-expect-error
@@ -1112,8 +1113,8 @@ describe("Advanced Saving and Loading", () => {
 		//@ts-expect-error
 		const engine2 = await SugarboxEngine.init({
 			...engineArgs,
+			config: { ...engineArgs.config, compress: false },
 			name: ENGINE_NAME2,
-			config: { ...engineArgs.config, compressSave: false },
 		});
 
 		await engine2.saveToSaveSlot(1);
@@ -1130,23 +1131,23 @@ describe("Advanced Saving and Loading", () => {
 		const ENGINE_NAME = "Test1";
 
 		const engineArgs = {
+			config: { compressSave: true, persistence },
 			name: ENGINE_NAME,
-			startPassage: { name: ":p", passage: "TTTT" },
 			otherPassages: [],
+			startPassage: { name: ":p", passage: "TTTT" },
 			variables: {
 				pain: true,
-				test: { nested: "pain" },
 				pain2: {
 					pain: true,
-					test: { nested: "pain" },
 					pain3: {
 						pain: true,
-						test: { nested: "pain" },
 						pain2: { pain: true, test: { nested: "pain" } },
+						test: { nested: "pain" },
 					},
+					test: { nested: "pain" },
 				},
+				test: { nested: "pain" },
 			},
-			config: { persistence, compressSave: true },
 		} as const;
 
 		//@ts-expect-error
@@ -1157,7 +1158,7 @@ describe("Advanced Saving and Loading", () => {
 		//@ts-expect-error
 		const engine2 = await SugarboxEngine.init({
 			...engineArgs,
-			config: { ...engineArgs.config, compressSave: false },
+			config: { ...engineArgs.config, compress: false },
 		});
 
 		await engine2.loadFromSaveSlot(2);
@@ -1182,7 +1183,7 @@ describe("Custom Classes", () => {
 				return true;
 			}
 			__toJSON() {
-				return { name: this.name, __class_id: "Unregistered" };
+				return { __class_id: "Unregistered", name: this.name };
 			}
 			static __fromJSON(data: { name: string }) {
 				const c = new Unregistered();
@@ -1212,13 +1213,13 @@ describe("Custom Classes", () => {
 		engine.setVars((s) => {
 			// @ts-expect-error
 			s.patterns = {
-				nameValidator: /^[A-Za-z\s]+$/,
 				emailPattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi,
+				nameValidator: /^[A-Za-z\s]+$/,
 			};
 			// @ts-expect-error
 			s.largeNumbers = {
-				score: 9007199254740991n,
 				currency: 123456789012345678901234567890n,
+				score: 9007199254740991n,
 			};
 		});
 
@@ -1421,7 +1422,7 @@ describe("Events", () => {
 		await engine.deleteSaveSlot(1);
 
 		expect(deleteStartEvent).toEqual({ slot: 1 });
-		expect(deleteEndEvent).toEqual({ type: "success", slot: 1 });
+		expect(deleteEndEvent).toEqual({ slot: 1, type: "success" });
 
 		deleteStartListener();
 		deleteEndListener();
@@ -1450,8 +1451,8 @@ describe("Events", () => {
 
 		expect(autosaveDeleteStartEvent).toEqual({ slot: "autosave" });
 		expect(autosaveDeleteEndEvent).toEqual({
-			type: "success",
 			slot: "autosave",
+			type: "success",
 		});
 
 		autosaveDeleteStartListener();
@@ -1461,12 +1462,12 @@ describe("Events", () => {
 	test("should emit delete events on error", async () => {
 		// Create engine without persistence to trigger error
 		const engineWithoutPersistence = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {} as GenericObject,
 			config: {},
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
 			variables: {},
-			achievements: {} as Record<string, unknown>,
 		});
 
 		let deleteStartEvent: { slot: "autosave" | number } | undefined;
@@ -1717,16 +1718,16 @@ describe("State Change Events", () => {
 
 		const initialState = { ...engine.vars };
 		const newStateObject = {
-			player: {
-				name: "Completely New Player",
-				level: 1,
-				class: "Rogue",
-			},
-			others: {
-				stage: 0,
-				hoursPlayed: 0,
-			},
 			newProperty: "This is new",
+			others: {
+				hoursPlayed: 0,
+				stage: 0,
+			},
+			player: {
+				class: "Rogue",
+				level: 1,
+				name: "Completely New Player",
+			},
 		};
 
 		engine.setVars(() => newStateObject);
@@ -1754,8 +1755,8 @@ describe("State Change Events", () => {
 
 		const listener = engine.on(":stateChange", ({ detail }) => {
 			stateChangeEvents.push({
-				oldLevel: detail.oldState.player.level,
 				newLevel: detail.newState.player.level,
+				oldLevel: detail.oldState.player.level,
 			});
 		});
 
@@ -1790,14 +1791,14 @@ describe("State Change Events", () => {
 	test("should respect eventOptimization performance mode", async () => {
 		// Create a new engine with performance optimization
 		const performanceEngine = await SugarboxEngine.init({
+			achievements: {},
+			config: {
+				emitMode: "perf",
+			},
 			name: "PerformanceTest",
+			otherPassages: [],
 			startPassage: { name: "Start", passage: "Start passage" },
 			variables: { counter: 0, data: { value: 1 } },
-			config: {
-				eventOptimization: "performance",
-			},
-			otherPassages: [],
-			achievements: {},
 		});
 
 		let eventCount = 0;
@@ -1831,12 +1832,12 @@ describe("State Change Events", () => {
 	test("should work correctly with performance mode without affecting functionality", async () => {
 		// Create engine with performance mode
 		const perfEngine = await SugarboxEngine.init({
-			name: "PerfTest2",
-			startPassage: { name: "Start", passage: "Start" },
-			variables: { test: { value: 1 }, counter: 0 },
-			config: { eventOptimization: "performance" },
-			otherPassages: [],
 			achievements: {},
+			config: { emitMode: "perf" },
+			name: "PerfTest2",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start" },
+			variables: { counter: 0, test: { value: 1 } },
 		});
 
 		// Test multiple consecutive changes work correctly
@@ -1948,15 +1949,15 @@ describe("Load-Related Events", () => {
 	test("should emit both stateChange and passageChange events when loading saves with performance optimization", async () => {
 		// Create engine with performance optimization
 		const perfEngine = await SugarboxEngine.init({
-			name: "PerfLoadTest",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: { counter: 0, data: { value: 1 } },
+			achievements: {},
 			config: {
-				eventOptimization: "performance",
+				emitMode: "perf",
 				persistence: createPersistenceAdapter(),
 			},
+			name: "PerfLoadTest",
 			otherPassages: [{ name: "Test", passage: "Test passage" }],
-			achievements: {},
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: { counter: 0, data: { value: 1 } },
 		});
 
 		// Set initial state and passage
@@ -2021,15 +2022,15 @@ describe("Load-Related Events", () => {
 		// Configure engine with autosave on passage change
 		const persistence = createPersistenceAdapter();
 		const autoEngine = await SugarboxEngine.init({
-			name: "AutoLoadTest",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: { test: "initial" },
+			achievements: {},
 			config: {
 				autoSave: "passage",
 				persistence,
 			},
+			name: "AutoLoadTest",
 			otherPassages: [{ name: "Auto", passage: "Auto passage" }],
-			achievements: {},
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: { test: "initial" },
 		});
 
 		// Change state and navigate (will trigger autosave)
@@ -2151,31 +2152,31 @@ describe("Load-Related Events", () => {
 
 		const testEngines = await Promise.all([
 			SugarboxEngine.init({
-				name: "AccuracyTest",
-				startPassage: { name: "Start", passage: "Start" },
-				variables: { shared: { value: 1 } },
+				achievements: {},
 				config: {
-					eventOptimization: "accuracy",
+					emitMode: "acc",
 					persistence: createPersistenceAdapter(),
 				},
+				name: "AccuracyTest",
 				otherPassages: [],
-				achievements: {},
+				startPassage: { name: "Start", passage: "Start" },
+				variables: { shared: { value: 1 } },
 			}),
 			SugarboxEngine.init({
-				name: "PerformanceTest",
-				startPassage: { name: "Start", passage: "Start" },
-				variables: { shared: { value: 1 } },
+				achievements: {},
 				config: {
-					eventOptimization: "performance",
+					emitMode: "perf",
 					persistence: createPersistenceAdapter(),
 				},
+				name: "PerformanceTest",
 				otherPassages: [],
-				achievements: {},
+				startPassage: { name: "Start", passage: "Start" },
+				variables: { shared: { value: 1 } },
 			}),
 		]);
 
 		for (const [index, testEngine] of testEngines.entries()) {
-			const mode = index === 0 ? "accuracy" : "performance";
+			const mode = index === 0 ? "acc" : "perf";
 
 			// Set up state
 			testEngine.setVars((state) => {
@@ -2206,7 +2207,7 @@ describe("Load-Related Events", () => {
 			expect(typeof stateEvent.newState).toBe("object");
 
 			// In accuracy mode, states should be properly isolated
-			if (mode === "accuracy") {
+			if (mode === "acc") {
 				// Test that modifying the oldState doesn't affect the current engine state
 				const originalEngineValue = testEngine.vars.shared.value;
 				stateEvent.oldState.shared.value = 999;
@@ -2253,7 +2254,7 @@ describe("Achievements and Settings", () => {
 		const persistence = createPersistenceAdapter();
 		const engine1 = await initEngineWithExtraSettings(persistence);
 
-		const achievements = { unlocked: ["First Quest"], points: 10 };
+		const achievements = { points: 10, unlocked: ["First Quest"] };
 
 		await engine1.setAchievements(() => achievements);
 		expect(engine1.achievements).toEqual(achievements);
@@ -2266,7 +2267,7 @@ describe("Achievements and Settings", () => {
 		const persistence = createPersistenceAdapter();
 		const engine1 = await initEngineWithExtraSettings(persistence);
 
-		const settings = { volume: 0.5, difficulty: "hard" };
+		const settings = { difficulty: "hard", volume: 0.5 };
 		await engine1.setSettings((_) => settings);
 		expect(engine1.settings).toEqual(settings);
 
@@ -2312,8 +2313,8 @@ describe("Achievements and Settings", () => {
 		expect(achievementEvent?.old).toEqual({ firstQuest: true, points: 10 });
 		expect(achievementEvent?.new).toEqual({
 			firstQuest: true,
-			secondQuest: true,
 			points: 25,
+			secondQuest: true,
 		});
 
 		listener();
@@ -2355,11 +2356,11 @@ describe("Achievements and Settings", () => {
 			settings.language = "en";
 		});
 
-		expect(settingEvent?.old).toEqual({ volume: 0.8, difficulty: "normal" });
+		expect(settingEvent?.old).toEqual({ difficulty: "normal", volume: 0.8 });
 		expect(settingEvent?.new).toEqual({
-			volume: 0.5,
 			difficulty: "normal",
 			language: "en",
+			volume: 0.5,
 		});
 
 		listener();
@@ -2404,14 +2405,14 @@ describe("Achievements and Settings", () => {
 
 		// Replace entire settings object
 		await engine.setSettings(() => ({
-			theme: "dark",
 			autoSave: true,
+			theme: "dark",
 		}));
 
 		expect(settingEvent?.old).toEqual({});
 		expect(settingEvent?.new).toEqual({
-			theme: "dark",
 			autoSave: true,
+			theme: "dark",
 		});
 	});
 });
@@ -2578,25 +2579,25 @@ describe("PRNG and Random Number Generation", () => {
 	test("should generate deterministic random numbers with fixed seed", async () => {
 		const fixedSeed = 12345;
 		const engine1 = await SugarboxEngine.init({
-			name: "Test1",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: fixedSeed,
 				regenSeed: false, // Never regenerate seed
 			},
+			name: "Test1",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		const engine2 = await SugarboxEngine.init({
-			name: "Test2",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: fixedSeed,
 				regenSeed: false, // Never regenerate seed
 			},
+			name: "Test2",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Both engines should generate the same sequence
@@ -2618,25 +2619,25 @@ describe("PRNG and Random Number Generation", () => {
 		const fixedSeed = 54321;
 
 		const engineNoRegen = await SugarboxEngine.init({
-			name: "NoRegen",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: fixedSeed,
 				regenSeed: false,
 			},
+			name: "NoRegen",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		const engineWithRegen = await SugarboxEngine.init({
-			name: "WithRegen",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: fixedSeed,
 				regenSeed: "passage",
 			},
+			name: "WithRegen",
 			otherPassages: [{ name: "Next", passage: "Next passage" }],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Get initial random numbers
@@ -2658,17 +2659,17 @@ describe("PRNG and Random Number Generation", () => {
 
 	test("should regenerate seed on passage navigation only when regenSeed is 'passage'", async () => {
 		const engine = await SugarboxEngine.init({
-			name: "PassageRegen",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: 98765,
 				regenSeed: "passage",
 			},
+			name: "PassageRegen",
 			otherPassages: [
 				{ name: "Passage1", passage: "First passage" },
 				{ name: "Passage2", passage: "Second passage" },
 			],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		const initialRandom = engine.random;
@@ -2690,14 +2691,14 @@ describe("PRNG and Random Number Generation", () => {
 
 	test("should regenerate seed on each call when regenSeed is 'eachCall'", async () => {
 		const engine = await SugarboxEngine.init({
-			name: "EachCallRegen",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: 11111,
 				regenSeed: "eachCall",
 			},
+			name: "EachCallRegen",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Generate multiple random numbers
@@ -2714,15 +2715,15 @@ describe("PRNG and Random Number Generation", () => {
 	test("should preserve random state across save/load with regenSeed false", async () => {
 		const persistence = createPersistenceAdapter();
 		const engine = await SugarboxEngine.init({
-			name: "SaveLoadRandom",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: 99999,
-				regenSeed: false,
 				persistence,
+				regenSeed: false,
 			},
+			name: "SaveLoadRandom",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Generate some random numbers to advance the state
@@ -2755,17 +2756,17 @@ describe("PRNG and Random Number Generation", () => {
 
 	test("should maintain seed state when navigating through history", async () => {
 		const engine = await SugarboxEngine.init({
-			name: "HistoryRandom",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: 77777,
 				regenSeed: "passage",
 			},
+			name: "HistoryRandom",
 			otherPassages: [
 				{ name: "Passage1", passage: "First passage" },
 				{ name: "Passage2", passage: "Second passage" },
 			],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Navigate and collect random numbers at each step
@@ -2792,13 +2793,13 @@ describe("PRNG and Random Number Generation", () => {
 
 	test("should generate numbers in expected range", async () => {
 		const engine = await SugarboxEngine.init({
-			name: "RangeTest",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: 55555,
 			},
+			name: "RangeTest",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Generate many random numbers and verify they're all in [0, 1) range
@@ -2811,14 +2812,14 @@ describe("PRNG and Random Number Generation", () => {
 
 	test("should export and import random state correctly", async () => {
 		const engine = await SugarboxEngine.init({
-			name: "ExportImportRandom",
-			startPassage: { name: "Start", passage: "Start passage" },
-			variables: {},
 			config: {
 				initialSeed: 33333,
 				regenSeed: false,
 			},
+			name: "ExportImportRandom",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "Start passage" },
+			variables: {},
 		});
 
 		// Generate some randoms to advance state
@@ -2919,17 +2920,17 @@ describe("PRNG and Random Number Generation", () => {
 
 		// Create engine with custom classes
 		const testEngine = await SugarboxEngine.init({
-			name: "RecursiveObjectTest",
-			startPassage: { name: "Start", passage: "Test passage" },
-			otherPassages: [],
-			variables: {
-				playerInventory: new Inventory("player"),
-				chestInventory: new Inventory("treasure-chest"),
-			},
+			classes: [Inventory],
 			config: {
 				persistence: createPersistenceAdapter(),
 			},
-			classes: [Inventory],
+			name: "RecursiveObjectTest",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "Test passage" },
+			variables: {
+				chestInventory: new Inventory("treasure-chest"),
+				playerInventory: new Inventory("player"),
+			},
 		});
 
 		// Add items to inventories (creates circular references)
@@ -3025,41 +3026,41 @@ describe("Error Conditions and Edge Cases", () => {
 
 		// Create a save with version 0.1.0
 		const engine1 = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {},
 			config: {
 				persistence,
 				saveVersion: `0.1.0`,
 			},
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
 			variables: { testProp: "oldValue" },
-			achievements: {},
 		});
 		await engine1.saveToSaveSlot(1);
 
 		// Initialize engine2 with version 0.3.0, but only register a migrator from 0.1.0 to 0.2.0
 		// This simulates a missing migration step (0.2.0 to 0.3.0)
 		const engine2 = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
+			achievements: {},
 			config: {
 				persistence,
 				saveVersion: `0.3.0`,
 			},
-			otherPassages: [],
-			variables: { testProp: "defaultValue" },
-			achievements: {},
 			migrations: [
 				{
-					from: `0.1.0`,
 					data: {
-						to: `0.2.0`,
 						migrater: (data: { testProp: string }) => ({
 							testProp: `${data.testProp}-migrated`,
 						}),
+						to: `0.2.0`,
 					},
+					from: `0.1.0`,
 				},
 			],
+			name: "Test",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: { testProp: "defaultValue" },
 		});
 
 		let didThrow = false;
@@ -3078,21 +3079,21 @@ describe("Error Conditions and Edge Cases", () => {
 	test("should throw an error when attempting to register duplicate migrators", async () => {
 		const persistence = createPersistenceAdapter();
 		const engine = await SugarboxEngine.init({
-			name: "Test",
-			startPassage: { name: "Start", passage: "This is the start passage" },
-			config: { persistence },
-			variables: {},
 			achievements: {},
+			config: { persistence },
+			name: "Test",
 			otherPassages: [],
+			startPassage: { name: "Start", passage: "This is the start passage" },
+			variables: {},
 		});
 
 		const migrator1 = {
+			data: { migrater: (data: object) => data, to: `0.2.0` },
 			from: `0.1.0`,
-			data: { to: `0.2.0`, migrater: (data: object) => data },
 		} as const;
 		const migrator2 = {
+			data: { migrater: (data: object) => data, to: `0.3.0` },
 			from: `0.1.0`, // Duplicate version
-			data: { to: `0.3.0`, migrater: (data: object) => data },
 		} as const;
 
 		engine.registerMigrators(migrator1);
@@ -3127,11 +3128,11 @@ describe("Error Conditions and Edge Cases", () => {
 		try {
 			// @ts-expect-error This test specifically aims to trigger an error for missing startPassage
 			await SugarboxEngine.init({
-				name: "InvalidInitTest",
-				config: { persistence: createPersistenceAdapter() },
-				variables: {},
 				achievements: {},
+				config: { persistence: createPersistenceAdapter() },
+				name: "InvalidInitTest",
 				otherPassages: [],
+				variables: {},
 			});
 		} catch (e: unknown) {
 			didThrow = true;
@@ -3145,18 +3146,18 @@ describe("Error Conditions and Edge Cases", () => {
 describe("Dynamic Initial State", () => {
 	test("should accept a static object as initial state", async () => {
 		const staticVariables = {
-			player: { name: "Static Player", level: 1 },
 			gold: 100,
+			player: { level: 1, name: "Static Player" },
 		};
 
 		const engine = await SugarboxEngine.init({
-			name: "StaticTest",
-			variables: staticVariables,
-			startPassage: { name: "Start", passage: "Welcome!" },
-			otherPassages: [],
 			config: {
 				persistence: createPersistenceAdapter(),
 			},
+			name: "StaticTest",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "Welcome!" },
+			variables: staticVariables,
 		});
 
 		expect(engine.vars.player.name).toBe("Static Player");
@@ -3165,20 +3166,20 @@ describe("Dynamic Initial State", () => {
 
 	test("should accept a function that returns initial state", async () => {
 		const dynamicVariables = (engine: SugarboxEngine<string>) => ({
-			player: { name: "Dynamic Player", level: 1 },
-			randomStat: Math.floor(engine.random * 100) + 1, // Random 1-100
 			engineName: engine.name,
+			player: { level: 1, name: "Dynamic Player" },
+			randomStat: Math.floor(engine.random * 100) + 1, // Random 1-100
 		});
 
 		const engine = await SugarboxEngine.init({
-			name: "DynamicTest",
-			variables: dynamicVariables,
-			startPassage: { name: "Start", passage: "Welcome!" },
-			otherPassages: [],
 			config: {
-				persistence: createPersistenceAdapter(),
 				initialSeed: 12345, // Fixed seed for deterministic testing
+				persistence: createPersistenceAdapter(),
 			},
+			name: "DynamicTest",
+			otherPassages: [],
+			startPassage: { name: "Start", passage: "Welcome!" },
+			variables: dynamicVariables,
 		});
 
 		expect(engine.vars.player.name).toBe("Dynamic Player");
@@ -3210,23 +3211,23 @@ describe("Dynamic Initial State", () => {
 			// Test that we can access various engine properties safely
 			return {
 				engineName: engine.name,
-				passageId: engine.passageId,
-				randomValue: engine.random,
 				hasAchievements: typeof engine.achievements === "object",
 				hasSettings: typeof engine.settings === "object",
+				passageId: engine.passageId,
+				randomValue: engine.random,
 			};
 		};
 
 		const engine = await SugarboxEngine.init({
-			name: "PropertyAccessTest",
-			variables: dynamicVariables,
-			startPassage: { name: "TestStart", passage: "Test content" },
-			otherPassages: [],
 			achievements: { firstLogin: false },
-			settings: { volume: 0.8 },
 			config: {
 				persistence: createPersistenceAdapter(),
 			},
+			name: "PropertyAccessTest",
+			otherPassages: [],
+			settings: { volume: 0.8 },
+			startPassage: { name: "TestStart", passage: "Test content" },
+			variables: dynamicVariables,
 		});
 
 		expect(engine.vars.engineName).toBe("PropertyAccessTest");
@@ -3238,20 +3239,20 @@ describe("Dynamic Initial State", () => {
 
 	test("should preserve __id and __seed properties with dynamic initial state", async () => {
 		const dynamicVariables = (_engine: SugarboxEngine<string>) => ({
-			customProp: "test",
 			__id: "ShouldBeOverwritten",
 			__seed: 99999,
+			customProp: "test",
 		});
 
 		const engine = await SugarboxEngine.init({
-			name: "PreservePropsTest",
-			variables: dynamicVariables,
-			startPassage: { name: "CorrectStart", passage: "Content" },
-			otherPassages: [],
 			config: {
-				persistence: createPersistenceAdapter(),
 				initialSeed: 54321,
+				persistence: createPersistenceAdapter(),
 			},
+			name: "PreservePropsTest",
+			otherPassages: [],
+			startPassage: { name: "CorrectStart", passage: "Content" },
+			variables: dynamicVariables,
 		});
 
 		expect(engine.vars.customProp).toBe("test");

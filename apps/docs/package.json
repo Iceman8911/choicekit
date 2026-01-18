@@ -1,0 +1,28 @@
+{
+	"dependencies": {
+		"@iconify-json/ri": "^1.2.5",
+		"@kobalte/solidbase": "^0.2.11",
+		"@solidjs/meta": "^0.29.4",
+		"@solidjs/router": "^0.15.3",
+		"@solidjs/start": "^1.1.0",
+		"solid-js": "^1.9.5",
+		"vinxi": "^0.5.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.11"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"name": "@apps/docs",
+	"scripts": {
+		"build": "vinxi build",
+		"dev": "vinxi dev",
+		"format": "bun biome format ./ --write",
+		"lint": "bun biome lint ./ --write",
+		"start": "vinxi start",
+		"test": "echo 'Add test script here'",
+		"version": "vinxi version"
+	},
+	"type": "module"
+}

@@ -71,7 +71,7 @@ describe("Utility Functions", () => {
 
 		test("should deep clone objects containing custom classes", () => {
 			const customInstance = new TestCustomClass("World");
-			const objWithCustom = { data: 1, custom: customInstance };
+			const objWithCustom = { custom: customInstance, data: 1 };
 			const clonedObj = clone(objWithCustom);
 
 			expect(clonedObj).toEqual(objWithCustom);
@@ -100,7 +100,7 @@ describe("Utility Functions", () => {
 
 		test("should deep clone objects containing RegExp", () => {
 			const regex = /test[0-9]+/gi;
-			const obj = { pattern: regex, name: "test" };
+			const obj = { name: "test", pattern: regex };
 
 			const clonedObj = clone(obj);
 
@@ -114,7 +114,7 @@ describe("Utility Functions", () => {
 
 		test("should deep clone objects containing BigInt", () => {
 			const bigNum = 9007199254740991n;
-			const obj = { value: bigNum, name: "large number" };
+			const obj = { name: "large number", value: bigNum };
 
 			const clonedObj = clone(obj);
 
@@ -261,18 +261,18 @@ describe("Utility Functions", () => {
 					backpack: Inventory,
 				) {
 					this.player = {
-						name: playerName,
-						mainInventory,
 						backpack,
+						mainInventory,
+						name: playerName,
 					};
 				}
 
 				toJSON() {
 					return {
 						player: {
-							name: this.player.name,
-							mainInventory: this.player.mainInventory.toJSON(),
 							backpack: this.player.backpack.toJSON(),
+							mainInventory: this.player.mainInventory.toJSON(),
+							name: this.player.name,
 						},
 					};
 				}

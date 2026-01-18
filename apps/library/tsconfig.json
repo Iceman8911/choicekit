@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+		"esModuleInterop": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ES2021"
+	},
+	"exclude": ["node_modules", "dist", "bunup.config.ts"],
+	"extends": "../../tsconfig.json",
+	"include": ["src/**/*"],
+	"paths": {
+		"~/*": ["./src/*"]
+	}
+}

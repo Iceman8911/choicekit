@@ -1,0 +1,65 @@
+{
+	"dependencies": {
+		"@iceman8911/tiny-prng": "^0.1.2",
+		"@zalari/string-compression-utils": "^0.1.1"
+	},
+	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.5",
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^20.0.0",
+		"@stardazed/streams-polyfill": "^2.4.0",
+		"@types/bun": "^1.2.23",
+		"bumpp": "^10.3.1",
+		"bunup": "^0.14.19",
+		"husky": "^9.1.7",
+		"quick-lru": "^7.2.0",
+		"turbo": "^2.7.5",
+		"typedoc": "^0.28.16",
+		"typescript": "^5.9.3"
+	},
+	"exports": {
+		".": {
+			"import": {
+				"default": "./dist/index.js",
+				"types": "./dist/index.d.ts"
+			},
+			"require": {
+				"default": "./dist/index.cjs",
+				"types": "./dist/index.d.cts"
+			}
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"license": "MIT",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"name": "@apps/library",
+	"peerDependencies": {
+		"typescript": ">=4.5.0"
+	},
+	"peerDependenciesMeta": {
+		"typescript": {
+			"optional": true
+		}
+	},
+	"scripts": {
+		"build": "bunup & bun run docgen",
+		"dev": "bunup --watch  & bun run docgen",
+		"docgen": "typedoc src/index.ts --json ../docs/src/generated/docs.json",
+		"format": "biome format --write ./src",
+		"lint": "biome check --write ./src",
+		"prepare": "husky",
+		"publish:ci": "bunx npm publish --access public --no-git-checks",
+		"release": "bumpp --commit --push --tag",
+		"test": "bun test",
+		"test:coverage": "bun test --coverage",
+		"test:watch": "bun test --watch",
+		"tsc": "tsc --noEmit"
+	},
+	"type": "module",
+	"types": "./dist/index.d.ts",
+	"version": "0.8.0"
+}

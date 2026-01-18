@@ -14,13 +14,14 @@ import type {
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
 	SugarBoxExportData,
-	SugarBoxMetadata,
 	SugarBoxNormalSaveKey,
 	SugarBoxPassage,
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
 	SugarBoxSettingsKey,
+	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
+import type { GenericObject } from "../types/shared";
 import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
 import { clone } from "../utils/clone";
 import { isStringJsonObjectOrCompressedString } from "../utils/compression";
@@ -37,39 +38,40 @@ import {
 const defaultConfig = {
 	autoSave: false,
 
-	compressSave: true,
+	compress: true,
+
+	emitMode: "acc",
 
 	loadOnStart: true,
 
-	maxStateCount: 100,
+	maxStates: 100,
 
 	regenSeed: "passage",
 
-	stateMergeCount: 1,
-
-	saveCompatibilityMode: "strict",
+	saveCompat: "strict",
 
 	saveSlots: 20,
 
 	saveVersion: `0.0.1`,
 
-	eventOptimization: "accuracy",
+	stateMergeCount: 1,
 } as const satisfies SugarBoxConfig;
 
 const MINIMUM_SAVE_SLOT_INDEX = 0;
 
 const MINIMUM_SAVE_SLOTS = 1;
 
+/** Changing this will BREAK saves */
 const SAVE_COMPRESSION_FORMAT = "gzip" satisfies CompressionFormat;
 
-type StateWithMetadata<TVariables extends Record<string, unknown>> =
-	TVariables & SugarBoxMetadata;
+type StateWithMetadata<TVariables extends GenericObject> = TVariables &
+	SugarBoxSnapshotMetadata;
 
-type SnapshotWithMetadata<TVariables extends Record<string, unknown>> = Partial<
-	TVariables & SugarBoxMetadata
+type SnapshotWithMetadata<TVariables extends GenericObject> = Partial<
+	TVariables & SugarBoxSnapshotMetadata
 >;
 
-type Config<TState extends Record<string, unknown>> = Partial<
+type Config<TState extends GenericObject> = Partial<
 	// Didn't use the metadata type since this will be exposed to the consumer
 	SugarBoxConfig<TState>
 >;
@@ -189,9 +191,9 @@ type SugarBoxSaveMigrationMap<
  */
 class SugarboxEngine<
 	TPassageType,
-	TVariables extends Record<string, unknown> = Record<string, unknown>,
-	TAchievementData extends Record<string, unknown> = Record<string, boolean>,
-	TSettingsData extends Record<string, unknown> = Record<string, unknown>,
+	TVariables extends GenericObject = GenericObject,
+	TAchievementData extends GenericObject = Record<string, boolean>,
+	TSettingsData extends GenericObject = GenericObject,
 > {
 	/** Contains partial updates to the state as a result of moving forwards in the story.
 	 *
@@ -224,12 +226,15 @@ class SugarboxEngine<
 
 	#eventTarget = new EventTarget();
 
-	/** Achievements meant to be persisted across saves */
+	/** Achievements meant to be persisted across saves
+	 *
+	 * **Must be serializable and deserializable by JSON.stringify / parse**
+	 */
 	#achievements: TAchievementData;
 
 	/** Settings data that is not tied to save data, like audio volume, font size, etc
 	 *
-	 * Must be serializable and deserializable by JSON.stringify / parse
+	 * **Must be serializable and deserializable by JSON.stringify / parse**
 	 */
 	#settings: TSettingsData;
 
@@ -302,9 +307,9 @@ class SugarboxEngine<
 	/** Use this to initialize the engine */
 	static async init<
 		TPassageType,
-		TVariables extends Record<string, unknown> = Record<string, unknown>,
-		TAchievementData extends Record<string, unknown> = Record<string, boolean>,
-		TSettingsData extends Record<string, unknown> = Record<string, unknown>,
+		TVariables extends GenericObject = GenericObject,
+		TAchievementData extends GenericObject = Record<string, boolean>,
+		TSettingsData extends GenericObject = GenericObject,
 	>(args: {
 		/** Name of the engine. Engines initalized with the same name have access to the same saves, acheivements, and story-specific settings */
 		name: string;
@@ -403,7 +408,7 @@ class SugarboxEngine<
 	 *
 	 * May be expensive to calculate depending on the history of the story.
 	 */
-	get vars(): Readonly<TVariables> {
+	get vars(): Readonly<StateWithMetadata<TVariables>> {
 		return this.#varsWithMetadata;
 	}
 
@@ -446,9 +451,8 @@ class SugarboxEngine<
 						//@ts-expect-error TS is confused
 						target[prop] = clone(previousStateValue);
 					}
-
-					return Reflect.get(target, prop, receiver);
 				}
+				return Reflect.get(target, prop, receiver);
 			},
 		});
 
@@ -781,7 +785,11 @@ class SugarboxEngine<
 			"save",
 			saveSlot,
 			async () => {
-				const { persistence, saveVersion, compressSave } = this.#config;
+				const {
+					persistence,
+					saveVersion,
+					compress: shouldCompressSave,
+				} = this.#config;
 
 				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
 
@@ -798,9 +806,10 @@ class SugarboxEngine<
 
 				const stringifiedSaveData = stringify(saveData);
 
-				const dataToStore = compressSave
-					? await compress(stringifiedSaveData, SAVE_COMPRESSION_FORMAT)
-					: stringifiedSaveData;
+				const dataToStore = await maybeCompressString(
+					stringifiedSaveData,
+					shouldCompressSave,
+				);
 
 				await persistence.set(saveKey, dataToStore);
 			},
@@ -858,16 +867,16 @@ class SugarboxEngine<
 
 			const deleted = await persistence.delete(saveSlotKey);
 
-			this.#emitCustomEvent(":deleteEnd", { type: "success", slot });
+			this.#emitCustomEvent(":deleteEnd", { slot, type: "success" });
 
 			return deleted;
 		} catch (e) {
 			const sanitizedError = sanitiseError(e);
 
 			this.#emitCustomEvent(":deleteEnd", {
-				type: "error",
 				error: sanitizedError,
 				slot,
+				type: "error",
 			});
 
 			throw sanitizedError;
@@ -908,7 +917,8 @@ class SugarboxEngine<
 
 		const oldState = this.#shouldCloneOldState ? clone(this.vars) : this.vars;
 
-		const { saveCompatibilityMode, saveVersion: engineVersion } = this.#config;
+		const { saveCompat: saveCompatibilityMode, saveVersion: engineVersion } =
+			this.#config;
 
 		const saveCompatibility = isSaveCompatibleWithEngine(
 			saveVersion,
@@ -962,16 +972,16 @@ class SugarboxEngine<
 							migratedState = migrater(currentStateToMigrate);
 
 							this.#emitCustomEvent(":migrationEnd", {
-								type: "success",
 								fromVersion: currentSaveVersion,
 								toVersion: to,
+								type: "success",
 							});
 						} catch (error) {
 							this.#emitCustomEvent(":migrationEnd", {
-								type: "error",
+								error: sanitiseError(error),
 								fromVersion: currentSaveVersion,
 								toVersion: to,
-								error: sanitiseError(error),
+								type: "error",
 							});
 							throw error;
 						}
@@ -1035,11 +1045,11 @@ class SugarboxEngine<
 			);
 
 			if (key === this.#getStorageKey()) {
-				yield { type: "autosave", data: saveData };
+				yield { data: saveData, type: "autosave" };
 			} else {
 				const slotNumber = Number(key.match(/slot(\d+)/)?.[1] ?? "-1");
 
-				yield { type: "normal", slot: slotNumber, data: saveData };
+				yield { data: saveData, slot: slotNumber, type: "normal" };
 			}
 		}
 	}
@@ -1063,31 +1073,34 @@ class SugarboxEngine<
 			"save",
 			"export",
 			async () => {
+				const { saveVersion, compress } = this.#config;
+
 				const exportData: SugarBoxExportData<
 					TVariables,
 					TSettingsData,
 					TAchievementData
 				> = {
+					achievements: this.#achievements,
 					saveData: {
 						intialState: this.#initialState,
 						lastPassageId: this.passageId,
-						saveVersion: this.#config.saveVersion,
 
 						savedOn: new Date(),
+						saveVersion,
 						snapshots: this.#stateSnapshots,
 						storyIndex: this.#index,
 					},
 					settings: this.#settings,
-					achievements: this.#achievements,
 				};
 
 				const stringifiedExportData = stringify(exportData);
 
-				if (this.#config.compressSave) {
-					return compress(stringifiedExportData, SAVE_COMPRESSION_FORMAT);
-				}
+				const finalDataToExport = await maybeCompressString(
+					stringifiedExportData,
+					compress,
+				);
 
-				return stringifiedExportData;
+				return finalDataToExport;
 			},
 		);
 	}
@@ -1163,18 +1176,20 @@ class SugarboxEngine<
 
 		const keys = await persistence.keys?.();
 
+		const autosaveKey = this.#getStorageKey();
+
 		if (keys) {
 			// Filter out the keys that are not save slots
+			const saveSlotKeyPrefix = `sugarbox-${this.name}-slot` as const;
+
 			for (const key of keys) {
-				if (key.includes(`slot`) || key.includes("autosave")) {
+				if (key.startsWith(saveSlotKeyPrefix) || key === autosaveKey) {
 					//@ts-expect-error TS doesn't know that the key is a SugarBoxSaveKey
 					yield key;
 				}
 			}
 		} else {
 			// Fallback to using get() to get the keys
-			const autosaveKey = this.#getStorageKey();
-
 			if (await persistence.get(autosaveKey)) {
 				yield autosaveKey;
 			}
@@ -1242,7 +1257,7 @@ class SugarboxEngine<
 	 * This will replace any existing state at the current index + 1.
 	 */
 	#addNewSnapshot(): SnapshotWithMetadata<TVariables> {
-		const { maxStateCount, stateMergeCount } = this.#config;
+		const { maxStates: maxStateCount, stateMergeCount } = this.#config;
 
 		if (this.#snapshotCount >= maxStateCount) {
 			// If the maximum number of states is reached, merge the last two snapshots
@@ -1475,16 +1490,16 @@ class SugarboxEngine<
 			const result = await callback();
 
 			this.#emitCustomEvent(endEvent, {
-				type: "success",
 				slot,
+				type: "success",
 			});
 
 			return result;
 		} catch (e) {
 			this.#emitCustomEvent(endEvent, {
-				type: "error",
 				error: sanitiseError(e),
 				slot,
+				type: "error",
 			});
 
 			throw e;
@@ -1496,9 +1511,14 @@ class SugarboxEngine<
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
+		const dataToStore = await maybeCompressString(
+			JSON.stringify(this.#achievements),
+			this.#config.compress,
+		);
+
 		await persistenceAdapter.set(
 			this.#getStorageKey("achievements"),
-			JSON.stringify(this.#achievements),
+			dataToStore,
 		);
 	}
 
@@ -1512,7 +1532,9 @@ class SugarboxEngine<
 		);
 
 		if (serializedAchievements) {
-			this.#achievements = JSON.parse(serializedAchievements);
+			this.#achievements = JSON.parse(
+				await decompressJsonStringIfCompressed(serializedAchievements),
+			);
 		}
 	}
 
@@ -1521,10 +1543,12 @@ class SugarboxEngine<
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
-		await persistenceAdapter.set(
-			this.#getStorageKey("settings"),
+		const dataToStore = await maybeCompressString(
 			JSON.stringify(this.#settings),
+			this.#config.compress,
 		);
+
+		await persistenceAdapter.set(this.#getStorageKey("settings"), dataToStore);
 	}
 
 	async #loadSettings(): Promise<void> {
@@ -1537,7 +1561,9 @@ class SugarboxEngine<
 		);
 
 		if (serializedSettings) {
-			this.#settings = JSON.parse(serializedSettings);
+			this.#settings = JSON.parse(
+				await decompressJsonStringIfCompressed(serializedSettings),
+			);
 		}
 	}
 
@@ -1555,7 +1581,7 @@ class SugarboxEngine<
 	}
 
 	get #shouldCloneOldState(): boolean {
-		return this.#config.eventOptimization !== "performance";
+		return this.#config.emitMode !== "perf";
 	}
 }
 
@@ -1570,5 +1596,13 @@ const sanitiseError = (possibleError: unknown) =>
 	possibleError instanceof Error ? possibleError : Error(String(possibleError));
 
 const getRandomInteger = () => Math.floor(Math.random() * 2 ** 32);
+
+const maybeCompressString = async (
+	strToMaybeCompress: string,
+	shouldCompress: boolean,
+): Promise<string> =>
+	shouldCompress
+		? compress(strToMaybeCompress, SAVE_COMPRESSION_FORMAT)
+		: strToMaybeCompress;
 
 export { SugarboxEngine };
