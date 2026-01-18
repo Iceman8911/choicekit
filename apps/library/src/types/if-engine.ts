@@ -202,10 +202,15 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 	emitMode?: "perf" | "acc";
 };
 
-type SugarBoxPassage<TPassageType> = {
-	/** Must be unique across all passages */
+type SugarBoxPassage<TPassageType, TPassageTag extends string = string> = {
+	/** Unique identifier for the passage in the engine */
 	name: string;
+	/** Passage data. Whatever this is is up to you. */
 	passage: TPassageType;
+	/** Optional tags for querying this and related passages.
+	 *
+	 */
+	tags?: TPassageTag[];
 };
 
 export type {

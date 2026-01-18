@@ -187,6 +187,7 @@ type SugarBoxSaveMigrationMap<
 class SugarboxEngine<
 	TPassageType,
 	TVariables extends GenericObject = GenericObject,
+	TPassageTag extends string = string,
 	TAchievementData extends GenericObject = Record<string, boolean>,
 	TSettingsData extends GenericObject = GenericObject,
 > {
@@ -194,10 +195,11 @@ class SugarboxEngine<
 		engine: SugarboxEngine<
 			TPassageType,
 			TVariables,
+			TPassageTag,
 			TAchievementData,
 			TSettingsData
 		>;
-		passage: SugarBoxPassage<TPassageType>;
+		passage: SugarBoxPassage<TPassageType, TPassageTag>;
 		config: SugarBoxConfig<TVariables>;
 		state: {
 			complete: StateWithMetadata<TVariables>;
@@ -321,6 +323,7 @@ class SugarboxEngine<
 	static async init<
 		TPassageType,
 		TVariables extends GenericObject = GenericObject,
+		TPassageTag extends string = string,
 		TAchievementData extends GenericObject = Record<string, boolean>,
 		TSettingsData extends GenericObject = GenericObject,
 	>(args: {
@@ -337,18 +340,19 @@ class SugarboxEngine<
 					engine: SugarboxEngine<
 						TPassageType,
 						TVariables,
+						TPassageTag,
 						TAchievementData,
 						TSettingsData
 					>,
 			  ) => TVariables);
 
 		/** Starting passage */
-		startPassage: SugarBoxPassage<TPassageType>;
+		startPassage: SugarBoxPassage<TPassageType, TPassageTag>;
 
 		/** Critical passages that must be available asap.
 		 *
 		 * The first argument is the passage id */
-		otherPassages: SugarBoxPassage<TPassageType>[];
+		otherPassages: SugarBoxPassage<TPassageType, TPassageTag>[];
 
 		/** So you don't have to manually register classes for proper serialization / deserialization */
 		classes?: SugarBoxCompatibleClassConstructor<unknown>[];
@@ -370,7 +374,13 @@ class SugarboxEngine<
 			data: SugarBoxSaveMigration<never, unknown>;
 		}[];
 	}): Promise<
-		SugarboxEngine<TPassageType, TVariables, TAchievementData, TSettingsData>
+		SugarboxEngine<
+			TPassageType,
+			TVariables,
+			TPassageTag,
+			TAchievementData,
+			TSettingsData
+		>
 	> {
 		const {
 			config = defaultConfig,
@@ -387,6 +397,7 @@ class SugarboxEngine<
 		const engine = new SugarboxEngine<
 			TPassageType,
 			TVariables,
+			TPassageTag,
 			TAchievementData,
 			TSettingsData
 		>(
