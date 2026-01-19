@@ -705,7 +705,7 @@ class SugarboxEngine<
 	 */
 	navigateTo(
 		passageId: string = this.passageId,
-	): SnapshotWithMetadata<TVariables> {
+	): typeof this._type.state.snapshot {
 		if (!this.#isPassageIdValid(passageId))
 			throw Error(
 				`Cannot navigate: Passage with ID '${passageId}' not found. Add it using addPassage().`,
@@ -827,7 +827,7 @@ class SugarboxEngine<
 
 				const saveKey = this.#getStorageKey(saveSlot);
 
-				const saveData: SugarBoxSaveData<TVariables> = {
+				const saveData: typeof this._type.saveData = {
 					intialState: this.#initialState,
 					lastPassageId: this.passageId,
 					savedOn: new Date(),
@@ -974,7 +974,7 @@ class SugarboxEngine<
 				this.#index = storyIndex;
 
 				try {
-					let migratedState: StateWithMetadata<TVariables> | null = null;
+					let migratedState: typeof this._type.state.complete | null = null;
 
 					let currentSaveVersion = saveVersion;
 
@@ -1066,7 +1066,7 @@ class SugarboxEngine<
 
 			if (!serializedSaveData) continue;
 
-			const saveData: SugarBoxSaveData<TVariables> = parse(
+			const saveData: typeof this._type.saveData = parse(
 				await decompressJsonStringIfCompressed(serializedSaveData),
 			);
 
@@ -1230,12 +1230,12 @@ class SugarboxEngine<
 		}
 	}
 
-	async #getMostRecentSave(): Promise<SugarBoxSaveData<TVariables> | null> {
+	async #getMostRecentSave(): Promise<typeof this._type.saveData | null> {
 		const persistence = this.#config.persistence;
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistence);
 
-		let mostRecentSave: SugarBoxSaveData<TVariables> | null = null;
+		let mostRecentSave: typeof this._type.saveData | null = null;
 
 		for await (const { data } of this.getSaves()) {
 			if (!mostRecentSave) {
@@ -1280,7 +1280,7 @@ class SugarboxEngine<
 	 *
 	 * This will replace any existing state at the current index + 1.
 	 */
-	#addNewSnapshot(): SnapshotWithMetadata<TVariables> {
+	#addNewSnapshot(): typeof this._type.state.snapshot {
 		const { maxStates: maxStateCount, stateMergeCount } = this.#config;
 
 		if (this.#snapshotCount >= maxStateCount) {
@@ -1320,16 +1320,16 @@ class SugarboxEngine<
 			Array.from(Array(difference + 1), (_, i) => lowerIndex + i),
 		);
 
-		const combinedSnapshot: SnapshotWithMetadata<TVariables> = {};
+		const combinedSnapshot: typeof this._type.state.snapshot = {};
 
-		const newSnapshotArray: Array<SnapshotWithMetadata<TVariables>> = [];
+		const newSnapshotArray: Array<typeof this._type.state.snapshot> = [];
 
 		for (let i = 0; i < this.#snapshotCount; i++) {
 			const currentSnapshot = this.#getSnapshotAtIndex(i);
 
 			// Merge the snapshot at this index into the combined snapshot
 			if (indexesToMerge.has(i)) {
-				let key: keyof SnapshotWithMetadata<TVariables>;
+				let key: keyof typeof this._type.state.snapshot;
 
 				for (key in currentSnapshot) {
 					const value = currentSnapshot[key];
@@ -1361,7 +1361,7 @@ class SugarboxEngine<
 	 *
 	 * @throws a `RangeError` if the given index does not exist
 	 */
-	#getSnapshotAtIndex(index: number): SnapshotWithMetadata<TVariables> {
+	#getSnapshotAtIndex(index: number): typeof this._type.state.snapshot {
 		const possibleSnapshot = this.#stateSnapshots[index];
 
 		if (!possibleSnapshot) throw new RangeError("Snapshot index out of bounds");
@@ -1376,7 +1376,7 @@ class SugarboxEngine<
 	 */
 	#getStateAtIndex(
 		index: number = this.#lastSnapshotIndex,
-	): Readonly<StateWithMetadata<TVariables>> {
+	): Readonly<typeof this._type.state.complete> {
 		const stateLength = this.#snapshotCount;
 
 		const effectiveIndex = Math.min(Math.max(0, index), stateLength - 1);
@@ -1385,12 +1385,12 @@ class SugarboxEngine<
 
 		if (cachedState) return cachedState;
 
-		const state = clone<StateWithMetadata<TVariables>>(this.#initialState);
+		const state = clone<typeof this._type.state.complete>(this.#initialState);
 
 		for (let i = 0; i <= effectiveIndex; i++) {
 			let partialUpdateKey: keyof TVariables;
 
-			const partialUpdate: SnapshotWithMetadata<TVariables> =
+			const partialUpdate: typeof this._type.state.snapshot =
 				this.#getSnapshotAtIndex(i);
 
 			for (partialUpdateKey in partialUpdate) {
@@ -1411,7 +1411,7 @@ class SugarboxEngine<
 
 	/** **WARNING:** This will **replace** the intialState and **empty** all the snapshots. */
 	#rewriteState(
-		stateToReplaceTheCurrentOne: StateWithMetadata<TVariables>,
+		stateToReplaceTheCurrentOne: typeof this._type.state.complete,
 	): void {
 		this.#initialState = stateToReplaceTheCurrentOne;
 
