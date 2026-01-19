@@ -511,6 +511,13 @@ await engine.loadFromExport(exportData);
 
 ---
 
+### Save Data
+
+A regular in-game save consists of some small metadata for tracking as well as the state of all story variables. Achievements and settings are not directly stored along with this save data since it wiill be inconvenient to have them depend on th user's current save state.
+
+In saves that are exported externally or converted to strings, achievements and settings are carried along too.
+
+
 ### Save Slots
 
 Save slots are numbered locations where the game state can be stored. A maximum amount can be specified in the engine's `config` (the default is 20)
