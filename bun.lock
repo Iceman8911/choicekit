@@ -34,7 +34,7 @@
       "dependencies": {
         "@iceman8911/tiny-prng": "^0.1.2",
         "@packages/serializer": "workspace:*",
-        "@zalari/string-compression-utils": "^0.1.1",
+        "@packages/string-compression": "workspace:*",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
@@ -71,6 +71,17 @@
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
         "@packages/engine-class": "workspace:*",
+      },
+    },
+    "packages/string-compression": {
+      "name": "@packages/string-compression",
+      "version": "0.0.0",
+      "dependencies": {
+        "@zalari/string-compression-utils": "^0.1.1",
+        "@zalari/string-compression-utils": "zalari/string-compression-utils",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "^2.2.5",
       },
     },
   },
@@ -432,6 +443,8 @@
     "@packages/engine-class": ["@packages/engine-class@workspace:packages/engine-class"],
 
     "@packages/serializer": ["@packages/serializer@workspace:packages/serializer"],
+
+    "@packages/string-compression": ["@packages/string-compression@workspace:packages/string-compression"],
 
     "@parcel/watcher": ["@parcel/watcher@2.5.4", "", { "dependencies": { "detect-libc": "^2.0.3", "is-glob": "^4.0.3", "node-addon-api": "^7.0.0", "picomatch": "^4.0.3" }, "optionalDependencies": { "@parcel/watcher-android-arm64": "2.5.4", "@parcel/watcher-darwin-arm64": "2.5.4", "@parcel/watcher-darwin-x64": "2.5.4", "@parcel/watcher-freebsd-x64": "2.5.4", "@parcel/watcher-linux-arm-glibc": "2.5.4", "@parcel/watcher-linux-arm-musl": "2.5.4", "@parcel/watcher-linux-arm64-glibc": "2.5.4", "@parcel/watcher-linux-arm64-musl": "2.5.4", "@parcel/watcher-linux-x64-glibc": "2.5.4", "@parcel/watcher-linux-x64-musl": "2.5.4", "@parcel/watcher-win32-arm64": "2.5.4", "@parcel/watcher-win32-ia32": "2.5.4", "@parcel/watcher-win32-x64": "2.5.4" } }, "sha512-WYa2tUVV5HiArWPB3ydlOc4R2ivq0IDrlqhMi3l7mVsFEXNcTfxYFPIHXHXIh/ca/y/V5N4E1zecyxdIBjYnkQ=="],
 
@@ -2022,6 +2035,8 @@
     "@isaacs/cliui/string-width": ["string-width@5.1.2", "", { "dependencies": { "eastasianwidth": "^0.2.0", "emoji-regex": "^9.2.2", "strip-ansi": "^7.0.1" } }, "sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA=="],
 
     "@isaacs/cliui/wrap-ansi": ["wrap-ansi@8.1.0", "", { "dependencies": { "ansi-styles": "^6.1.0", "string-width": "^5.0.1", "strip-ansi": "^7.0.1" } }, "sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ=="],
+
+    "@packages/string-compression/@zalari/string-compression-utils": ["@zalari/string-compression-utils@github:zalari/string-compression-utils#1c301d9", {}, "zalari-string-compression-utils-1c301d9"],
 
     "@parcel/watcher/picomatch": ["picomatch@4.0.3", "", {}, "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q=="],
 

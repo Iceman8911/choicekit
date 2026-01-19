@@ -13,7 +13,10 @@ import {
 	registerClass,
 	serialize as stringify,
 } from "@packages/serializer";
-import { compress, decompress } from "@zalari/string-compression-utils";
+import {
+	compressStringIfApplicable,
+	decompressPossiblyCompressedJsonString,
+} from "@packages/string-compression";
 import type { SugarBoxCacheAdapter } from "../types/adapters";
 import type {
 	SugarBoxAchievementsKey,
@@ -29,7 +32,6 @@ import type {
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
 import type { GenericObject } from "../types/shared";
-import { isStringJsonObjectOrCompressedString } from "../utils/compression";
 import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
@@ -60,9 +62,6 @@ const defaultConfig = {
 const MINIMUM_SAVE_SLOT_INDEX = 0;
 
 const MINIMUM_SAVE_SLOTS = 1;
-
-/** Changing this will BREAK saves */
-const SAVE_COMPRESSION_FORMAT = "gzip" satisfies CompressionFormat;
 
 type StateWithMetadata<TVariables extends GenericObject> = TVariables &
 	SugarBoxSnapshotMetadata;
@@ -838,7 +837,7 @@ class SugarboxEngine<
 
 				const stringifiedSaveData = stringify(saveData);
 
-				const dataToStore = await maybeCompressString(
+				const dataToStore = await compressStringIfApplicable(
 					stringifiedSaveData,
 					shouldCompressSave,
 				);
@@ -872,7 +871,7 @@ class SugarboxEngine<
 				}
 
 				const jsonString =
-					await decompressJsonStringIfCompressed(serializedSaveData);
+					await decompressPossiblyCompressedJsonString(serializedSaveData);
 
 				this.loadSaveFromData(parse(jsonString));
 			},
@@ -1067,7 +1066,7 @@ class SugarboxEngine<
 			if (!serializedSaveData) continue;
 
 			const saveData: typeof this._type.saveData = parse(
-				await decompressJsonStringIfCompressed(serializedSaveData),
+				await decompressPossiblyCompressedJsonString(serializedSaveData),
 			);
 
 			if (key === this.#getStorageKey()) {
@@ -1121,7 +1120,7 @@ class SugarboxEngine<
 
 				const stringifiedExportData = stringify(exportData);
 
-				const finalDataToExport = await maybeCompressString(
+				const finalDataToExport = await compressStringIfApplicable(
 					stringifiedExportData,
 					compress,
 				);
@@ -1140,7 +1139,7 @@ class SugarboxEngine<
 			"load",
 			"export",
 			async () => {
-				const jsonString = await decompressJsonStringIfCompressed(data);
+				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
 				const {
 					achievements,
@@ -1499,7 +1498,7 @@ class SugarboxEngine<
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
-		const dataToStore = await maybeCompressString(
+		const dataToStore = await compressStringIfApplicable(
 			JSON.stringify(this.#achievements),
 			this.#config.compress,
 		);
@@ -1521,7 +1520,7 @@ class SugarboxEngine<
 
 		if (serializedAchievements) {
 			this.#achievements = JSON.parse(
-				await decompressJsonStringIfCompressed(serializedAchievements),
+				await decompressPossiblyCompressedJsonString(serializedAchievements),
 			);
 		}
 	}
@@ -1531,7 +1530,7 @@ class SugarboxEngine<
 
 		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
-		const dataToStore = await maybeCompressString(
+		const dataToStore = await compressStringIfApplicable(
 			JSON.stringify(this.#settings),
 			this.#config.compress,
 		);
@@ -1550,7 +1549,7 @@ class SugarboxEngine<
 
 		if (serializedSettings) {
 			this.#settings = JSON.parse(
-				await decompressJsonStringIfCompressed(serializedSettings),
+				await decompressPossiblyCompressedJsonString(serializedSettings),
 			);
 		}
 	}
@@ -1573,31 +1572,9 @@ class SugarboxEngine<
 	}
 }
 
-// TODO: Add tests to ensure compression only happens when it'll be useful
-const STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION = 1024;
-
-const encoder = new TextEncoder();
-
-const decompressJsonStringIfCompressed = async (
-	possiblyCompressedString: string,
-): Promise<string> =>
-	isStringJsonObjectOrCompressedString(possiblyCompressedString) === "json"
-		? possiblyCompressedString
-		: decompress(possiblyCompressedString, SAVE_COMPRESSION_FORMAT);
-
 const sanitiseError = (possibleError: unknown) =>
 	possibleError instanceof Error ? possibleError : Error(String(possibleError));
 
 const getRandomInteger = () => Math.floor(Math.random() * 2 ** 32);
-
-const maybeCompressString = async (
-	strToMaybeCompress: string,
-	shouldCompress: boolean,
-): Promise<string> =>
-	shouldCompress &&
-	encoder.encode(strToMaybeCompress).length >
-		STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION
-		? compress(strToMaybeCompress, SAVE_COMPRESSION_FORMAT)
-		: strToMaybeCompress;
 
 export { SugarboxEngine };
