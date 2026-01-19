@@ -1,12 +1,9 @@
-import { compress, decompress } from "@zalari/string-compression-utils";
-
-// TODO: Add tests to ensure compression only happens when it'll be useful
-const STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION = 1024;
-
-/** Changing this will BREAK saves */
-const SAVE_COMPRESSION_FORMAT = "gzip" satisfies CompressionFormat;
-
-const encoder = new TextEncoder();
+import { compressString, decompressString } from "./compression";
+import {
+	SAVE_COMPRESSION_FORMAT,
+	SHARED_UTF8_TEXT_ENCODER,
+	STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION,
+} from "./shared";
 
 const STRING_TYPE_JSON = 1;
 const STRING_TYPE_COMPRESSED = 2;
@@ -25,21 +22,21 @@ const decompressPossiblyCompressedJsonString = async (
 	isStringJsonObjectOrCompressedString(possiblyCompressedString) ===
 	STRING_TYPE_JSON
 		? possiblyCompressedString
-		: decompress(possiblyCompressedString, SAVE_COMPRESSION_FORMAT);
+		: decompressString(possiblyCompressedString, SAVE_COMPRESSION_FORMAT);
 
 const compressStringIfApplicable = async (
 	strToMaybeCompress: string,
 	canCompressionOccur: boolean,
 ): Promise<string> =>
 	canCompressionOccur &&
-	encoder.encode(strToMaybeCompress).length >
+	SHARED_UTF8_TEXT_ENCODER.encode(strToMaybeCompress).length >
 		STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION
-		? compress(strToMaybeCompress, SAVE_COMPRESSION_FORMAT)
+		? compressString(strToMaybeCompress, SAVE_COMPRESSION_FORMAT)
 		: strToMaybeCompress;
 
 export {
 	compressStringIfApplicable,
 	decompressPossiblyCompressedJsonString,
-	compress as compressString,
-	decompress as decompressString,
+	compressString,
+	decompressString,
 };
