@@ -153,6 +153,8 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 
 	/** Determines whether or not save/achievement/settings data will be compressed.
 	 *
+	 * Note that even when this is enabled, compression will not occur unless the stringified data is long enough (> 1KB)
+	 *
 	 * @default true
 	 */
 	compress: boolean;

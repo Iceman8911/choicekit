@@ -1575,6 +1575,11 @@ class SugarboxEngine<
 	}
 }
 
+// TODO: Add tests to ensure compression only happens when it'll be useful
+const STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION = 1024;
+
+const encoder = new TextEncoder();
+
 const decompressJsonStringIfCompressed = async (
 	possiblyCompressedString: string,
 ): Promise<string> =>
@@ -1591,7 +1596,9 @@ const maybeCompressString = async (
 	strToMaybeCompress: string,
 	shouldCompress: boolean,
 ): Promise<string> =>
-	shouldCompress
+	shouldCompress &&
+	encoder.encode(strToMaybeCompress).length >
+		STRING_SIZE_MIN_THRESHOLD_FOR_COMPRESSION
 		? compress(strToMaybeCompress, SAVE_COMPRESSION_FORMAT)
 		: strToMaybeCompress;
 

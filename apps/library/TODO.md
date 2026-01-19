@@ -3,7 +3,7 @@
 - [ ] Figure out the best way for adding passages
 - [ ] trim down persistence assertions
 - [x] compress achievements and settings
-- [ ] only apply compression if it is enabled and the string is over 500 bytes
+- [x] only apply compression if it is enabled and the string is over 1kb
 - [ ] maybe tie autosaving to a custom setting instead of at the engine level
 - [ ] introduce `has` for the persistence adapter
 - [ ] Consider a complementary **module-scoped** api in addition to the present **class-based** api. 
