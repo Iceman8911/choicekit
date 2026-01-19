@@ -2,12 +2,12 @@
 
 import "@stardazed/streams-polyfill";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { SugarboxEngine } from "../../src";
-import type { GenericObject } from "../../src/types/shared";
 import type {
 	SugarBoxCompatibleClassConstructorCheck,
 	SugarBoxCompatibleClassInstance,
-} from "../../src/types/userland-classes";
+} from "@packages/engine-class";
+import { SugarboxEngine } from "../../src";
+import type { GenericObject } from "../../src/types/shared";
 import { isStringJsonObjectOrCompressedString } from "../../src/utils/compression";
 import { createPersistenceAdapter } from "../mocks/persistence";
 

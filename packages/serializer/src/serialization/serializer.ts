@@ -1,3 +1,4 @@
+import type { SugarBoxCompatibleClassConstructor } from "@packages/engine-class";
 import type {
 	TransformedBigInt,
 	TransformedCustomClass,
@@ -8,7 +9,6 @@ import type {
 	TransformedSet,
 } from "../types/serializer";
 import type { GenericObject } from "../types/shared";
-import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
 
 type ClassConstructor = SugarBoxCompatibleClassConstructor<unknown>;
 

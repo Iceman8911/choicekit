@@ -6,6 +6,7 @@
 // - The current state snapshot is the last state in the list, which is mutable.
 
 import { PRNG } from "@iceman8911/tiny-prng";
+import type { SugarBoxCompatibleClassConstructor } from "@packages/engine-class";
 import {
 	clone,
 	deserialize as parse,
@@ -28,7 +29,6 @@ import type {
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
 import type { GenericObject } from "../types/shared";
-import type { SugarBoxCompatibleClassConstructor } from "../types/userland-classes";
 import { isStringJsonObjectOrCompressedString } from "../utils/compression";
 import {
 	isSaveCompatibleWithEngine,

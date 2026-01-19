@@ -9,6 +9,7 @@
 		"@biomejs/biome": "^2.2.5",
 		"@commitlint/cli": "^20.1.0",
 		"@commitlint/config-conventional": "^20.0.0",
+		"@packages/engine-class": "workspace:*",
 		"@stardazed/streams-polyfill": "^2.4.0",
 		"@types/bun": "^1.2.23",
 		"bumpp": "^10.3.1",

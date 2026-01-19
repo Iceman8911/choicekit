@@ -40,6 +40,7 @@
         "@biomejs/biome": "^2.2.5",
         "@commitlint/cli": "^20.1.0",
         "@commitlint/config-conventional": "^20.0.0",
+        "@packages/engine-class": "workspace:*",
         "@stardazed/streams-polyfill": "^2.4.0",
         "@types/bun": "^1.2.23",
         "bumpp": "^10.3.1",
@@ -57,11 +58,19 @@
         "typescript",
       ],
     },
+    "packages/engine-class": {
+      "name": "@packages/engine-class",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@biomejs/biome": "^2.2.5",
+      },
+    },
     "packages/serializer": {
       "name": "@packages/serializer",
       "version": "0.0.0",
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
+        "@packages/engine-class": "workspace:*",
       },
     },
   },
@@ -419,6 +428,8 @@
     "@oxc-transform/binding-win32-arm64-msvc": ["@oxc-transform/binding-win32-arm64-msvc@0.93.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-RR30xNVMIEe5PWSD26uGEZp6yH7fkLKznvPSebVOVl2IWW8Sjnd59i6Ws08FmBKH9QP3jW30MypL6ESdlE5yWw=="],
 
     "@oxc-transform/binding-win32-x64-msvc": ["@oxc-transform/binding-win32-x64-msvc@0.93.0", "", { "os": "win32", "cpu": "x64" }, "sha512-6QN3DEaEw3eWioWEFRgNsTvYq8czYSnpkjB2za+/WdLN0g5FzOl2ZEfNiPrBWIPnSmjUmDWtWVWcSjwY7fX5/Q=="],
+
+    "@packages/engine-class": ["@packages/engine-class@workspace:packages/engine-class"],
 
     "@packages/serializer": ["@packages/serializer@workspace:packages/serializer"],
 

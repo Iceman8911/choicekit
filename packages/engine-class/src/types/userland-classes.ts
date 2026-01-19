@@ -1,6 +1,6 @@
 /** All userland custom classes need to implement this if they must be part of the story's state */
 type SugarBoxCompatibleClassInstance<TSerializedStructure> = {
-	/** Must return a serializable (using SuperJSON) plain object that when deserialized, can be reinitialized into an identical clone of the class.
+	/** Must return a serializable plain object that when deserialized, can be reinitialized into an identical clone of the class.
 	 *
 	 * Is required for persistence.
 	 */
