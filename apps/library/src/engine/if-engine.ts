@@ -63,6 +63,8 @@ const MINIMUM_SAVE_SLOT_INDEX = 0;
 
 const MINIMUM_SAVE_SLOTS = 1;
 
+const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
+
 type StateWithMetadata<TVariables extends GenericObject> = TVariables &
 	SugarBoxSnapshotMetadata;
 
@@ -1072,7 +1074,7 @@ class SugarboxEngine<
 			if (key === this.#getStorageKey()) {
 				yield { data: saveData, type: "autosave" };
 			} else {
-				const slotNumber = Number(key.match(/slot(\d+)/)?.[1] ?? "-1");
+				const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
 
 				yield { data: saveData, slot: slotNumber, type: "normal" };
 			}
