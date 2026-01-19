@@ -1,4 +1,4 @@
-import type { SugarBoxCompatibleClassConstructor } from "@packages/engine-class";
+import type { SugarBoxClassConstructor } from "@packages/engine-class";
 import type {
 	TransformedBigInt,
 	TransformedCustomClass,
@@ -10,7 +10,7 @@ import type {
 } from "../types/serializer";
 import type { GenericObject } from "../types/shared";
 
-type ClassConstructor = SugarBoxCompatibleClassConstructor<unknown>;
+type ClassConstructor = SugarBoxClassConstructor<unknown>;
 
 // Custom serializer that uses JSON with custom class support
 const classRegistry = new Map<string, ClassConstructor>();

@@ -6,7 +6,7 @@
 // - The current state snapshot is the last state in the list, which is mutable.
 
 import { PRNG } from "@iceman8911/tiny-prng";
-import type { SugarBoxCompatibleClassConstructor } from "@packages/engine-class";
+import type { SugarBoxClassConstructor } from "@packages/engine-class";
 import {
 	clone,
 	deserialize as parse,
@@ -355,7 +355,7 @@ class SugarboxEngine<
 		otherPassages: SugarBoxPassage<TPassageType, TPassageTag>[];
 
 		/** So you don't have to manually register classes for proper serialization / deserialization */
-		classes?: SugarBoxCompatibleClassConstructor<unknown>[];
+		classes?: SugarBoxClassConstructor<unknown>[];
 
 		/** Achievements that should persist across saves */
 		achievements?: TAchievementData;
@@ -777,9 +777,7 @@ class SugarboxEngine<
 	}
 
 	/** Any custom classes stored in the story's state must be registered with this */
-	registerClasses(
-		...customClasses: SugarBoxCompatibleClassConstructor<unknown>[]
-	): void {
+	registerClasses(...customClasses: SugarBoxClassConstructor<unknown>[]): void {
 		customClasses.forEach((customClass) => {
 			registerClass(customClass);
 		});

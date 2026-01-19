@@ -3,8 +3,8 @@
 import "@stardazed/streams-polyfill";
 import { beforeEach, describe, expect, test } from "bun:test";
 import type {
-	SugarBoxCompatibleClassConstructorCheck,
-	SugarBoxCompatibleClassInstance,
+	SugarBoxClassConstructor,
+	SugarBoxClassInstance,
 } from "@packages/engine-class";
 import { SugarboxEngine } from "../../src";
 import type { GenericObject } from "../../src/types/shared";
@@ -21,7 +21,7 @@ const SAMPLE_PASSAGES = [
 ] as const;
 
 async function initEngine() {
-	class Player implements SugarBoxCompatibleClassInstance<SerializedPlayer> {
+	class Player implements SugarBoxClassInstance<SerializedPlayer> {
 		name = "Dave";
 		age = 21;
 		class = "Paladin";
@@ -45,7 +45,7 @@ async function initEngine() {
 
 		static fromJSON(
 			serializedData: SerializedPlayer,
-		): SugarBoxCompatibleClassInstance<SerializedPlayer> {
+		): SugarBoxClassInstance<SerializedPlayer> {
 			const player = new Player();
 
 			Object.assign(player, serializedData);
@@ -54,15 +54,11 @@ async function initEngine() {
 		}
 	}
 
+	Player satisfies SugarBoxClassConstructor<SerializedPlayer>;
+
 	const dummy = { ...new Player() };
 
 	type SerializedPlayer = typeof dummy;
-
-	// biome-ignore lint/correctness/noUnusedVariables: <Workaround for enforcing static class props>
-	type PlayerCheck = SugarBoxCompatibleClassConstructorCheck<
-		SerializedPlayer,
-		typeof Player
-	>;
 
 	return SugarboxEngine.init({
 		classes: [Player],
@@ -2858,7 +2854,7 @@ describe("PRNG and Random Number Generation", () => {
 		}
 
 		// Inventory class that contains items
-		class Inventory implements SugarBoxCompatibleClassInstance<InventoryData> {
+		class Inventory implements SugarBoxClassInstance<InventoryData> {
 			static readonly classId = "GameInventory";
 
 			id: string;
@@ -2892,7 +2888,7 @@ describe("PRNG and Random Number Generation", () => {
 		}
 
 		// Item class that references back to inventory (circular reference)
-		class Item implements SugarBoxCompatibleClassInstance<ItemData> {
+		class Item implements SugarBoxClassInstance<ItemData> {
 			name: string;
 			inventory: Inventory;
 

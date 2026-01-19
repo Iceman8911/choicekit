@@ -961,8 +961,8 @@ For custom classes, implement the required interfaces:
 
 ```typescript
 import type {
-  SugarBoxCompatibleClassInstance,
-  SugarBoxCompatibleClassConstructorCheck
+  SugarBoxClassInstance,
+  SugarBoxClassConstructor
 } from "sugarbox";
 
 interface SerializedPlayer {
@@ -970,7 +970,7 @@ interface SerializedPlayer {
   level: number;
 }
 
-class Player implements SugarBoxCompatibleClassInstance<SerializedPlayer> {
+class Player implements SugarBoxClassInstance<SerializedPlayer> {
   static readonly classId = "Player";
   name: string = "Hero";
   level: number = 1;
@@ -986,6 +986,6 @@ class Player implements SugarBoxCompatibleClassInstance<SerializedPlayer> {
   }
 }
 
-// Type check for ensuring proper implementation
-type PlayerCheck = SugarBoxCompatibleClassConstructorCheck<SerializedPlayer, typeof Player>;
+Player satisfies SugarBoxClassConstructor<SerializedPlayer>
+
 ```
