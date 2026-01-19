@@ -306,16 +306,16 @@ class SugarboxEngine<
 		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
 		this.#initialState = {
 			...(isInitialStateCallback ? ({} as TVariables) : initialState),
-			__id: startPassage.name,
-			__seed: initialSeed,
+			$$id: startPassage.name,
+			$$seed: initialSeed,
 		};
 
 		// If the initial state is a function, call it with the engine instance
 		if (isInitialStateCallback) {
 			this.#initialState = {
 				...initialState(this),
-				__id: startPassage.name,
-				__seed: initialSeed,
+				$$id: startPassage.name,
+				$$seed: initialSeed,
 			};
 		}
 	}
@@ -478,8 +478,8 @@ class SugarboxEngine<
 		if (possibleValueToUseForReplacing) {
 			this.#rewriteState({
 				...possibleValueToUseForReplacing,
-				__id: this.passageId,
-				__seed: this.#currentStatePrngSeed,
+				$$id: this.passageId,
+				$$seed: this.#currentStatePrngSeed,
 			});
 		}
 
@@ -505,7 +505,7 @@ class SugarboxEngine<
 
 	/** Returns the id to the appropriate passage for the current state */
 	get passageId(): string {
-		return this.vars.__id;
+		return this.vars.$$id;
 	}
 
 	/** Returns the passage data for the current state.
@@ -537,8 +537,8 @@ class SugarboxEngine<
 
 		if (regenSeed === "eachCall") {
 			// Add the new seed to the snapshot on each call
-			// @ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `__seed` property
-			this.#getSnapshotAtIndex(this.#index).__seed = prng.seed;
+			// @ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$seed` property
+			this.#getSnapshotAtIndex(this.#index).$$seed = prng.seed;
 		}
 
 		return randomNumber;
@@ -714,15 +714,15 @@ class SugarboxEngine<
 
 		const newSnapshot = this.#addNewSnapshot();
 
-		if (this.vars.__id !== passageId) {
-			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `__id` property
-			newSnapshot.__id = passageId;
+		if (this.vars.$$id !== passageId) {
+			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$id` property
+			newSnapshot.$$id = passageId;
 		}
 
 		if (this.#config.regenSeed === "passage") {
-			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `__seed` property
+			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$seed` property
 			// Create a new seed for the new snapshot
-			newSnapshot.__seed = this.#currentStatePrng.next();
+			newSnapshot.$$seed = this.#currentStatePrng.next();
 		}
 
 		this.#setIndex(this.#index + 1);
@@ -739,7 +739,7 @@ class SugarboxEngine<
 	reset(resetSeed = false): void {
 		this.#rewriteState(
 			resetSeed
-				? { ...this.#initialState, __seed: getRandomInteger() }
+				? { ...this.#initialState, $$seed: getRandomInteger() }
 				: this.#initialState,
 		);
 
@@ -1557,7 +1557,7 @@ class SugarboxEngine<
 	}
 
 	get #currentStatePrngSeed(): number {
-		return this.vars.__seed;
+		return this.vars.$$seed;
 	}
 
 	/** Since the seed is stored in each snapshot and reinitializing the class isn't expensive, there's not much use in having a dedicated prng prop */

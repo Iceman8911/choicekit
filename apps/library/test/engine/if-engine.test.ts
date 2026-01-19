@@ -3230,10 +3230,10 @@ describe("Dynamic Initial State", () => {
 		expect(engine.vars.hasSettings).toBe(true);
 	});
 
-	test("should preserve __id and __seed properties with dynamic initial state", async () => {
+	test("should preserve $$id and $$seed properties with dynamic initial state", async () => {
 		const dynamicVariables = (_engine: SugarboxEngine<string>) => ({
-			__id: "ShouldBeOverwritten",
-			__seed: 99999,
+			$$id: "ShouldBeOverwritten",
+			$$seed: 99999,
 			customProp: "test",
 		});
 
@@ -3249,7 +3249,7 @@ describe("Dynamic Initial State", () => {
 		});
 
 		expect(engine.vars.customProp).toBe("test");
-		expect(engine.vars.__id).toBe("CorrectStart");
-		expect(engine.vars.__seed).toBe(54321);
+		expect(engine.vars.$$id).toBe("CorrectStart");
+		expect(engine.vars.$$seed).toBe(54321);
 	});
 });

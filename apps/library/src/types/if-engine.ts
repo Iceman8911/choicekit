@@ -16,7 +16,7 @@ type SugarBoxSnapshotMetadata = {
 	 *
 	 * @internal
 	 */
-	__id: string;
+	$$id: string;
 
 	/** Current seed of the state at the moment.
 	 *
@@ -26,7 +26,7 @@ type SugarBoxSnapshotMetadata = {
 	 *
 	 * @internal
 	 */
-	__seed: number;
+	$$seed: number;
 };
 
 /** Keys used for indexing save data
