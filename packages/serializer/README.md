@@ -4,14 +4,14 @@ Very lightweight serializer / deserializer package built to fulfill the needs of
 
 - Be as small as possible
 - Support the serialization and deserialization of:
-    - [ ] Primitives (e.g `number`, `boolean`, `null`, `undefined`, etc)
-    - [ ] Special Numbers (e.g `Infinity`, `NaN`)
-    - [ ] Plain objects
-    - [ ] Arrays
+    - [x] Primitives (e.g `number`, `boolean`, `null`, `undefined`, etc)
+    - [x] Special Numbers (e.g `Infinity`, `NaN`)
+    - [x] Plain objects
+    - [x] Arrays
     - [ ] Circular references
-    - [ ] JS-native and platform agnostic global classes (e.g `Map`, `Set`, `Date`, etc)
-    - [ ] Custom classes
-    - [ ] BigInt
+    - [x] JS-native and platform agnostic global classes (e.g `Map`, `Set`, `Date`, etc)
+    - [x] Custom classes
+    - [x] BigInt
     - This is to match the behaviour of [twine sugarcube](https://www.motoslave.net/sugarcube/2/docs/#twinescript-supported-types)
 - Maybe have:
     - Versioning

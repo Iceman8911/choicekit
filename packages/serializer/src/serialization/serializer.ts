@@ -1,70 +1,94 @@
 import type { SugarBoxClassConstructor } from "@packages/engine-class";
 import type { GenericObject } from "../types/shared";
 
-/**
- * Represents a transformed custom class instance with its class identifier and serialized data.
- */
-type TransformedCustomClass = {
-	__type: "customClass";
-	__classId: string;
-	__data: unknown;
+type TransformedType<TTypeName extends string | number, TTransformedValue> = {
+	/** The name of the original data type */
+	$$t: TTypeName;
+	/** The JSON.stringify compatible transformed value that can be reconverted back to the original data type */
+	$$v: TTransformedValue;
 };
 
 /**
- * Represents a transformed Date object with its timestamp value.
+ * Represents a transformed custom class instance with its class identifier and serialized data.
  */
-type TransformedDate = { __type: "date"; __data: number };
+type TransformedClass = TransformedType<
+	typeof TYPE_CLASS,
+	{
+		/** The class id since depending on the class's name is fragile (minifiers will mangle it) */
+		id: string;
+		data: unknown;
+	}
+>;
+
+/**
+ * Represents a transformed Date object in milliseconds
+ */
+type TransformedDate = TransformedType<typeof TYPE_DATE, number>;
 
 /**
  * Represents a transformed Set object with its values as an array.
  */
-type TransformedSet = { __type: "set"; __data: Array<unknown> };
+type TransformedSet = TransformedType<typeof TYPE_SET, ReadonlyArray<unknown>>;
 
 /**
  * Represents a transformed Map object with its entries as an array of key-value pairs.
  */
-type TransformedMap = { __type: "map"; __data: Array<[unknown, unknown]> };
-
-/**
- * Represents a transformed RegExp object with its source pattern and flags.
- */
-type TransformedRegex = { __type: "regex"; __source: string; __flags: string };
+type TransformedMap = TransformedType<
+	typeof TYPE_MAP,
+	ReadonlyArray<[unknown, unknown]>
+>;
 
 /**
  * Represents a transformed BigInt value as a string representation.
  */
-type TransformedBigInt = { __type: "bigint"; __data: `${bigint}` };
+type TransformedBigInt = TransformedType<typeof TYPE_BIGINT, string>;
+
+/**
+ * Represents a transformed Infinity value as a string representation.
+ */
+type TransformedInfinity = TransformedType<typeof TYPE_INFINITY, "+" | "-">;
+
+/**
+ * Represents a transformed NaN value as a string representation.
+ */
+type TransformedNan = TransformedType<typeof TYPE_NAN, "">;
 
 /**
  * Union type representing all possible transformed data types for serialization.
  */
 type TransformedDataType =
-	| TransformedCustomClass
+	| TransformedClass
 	| TransformedDate
 	| TransformedSet
 	| TransformedMap
-	| TransformedRegex
+	| TransformedInfinity
+	| TransformedNan
 	| TransformedBigInt;
 
 type ClassConstructor = SugarBoxClassConstructor<unknown>;
 
-// Custom serializer that uses JSON with custom class support
+// Don't alter pervious values else saves will be broken. I explicitly chose to use primitive constants since they minify better
+const TYPE_CLASS = 1,
+	TYPE_DATE = 2,
+	TYPE_SET = 3,
+	TYPE_MAP = 4,
+	TYPE_BIGINT = 5,
+	TYPE_INFINITY = 6,
+	TYPE_NAN = 7;
+
+const TRANSFORMED_DATA_TYPE_COMMON_KEY: keyof TransformedDataType = "$$t";
+
 const classRegistry = new Map<string, ClassConstructor>();
 
 const isArray = (obj: unknown): obj is Array<unknown> => Array.isArray(obj);
+
+const arrayFrom = Array.from;
 
 // Register a custom class for serialization
 export const registerClass = (
 	classConstructor: ClassConstructor,
 ): Map<string, ClassConstructor> =>
 	classRegistry.set(classConstructor.classId, classConstructor);
-
-// Transform the object to handle custom classes and non-serializable types
-const stringify = (obj: unknown): string =>
-	JSON.stringify(transformForSerialization(obj));
-
-// biome-ignore lint/suspicious/noExplicitAny: <Impractical to specify all types here>
-const parse = (str: string): any => transformFromSerialization(JSON.parse(str));
 
 const tranformObjPropsForSerialization = (obj: object) => {
 	const result: GenericObject = {};
@@ -77,97 +101,109 @@ const tranformObjPropsForSerialization = (obj: object) => {
 	return result;
 };
 
+/** From deserialized to serialized! */
 const transformForSerialization = (
-	obj: unknown,
+	data: unknown,
 ): TransformedDataType | unknown => {
-	if (obj == null) {
-		return obj;
+	if (data == null) {
+		return data;
 	}
 
-	if (isArray(obj)) {
-		return obj.map(transformForSerialization);
+	if (isArray(data)) {
+		return data.map(transformForSerialization);
 	}
 
-	if (typeof obj === "object") {
-		// Check if this is a custom class instance
-		for (const [classId, ClassConstructor] of classRegistry) {
-			if (obj instanceof ClassConstructor) {
-				const toJSONedObj = obj.toJSON();
+	if (data instanceof Date) {
+		const transformedDate: TransformedDate = {
+			$$t: TYPE_DATE,
+			$$v: data.getTime(),
+		};
 
-				const transformedClass: TransformedCustomClass = {
-					__classId: classId,
-					__data:
-						typeof toJSONedObj === "object" && toJSONedObj
-							? tranformObjPropsForSerialization(toJSONedObj)
-							: toJSONedObj,
-					__type: "customClass",
-				};
-
-				return transformedClass;
-			}
-		}
-
-		// Handle Date objects
-		if (obj instanceof Date) {
-			const transformedDate: TransformedDate = {
-				__data: obj.getTime(),
-				__type: "date",
-			};
-
-			return transformedDate;
-		}
-
-		// Handle Set objects
-		if (obj instanceof Set) {
-			const transformedSet: TransformedSet = {
-				__data: [...obj].map(transformForSerialization),
-				__type: "set",
-			};
-
-			return transformedSet;
-		}
-
-		// Handle Map objects
-		if (obj instanceof Map) {
-			const transformedMap: TransformedMap = {
-				__data: [...obj].map(([k, v]) => [
-					transformForSerialization(k),
-					transformForSerialization(v),
-				]),
-				__type: "map",
-			};
-
-			return transformedMap;
-		}
-
-		// Handle RegExp objects
-		if (obj instanceof RegExp) {
-			const transformedRegex: TransformedRegex = {
-				__flags: obj.flags,
-				__source: obj.source,
-				__type: "regex",
-			};
-
-			return transformedRegex;
-		}
-
-		// Handle regular objects
-		return tranformObjPropsForSerialization(obj);
+		return transformedDate;
 	}
 
-	// Handle BigInt
-	if (typeof obj === "bigint") {
+	if (data instanceof Map) {
+		const transformedMap: TransformedMap = {
+			$$t: TYPE_MAP,
+			$$v: arrayFrom(data, ([k, v]) => [
+				transformForSerialization(k),
+				transformForSerialization(v),
+			]),
+		};
+
+		return transformedMap;
+	}
+
+	if (data instanceof Set) {
+		const transformedSet: TransformedSet = {
+			$$t: TYPE_SET,
+			$$v: arrayFrom(data, transformForSerialization),
+		};
+
+		return transformedSet;
+	}
+
+	if (typeof data === "bigint") {
 		const transformedBigInt: TransformedBigInt = {
-			__data: `${obj}`,
-			__type: "bigint",
+			$$t: TYPE_BIGINT,
+			$$v: `${data}`,
 		};
 
 		return transformedBigInt;
 	}
 
-	return obj;
+	if (typeof data === "number") {
+		if (data === Infinity) {
+			const transformedInfinity: TransformedInfinity = {
+				$$t: TYPE_INFINITY,
+				$$v: "+",
+			};
+
+			return transformedInfinity;
+		}
+
+		if (data === -Infinity) {
+			const transformedInfinity: TransformedInfinity = {
+				$$t: TYPE_INFINITY,
+				$$v: "-",
+			};
+
+			return transformedInfinity;
+		}
+
+		if (Number.isNaN(data)) {
+			const transformedNan: TransformedNan = { $$t: TYPE_NAN, $$v: "" };
+
+			return transformedNan;
+		}
+	}
+
+	// Check if this is a custom class instance
+	for (const [classId, ClassConstructor] of classRegistry) {
+		if (data instanceof ClassConstructor) {
+			const serializedClass = transformForSerialization(data.toJSON());
+
+			const transformedClass: TransformedClass = {
+				$$t: TYPE_CLASS,
+				$$v: {
+					data: serializedClass,
+					id: classId,
+				},
+			};
+
+			return transformedClass;
+		}
+	}
+
+	// Handle regular objects
+	if (typeof data === "object") {
+		return tranformObjPropsForSerialization(data);
+	}
+
+	return data;
 };
 
+/** From serialized to deserialized! */
 const transformFromSerialization = (obj: unknown): unknown => {
 	if (obj == null) {
 		return obj;
@@ -177,52 +213,47 @@ const transformFromSerialization = (obj: unknown): unknown => {
 		return obj.map(transformFromSerialization);
 	}
 
-	const transfromedDataTypeCommonKey: keyof TransformedDataType = "__type";
-
 	if (typeof obj === "object") {
-		if (transfromedDataTypeCommonKey in obj) {
+		if (TRANSFORMED_DATA_TYPE_COMMON_KEY in obj) {
 			//@ts-expect-error So we have typechecking on the possible discriminated union
-			const objToTransform: TransformedDataType = obj;
+			const { $$t, $$v }: TransformedDataType = obj;
 
 			// Check if this is a serialized custom class
-			if (objToTransform.__type === "customClass") {
-				const classConstructor = classRegistry.get(objToTransform.__classId);
+			if ($$t === TYPE_CLASS) {
+				const classConstructor = classRegistry.get($$v.id);
 
 				// Transform the data before passing to fromJSON to handle nested Maps/Sets
-				const transformedData = transformFromSerialization(
-					objToTransform.__data,
-				);
+				const transformedData = transformFromSerialization($$v.data);
 				return classConstructor?.fromJSON(transformedData);
 			}
 
-			// Check if this is a serialized Date
-			if (objToTransform.__type === "date") {
-				return new Date(objToTransform.__data);
+			if ($$t === TYPE_DATE) {
+				return new Date($$v);
 			}
 
-			// Check if this is a serialized Set
-			if (objToTransform.__type === "set") {
-				return new Set(objToTransform.__data.map(transformFromSerialization));
+			if ($$t === TYPE_SET) {
+				return new Set($$v.map(transformFromSerialization));
 			}
 
-			// Check if this is a serialized Map
-			if (objToTransform.__type === "map") {
+			if ($$t === TYPE_MAP) {
 				return new Map(
-					objToTransform.__data.map(([k, v]) => [
+					$$v.map(([k, v]) => [
 						transformFromSerialization(k),
 						transformFromSerialization(v),
 					]),
 				);
 			}
 
-			// Check if this is a serialized RegExp
-			if (objToTransform.__type === "regex") {
-				return new RegExp(objToTransform.__source, objToTransform.__flags);
+			if ($$t === TYPE_BIGINT) {
+				return BigInt($$v);
 			}
 
-			// Check if this is a serialized BigInt
-			if (objToTransform.__type === "bigint") {
-				return BigInt(objToTransform.__data);
+			if ($$t === TYPE_INFINITY) {
+				return $$v === "+" ? Infinity : -Infinity;
+			}
+
+			if ($$t === TYPE_NAN) {
+				return NaN;
 			}
 		} else {
 			// Handle regular objects
@@ -240,4 +271,12 @@ const transformFromSerialization = (obj: unknown): unknown => {
 	return obj;
 };
 
-export { stringify as serialize, parse as deserialize };
+// Transform the object to handle custom classes and non-serializable types
+const serialize = (obj: unknown): string =>
+	JSON.stringify(transformForSerialization(obj));
+
+// biome-ignore lint/suspicious/noExplicitAny: <Impractical to specify all types here>
+const deserialize = (str: string): any =>
+	transformFromSerialization(JSON.parse(str));
+
+export { serialize, deserialize };
