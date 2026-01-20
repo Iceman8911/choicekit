@@ -5,6 +5,7 @@ Very lightweight serializer / deserializer package built to fulfill the needs of
 - Be as small as possible
 - Support the serialization and deserialization of:
     - [x] Primitives (e.g `number`, `boolean`, `null`, `undefined`, etc)
+        - `null` and `undefined` will be treated the same way
     - [x] Special Numbers (e.g `Infinity`, `NaN`)
     - [x] Plain objects
     - [x] Arrays
