@@ -54,6 +54,11 @@ type TransformedInfinity = TransformedType<typeof TYPE_INFINITY, "+" | "-">;
 type TransformedNan = TransformedType<typeof TYPE_NAN, "">;
 
 /**
+ * Represents a reference to an already serialized object
+ */
+type TransformedReference = TransformedType<typeof TYPE_REFERENCE, number>;
+
+/**
  * Union type representing all possible transformed data types for serialization.
  */
 type TransformedDataType =
@@ -63,7 +68,8 @@ type TransformedDataType =
 	| TransformedMap
 	| TransformedInfinity
 	| TransformedNan
-	| TransformedBigInt;
+	| TransformedBigInt
+	| TransformedReference;
 
 type ClassConstructor = SugarBoxClassConstructor<unknown>;
 
@@ -74,9 +80,13 @@ const TYPE_CLASS = 1,
 	TYPE_MAP = 4,
 	TYPE_BIGINT = 5,
 	TYPE_INFINITY = 6,
-	TYPE_NAN = 7;
+	TYPE_NAN = 7,
+	TYPE_REFERENCE = 8;
 
 const TRANSFORMED_DATA_TYPE_COMMON_KEY: keyof TransformedDataType = "$$t";
+
+/** Key to store the ID on the definition side */
+const REF_KEY = "$$r";
 
 const classRegistry = new Map<string, ClassConstructor>();
 
@@ -101,177 +111,184 @@ const tranformObjPropsForSerialization = (obj: object) => {
 	return result;
 };
 
-/** From deserialized to serialized! */
 const transformForSerialization = (
 	data: unknown,
+	seen = new Map<object, number>(),
 ): TransformedDataType | unknown => {
-	if (data == null) {
+	if (data == null || typeof data !== "object") {
+		// Handle primitives and BigInt (which isn't 'object')
+		if (typeof data === "bigint") {
+			return { $$t: TYPE_BIGINT, $$v: `${data}` } as TransformedBigInt;
+		}
+		if (typeof data === "number") {
+			if (data === Infinity)
+				return { $$t: TYPE_INFINITY, $$v: "+" } as TransformedInfinity;
+			if (data === -Infinity)
+				return { $$t: TYPE_INFINITY, $$v: "-" } as TransformedInfinity;
+			if (Number.isNaN(data))
+				return { $$t: TYPE_NAN, $$v: "" } as TransformedNan;
+		}
 		return data;
 	}
 
+	// Circular Reference Check
+	if (seen.has(data)) {
+		return {
+			$$t: TYPE_REFERENCE,
+			$$v: seen.get(data as object),
+		} as TransformedReference;
+	}
+
+	// Register new object
+	const refId = seen.size;
+	seen.set(data, refId);
+
+	let result: unknown;
+
 	if (isArray(data)) {
-		return data.map(transformForSerialization);
-	}
-
-	if (data instanceof Date) {
-		const transformedDate: TransformedDate = {
-			$$t: TYPE_DATE,
-			$$v: data.getTime(),
-		};
-
-		return transformedDate;
-	}
-
-	if (data instanceof Map) {
-		const transformedMap: TransformedMap = {
+		result = data.map((item) => transformForSerialization(item, seen));
+	} else if (data instanceof Date) {
+		result = { $$t: TYPE_DATE, $$v: data.getTime() };
+	} else if (data instanceof Map) {
+		result = {
 			$$t: TYPE_MAP,
 			$$v: arrayFrom(data, ([k, v]) => [
-				transformForSerialization(k),
-				transformForSerialization(v),
+				transformForSerialization(k, seen),
+				transformForSerialization(v, seen),
 			]),
 		};
-
-		return transformedMap;
-	}
-
-	if (data instanceof Set) {
-		const transformedSet: TransformedSet = {
+	} else if (data instanceof Set) {
+		result = {
 			$$t: TYPE_SET,
-			$$v: arrayFrom(data, transformForSerialization),
+			$$v: arrayFrom(data, (v) => transformForSerialization(v, seen)),
 		};
-
-		return transformedSet;
-	}
-
-	if (typeof data === "bigint") {
-		const transformedBigInt: TransformedBigInt = {
-			$$t: TYPE_BIGINT,
-			$$v: `${data}`,
-		};
-
-		return transformedBigInt;
-	}
-
-	if (typeof data === "number") {
-		if (data === Infinity) {
-			const transformedInfinity: TransformedInfinity = {
-				$$t: TYPE_INFINITY,
-				$$v: "+",
-			};
-
-			return transformedInfinity;
+	} else {
+		/** Custom Class or Plain Object */
+		let isCustom = false;
+		for (const [classId, ClassConstructor] of classRegistry) {
+			if (data instanceof ClassConstructor) {
+				isCustom = true;
+				result = {
+					$$t: TYPE_CLASS,
+					$$v: {
+						data: transformForSerialization(data.toJSON(), seen),
+						id: classId,
+					},
+				};
+				break;
+			}
 		}
 
-		if (data === -Infinity) {
-			const transformedInfinity: TransformedInfinity = {
-				$$t: TYPE_INFINITY,
-				$$v: "-",
-			};
-
-			return transformedInfinity;
-		}
-
-		if (Number.isNaN(data)) {
-			const transformedNan: TransformedNan = { $$t: TYPE_NAN, $$v: "" };
-
-			return transformedNan;
+		if (!isCustom) {
+			result = tranformObjPropsForSerialization(data);
 		}
 	}
 
-	// Check if this is a custom class instance
-	for (const [classId, ClassConstructor] of classRegistry) {
-		if (data instanceof ClassConstructor) {
-			const serializedClass = transformForSerialization(data.toJSON());
-
-			const transformedClass: TransformedClass = {
-				$$t: TYPE_CLASS,
-				$$v: {
-					data: serializedClass,
-					id: classId,
-				},
-			};
-
-			return transformedClass;
-		}
+	if (typeof result === "object" && result !== null) {
+		//@ts-expect-error Attach the reference ID to the transformed output
+		result[REF_KEY] = refId;
 	}
 
-	// Handle regular objects
-	if (typeof data === "object") {
-		return tranformObjPropsForSerialization(data);
-	}
-
-	return data;
+	return result;
 };
 
-/** From serialized to deserialized! */
-const transformFromSerialization = (obj: unknown): unknown => {
-	if (obj == null) {
-		return obj;
+const transformFromSerialization = (
+	obj: unknown,
+	cache = new Map<number, unknown>(),
+): unknown => {
+	if (obj == null || typeof obj !== "object") return obj;
+
+	//@ts-expect-error This will either be undefiend or our ref reference
+	const refId: number | undefined = obj[REF_KEY];
+
+	const doesRefIdExist = refId != null;
+
+	const possiblyPretransformedInput = obj as TransformedDataType;
+
+	const type = possiblyPretransformedInput[TRANSFORMED_DATA_TYPE_COMMON_KEY];
+
+	// If it's a reference pointer, return the cached object immediately
+	if (
+		possiblyPretransformedInput[TRANSFORMED_DATA_TYPE_COMMON_KEY] ===
+		TYPE_REFERENCE
+	) {
+		return cache.get(possiblyPretransformedInput.$$v);
 	}
 
-	if (isArray(obj)) {
-		return obj.map(transformFromSerialization);
+	// biome-ignore lint/suspicious/noExplicitAny: <I'll strengthen the types later>
+	let result: any;
+
+	if (isArray(possiblyPretransformedInput)) {
+		result = [];
+		if (doesRefIdExist) cache.set(refId, result);
+		for (const item of possiblyPretransformedInput) {
+			result.push(transformFromSerialization(item, cache));
+		}
+		return result;
 	}
 
-	if (typeof obj === "object") {
-		if (TRANSFORMED_DATA_TYPE_COMMON_KEY in obj) {
-			//@ts-expect-error So we have typechecking on the possible discriminated union
-			const { $$t, $$v }: TransformedDataType = obj;
-
-			// Check if this is a serialized custom class
-			if ($$t === TYPE_CLASS) {
-				const classConstructor = classRegistry.get($$v.id);
-
-				// Transform the data before passing to fromJSON to handle nested Maps/Sets
-				const transformedData = transformFromSerialization($$v.data);
-				return classConstructor?.fromJSON(transformedData);
-			}
-
-			if ($$t === TYPE_DATE) {
-				return new Date($$v);
-			}
-
-			if ($$t === TYPE_SET) {
-				return new Set($$v.map(transformFromSerialization));
-			}
-
-			if ($$t === TYPE_MAP) {
-				return new Map(
-					$$v.map(([k, v]) => [
-						transformFromSerialization(k),
-						transformFromSerialization(v),
-					]),
-				);
-			}
-
-			if ($$t === TYPE_BIGINT) {
-				return BigInt($$v);
-			}
-
-			if ($$t === TYPE_INFINITY) {
-				return $$v === "+" ? Infinity : -Infinity;
-			}
-
-			if ($$t === TYPE_NAN) {
+	if (type !== undefined) {
+		switch (type) {
+			case TYPE_DATE:
+				result = new Date(possiblyPretransformedInput.$$v);
+				break;
+			case TYPE_SET:
+				result = new Set();
+				if (doesRefIdExist) cache.set(refId, result);
+				for (const v of possiblyPretransformedInput.$$v) {
+					result.add(transformFromSerialization(v, cache));
+				}
+				return result;
+			case TYPE_MAP:
+				result = new Map();
+				if (doesRefIdExist) cache.set(refId, result);
+				for (const [k, v] of possiblyPretransformedInput.$$v) {
+					result.set(
+						transformFromSerialization(k, cache),
+						transformFromSerialization(v, cache),
+					);
+				}
+				return result;
+			case TYPE_BIGINT:
+				return BigInt(possiblyPretransformedInput.$$v);
+			case TYPE_INFINITY:
+				return possiblyPretransformedInput.$$v === "+" ? Infinity : -Infinity;
+			case TYPE_NAN:
 				return NaN;
-			}
-		} else {
-			// Handle regular objects
-			const result: GenericObject = {};
+			case TYPE_CLASS: {
+				const classConstructor = classRegistry.get(
+					possiblyPretransformedInput.$$v.id,
+				);
 
-			for (const key in obj) {
-				//@ts-expect-error This is not an error
-				result[key] = transformFromSerialization(obj[key]);
+				const transformedData = transformFromSerialization(
+					possiblyPretransformedInput.$$v.data,
+					cache,
+				);
+				result = classConstructor?.fromJSON(transformedData);
+				break;
 			}
+		}
+	} else {
+		// Regular Object
+		result = {};
+		if (doesRefIdExist) cache.set(refId, result);
 
-			return result;
+		for (const key in possiblyPretransformedInput as object) {
+			if (key === REF_KEY) continue;
+			result[key] = transformFromSerialization(
+				possiblyPretransformedInput[key],
+				cache,
+			);
 		}
 	}
 
-	return obj;
+	if (doesRefIdExist && !cache.has(refId)) {
+		cache.set(refId, result);
+	}
+
+	return result;
 };
 
-// Transform the object to handle custom classes and non-serializable types
 const serialize = (obj: unknown): string =>
 	JSON.stringify(transformForSerialization(obj));
 

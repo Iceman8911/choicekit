@@ -8,7 +8,7 @@ Very lightweight serializer / deserializer package built to fulfill the needs of
     - [x] Special Numbers (e.g `Infinity`, `NaN`)
     - [x] Plain objects
     - [x] Arrays
-    - [ ] Circular references
+    - [x] Circular references
     - [x] JS-native and platform agnostic global classes (e.g `Map`, `Set`, `Date`, etc)
     - [x] Custom classes
     - [x] BigInt
