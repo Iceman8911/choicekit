@@ -11,6 +11,7 @@ import {
 	clone,
 	deserialize as parse,
 	registerClass,
+	type SugarboxClassConstructorWithValidSerialization,
 	serialize as stringify,
 } from "@packages/serializer";
 import {
@@ -356,7 +357,7 @@ class SugarboxEngine<
 		otherPassages: SugarBoxPassage<TPassageType, TPassageTag>[];
 
 		/** So you don't have to manually register classes for proper serialization / deserialization */
-		classes?: SugarBoxClassConstructor<unknown>[];
+		classes?: SugarboxClassConstructorWithValidSerialization[];
 
 		/** Achievements that should persist across saves */
 		achievements?: TAchievementData;
@@ -778,7 +779,9 @@ class SugarboxEngine<
 	}
 
 	/** Any custom classes stored in the story's state must be registered with this */
-	registerClasses(...customClasses: SugarBoxClassConstructor<unknown>[]): void {
+	registerClasses(
+		...customClasses: SugarboxClassConstructorWithValidSerialization[]
+	): void {
 		customClasses.forEach((customClass) => {
 			registerClass(customClass);
 		});

@@ -1,12 +1,54 @@
-import type { SugarBoxClassConstructor } from "@packages/engine-class";
-import type { GenericObject } from "../types/shared";
+import type {
+	SugarBoxClassConstructor,
+	SugarBoxClassInstance,
+} from "@packages/engine-class";
 
-type TransformedType<TTypeName extends string | number, TTransformedValue> = {
+/** Since arrays are converted to a transformed object, there aren't included as-is here */
+type JsonSerializableType =
+	| number
+	| boolean
+	| null
+	| undefined
+	| string
+	| { [key: string]: JsonSerializableType }
+	| TransformedDataType;
+
+export type SugarboxClassConstructorWithValidSerialization =
+	SugarBoxClassConstructor<JsonSerializableType>;
+type SugarboxClassInstanceWithValidSerialization =
+	SugarBoxClassInstance<JsonSerializableType>;
+
+type TransformableType =
+	| Array<TransformableOrJsonSerializableType>
+	| { [key: string]: TransformableOrJsonSerializableType }
+	| Date
+	| Map<
+			TransformableOrJsonSerializableType,
+			TransformableOrJsonSerializableType
+	  >
+	| Set<TransformableOrJsonSerializableType>
+	| bigint
+	| SugarboxClassInstanceWithValidSerialization;
+
+type TransformableOrJsonSerializableType =
+	| TransformableType
+	| JsonSerializableType;
+
+type TransformedType<
+	TTypeName extends string | number,
+	TTransformedValue,
+	TShouldAccountForCircularRef extends boolean = false,
+> = {
 	/** The name of the original data type */
 	$$t: TTypeName;
 	/** The JSON.stringify compatible transformed value that can be reconverted back to the original data type */
 	$$v: TTransformedValue;
-};
+} & (TShouldAccountForCircularRef extends true
+	? {
+			/** Only found on anything that could be a circular reference. Is the object's reference id. Used to detect circular references */
+			$$r: number;
+		}
+	: { $$r?: never });
 
 /**
  * Represents a transformed custom class instance with its class identifier and serialized data.
@@ -16,26 +58,34 @@ type TransformedClass = TransformedType<
 	{
 		/** The class id since depending on the class's name is fragile (minifiers will mangle it) */
 		id: string;
-		data: unknown;
-	}
+
+		/** The serialized data of the class instance */
+		data: JsonSerializableType;
+	},
+	true
 >;
 
 /**
  * Represents a transformed Date object in milliseconds
  */
-type TransformedDate = TransformedType<typeof TYPE_DATE, number>;
+type TransformedDate = TransformedType<typeof TYPE_DATE, number, true>;
 
 /**
  * Represents a transformed Set object with its values as an array.
  */
-type TransformedSet = TransformedType<typeof TYPE_SET, ReadonlyArray<unknown>>;
+type TransformedSet = TransformedType<
+	typeof TYPE_SET,
+	Array<JsonSerializableType>,
+	true
+>;
 
 /**
  * Represents a transformed Map object with its entries as an array of key-value pairs.
  */
 type TransformedMap = TransformedType<
 	typeof TYPE_MAP,
-	ReadonlyArray<[unknown, unknown]>
+	Array<[JsonSerializableType, JsonSerializableType]>,
+	true
 >;
 
 /**
@@ -54,9 +104,21 @@ type TransformedInfinity = TransformedType<typeof TYPE_INFINITY, "+" | "-">;
 type TransformedNan = TransformedType<typeof TYPE_NAN, "">;
 
 /**
- * Represents a reference to an already serialized object
+ * Represents a reference to an already serialized object. Where the value is the reference ID to a serialized object with a `$$r` key of same value.
  */
-type TransformedReference = TransformedType<typeof TYPE_REFERENCE, number>;
+type TransformedDeduplicatedReference = TransformedType<
+	typeof TYPE_REFERENCE,
+	number
+>;
+
+/**
+ * Represents a serialized array. Since an array could suffer from circular referencing issues, and I only transform data in a single pass (so I can't infer if there will actually be no circular references in the data).
+ */
+type TransformedArray = TransformedType<
+	typeof TYPE_ARRAY,
+	Array<JsonSerializableType>,
+	true
+>;
 
 /**
  * Union type representing all possible transformed data types for serialization.
@@ -69,9 +131,8 @@ type TransformedDataType =
 	| TransformedInfinity
 	| TransformedNan
 	| TransformedBigInt
-	| TransformedReference;
-
-type ClassConstructor = SugarBoxClassConstructor<unknown>;
+	| TransformedDeduplicatedReference
+	| TransformedArray;
 
 // Don't alter pervious values else saves will be broken. I explicitly chose to use primitive constants since they minify better
 const TYPE_CLASS = 1,
@@ -81,14 +142,23 @@ const TYPE_CLASS = 1,
 	TYPE_BIGINT = 5,
 	TYPE_INFINITY = 6,
 	TYPE_NAN = 7,
-	TYPE_REFERENCE = 8;
+	TYPE_REFERENCE = 8,
+	TYPE_ARRAY = 9;
 
-const TRANSFORMED_DATA_TYPE_COMMON_KEY: keyof TransformedDataType = "$$t";
+const POSITIVE_INFINITY = Infinity,
+	NEGATIVE_INIFINITY = -Infinity;
 
-/** Key to store the ID on the definition side */
-const REF_KEY = "$$r";
+// Double mapping is for O(1) operations
 
-const classRegistry = new Map<string, ClassConstructor>();
+const classRegistrybyId = new Map<
+	string,
+	SugarboxClassConstructorWithValidSerialization
+>();
+
+const classRegistrybyConstructor = new WeakMap<
+	SugarboxClassConstructorWithValidSerialization,
+	string
+>();
 
 const isArray = (obj: unknown): obj is Array<unknown> => Array.isArray(obj);
 
@@ -96,200 +166,237 @@ const arrayFrom = Array.from;
 
 // Register a custom class for serialization
 export const registerClass = (
-	classConstructor: ClassConstructor,
-): Map<string, ClassConstructor> =>
-	classRegistry.set(classConstructor.classId, classConstructor);
+	classConstructor: SugarboxClassConstructorWithValidSerialization,
+): void => {
+	const id = classConstructor.classId;
 
-const tranformObjPropsForSerialization = (obj: object) => {
-	const result: GenericObject = {};
-
-	for (const key in obj) {
-		//@ts-expect-error This is not an error
-		result[key] = transformForSerialization(obj[key]);
-	}
-
-	return result;
+	classRegistrybyId.set(id, classConstructor);
+	classRegistrybyConstructor.set(classConstructor, id);
 };
 
 const transformForSerialization = (
-	data: unknown,
+	data: TransformableOrJsonSerializableType,
+	/** Used to detect circular references
+	 *
+	 * Key - Object reference
+	 * Value - Ref Id
+	 */
 	seen = new Map<object, number>(),
-): TransformedDataType | unknown => {
-	if (data == null || typeof data !== "object") {
-		// Handle primitives and BigInt (which isn't 'object')
-		if (typeof data === "bigint") {
-			return { $$t: TYPE_BIGINT, $$v: `${data}` } as TransformedBigInt;
-		}
-		if (typeof data === "number") {
-			if (data === Infinity)
-				return { $$t: TYPE_INFINITY, $$v: "+" } as TransformedInfinity;
-			if (data === -Infinity)
-				return { $$t: TYPE_INFINITY, $$v: "-" } as TransformedInfinity;
-			if (Number.isNaN(data))
-				return { $$t: TYPE_NAN, $$v: "" } as TransformedNan;
-		}
+): JsonSerializableType => {
+	// I'm alright having undefined and null values treated the same
+	if (data == null) {
 		return data;
 	}
 
+	switch (typeof data) {
+		case "boolean":
+		case "string":
+			return data;
+		case "number": {
+			if (data === POSITIVE_INFINITY)
+				return { $$t: TYPE_INFINITY, $$v: "+" } as TransformedInfinity;
+			if (data === NEGATIVE_INIFINITY)
+				return { $$t: TYPE_INFINITY, $$v: "-" } as TransformedInfinity;
+			if (Number.isNaN(data))
+				return { $$t: TYPE_NAN, $$v: "" } as TransformedNan;
+
+			return data;
+		}
+		case "bigint":
+			return { $$t: TYPE_BIGINT, $$v: `${data}` } as TransformedBigInt;
+	}
+
 	// Circular Reference Check
-	if (seen.has(data)) {
+	const possibleRefId = seen.get(data);
+	if (possibleRefId != null) {
 		return {
 			$$t: TYPE_REFERENCE,
-			$$v: seen.get(data as object),
-		} as TransformedReference;
+			$$v: possibleRefId,
+		} as TransformedDeduplicatedReference;
 	}
 
 	// Register new object
-	const refId = seen.size;
-	seen.set(data, refId);
-
-	let result: unknown;
+	const newRefId = seen.size;
+	seen.set(data, newRefId);
 
 	if (isArray(data)) {
-		result = data.map((item) => transformForSerialization(item, seen));
+		return {
+			$$r: newRefId,
+			$$t: TYPE_ARRAY,
+			$$v: data.map((item) => transformForSerialization(item, seen)),
+		};
 	} else if (data instanceof Date) {
-		result = { $$t: TYPE_DATE, $$v: data.getTime() };
+		return { $$r: newRefId, $$t: TYPE_DATE, $$v: data.getTime() };
 	} else if (data instanceof Map) {
-		result = {
+		return {
+			$$r: newRefId,
 			$$t: TYPE_MAP,
-			$$v: arrayFrom(data, ([k, v]) => [
-				transformForSerialization(k, seen),
-				transformForSerialization(v, seen),
-			]),
+			$$v: arrayFrom(
+				data,
+				([k, v]) =>
+					[
+						transformForSerialization(k, seen),
+						transformForSerialization(v, seen),
+					] as [JsonSerializableType, JsonSerializableType],
+			),
 		};
 	} else if (data instanceof Set) {
-		result = {
+		return {
+			$$r: newRefId,
 			$$t: TYPE_SET,
 			$$v: arrayFrom(data, (v) => transformForSerialization(v, seen)),
 		};
 	} else {
 		/** Custom Class or Plain Object */
-		let isCustom = false;
-		for (const [classId, ClassConstructor] of classRegistry) {
-			if (data instanceof ClassConstructor) {
-				isCustom = true;
-				result = {
-					$$t: TYPE_CLASS,
-					$$v: {
-						data: transformForSerialization(data.toJSON(), seen),
-						id: classId,
-					},
-				};
-				break;
-			}
+
+		//@ts-expect-error I'll check whether this is actually registered, since there's no concise, typesafe way of proving that this may be a class
+		const possibleClass: SugarboxClassInstanceWithValidSerialization = data;
+		const possibleClassId = classRegistrybyConstructor.get(
+			possibleClass.constructor,
+		);
+
+		if (possibleClassId != null) {
+			return {
+				$$r: newRefId,
+				$$t: TYPE_CLASS,
+				$$v: {
+					data: transformForSerialization(possibleClass.toJSON(), seen),
+					id: possibleClassId,
+				},
+			};
 		}
 
-		if (!isCustom) {
-			result = tranformObjPropsForSerialization(data);
+		const transformedObject: Record<string, JsonSerializableType> = {};
+
+		for (const key in data) {
+			transformedObject[key] = transformForSerialization(
+				(data as Record<string, TransformableOrJsonSerializableType>)[key],
+				seen,
+			);
 		}
-	}
 
-	if (typeof result === "object" && result !== null) {
-		//@ts-expect-error Attach the reference ID to the transformed output
-		result[REF_KEY] = refId;
-	}
+		transformedObject.$$r = newRefId;
 
-	return result;
+		return transformedObject;
+	}
 };
 
 const transformFromSerialization = (
-	obj: unknown,
-	cache = new Map<number, unknown>(),
-): unknown => {
-	if (obj == null || typeof obj !== "object") return obj;
+	data: JsonSerializableType,
+	cache = new Map<number, TransformableOrJsonSerializableType>(),
+): TransformableOrJsonSerializableType => {
+	if (data == null) return data;
 
-	//@ts-expect-error This will either be undefiend or our ref reference
-	const refId: number | undefined = obj[REF_KEY];
-
-	const doesRefIdExist = refId != null;
-
-	const possiblyPretransformedInput = obj as TransformedDataType;
-
-	const type = possiblyPretransformedInput[TRANSFORMED_DATA_TYPE_COMMON_KEY];
-
-	// If it's a reference pointer, return the cached object immediately
-	if (
-		possiblyPretransformedInput[TRANSFORMED_DATA_TYPE_COMMON_KEY] ===
-		TYPE_REFERENCE
-	) {
-		return cache.get(possiblyPretransformedInput.$$v);
+	switch (typeof data) {
+		case "string":
+		case "number":
+		case "boolean":
+			return data;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <I'll strengthen the types later>
-	let result: any;
+	// Deal with relevant custom transformations
+	const { $$t, $$v, $$r } = data as TransformedDataType;
+	switch ($$t) {
+		case TYPE_CLASS: {
+			const classConstructor = classRegistrybyId.get($$v.id);
 
-	if (isArray(possiblyPretransformedInput)) {
-		result = [];
-		if (doesRefIdExist) cache.set(refId, result);
-		for (const item of possiblyPretransformedInput) {
-			result.push(transformFromSerialization(item, cache));
+			if (!classConstructor)
+				throw Error(`Class constructor with id ${$$v.id} not found`);
+
+			const revivedClass = classConstructor.fromJSON($$v.data);
+
+			cache.set($$r, revivedClass);
+
+			return revivedClass;
 		}
-		return result;
-	}
+		case TYPE_DATE: {
+			const revivedDate: Date = new Date($$v);
 
-	if (type !== undefined) {
-		switch (type) {
-			case TYPE_DATE:
-				result = new Date(possiblyPretransformedInput.$$v);
-				break;
-			case TYPE_SET:
-				result = new Set();
-				if (doesRefIdExist) cache.set(refId, result);
-				for (const v of possiblyPretransformedInput.$$v) {
-					result.add(transformFromSerialization(v, cache));
-				}
-				return result;
-			case TYPE_MAP:
-				result = new Map();
-				if (doesRefIdExist) cache.set(refId, result);
-				for (const [k, v] of possiblyPretransformedInput.$$v) {
-					result.set(
-						transformFromSerialization(k, cache),
-						transformFromSerialization(v, cache),
-					);
-				}
-				return result;
-			case TYPE_BIGINT:
-				return BigInt(possiblyPretransformedInput.$$v);
-			case TYPE_INFINITY:
-				return possiblyPretransformedInput.$$v === "+" ? Infinity : -Infinity;
-			case TYPE_NAN:
-				return NaN;
-			case TYPE_CLASS: {
-				const classConstructor = classRegistry.get(
-					possiblyPretransformedInput.$$v.id,
+			cache.set($$r, revivedDate);
+
+			return revivedDate;
+		}
+		case TYPE_SET: {
+			const revivedSet: Set<TransformableOrJsonSerializableType> = new Set();
+
+			cache.set($$r, revivedSet);
+
+			for (const val of $$v) {
+				revivedSet.add(transformFromSerialization(val, cache));
+			}
+
+			return revivedSet;
+		}
+		case TYPE_MAP: {
+			const revivedMap: Map<
+				TransformableOrJsonSerializableType,
+				TransformableOrJsonSerializableType
+			> = new Map();
+
+			cache.set($$r, revivedMap);
+
+			for (const [key, val] of $$v) {
+				revivedMap.set(
+					transformFromSerialization(key, cache),
+					transformFromSerialization(val, cache),
 				);
+			}
 
-				const transformedData = transformFromSerialization(
-					possiblyPretransformedInput.$$v.data,
+			return revivedMap;
+		}
+		case TYPE_BIGINT: {
+			const revivedBigInt: bigint = BigInt($$v);
+
+			return revivedBigInt;
+		}
+		case TYPE_INFINITY: {
+			const revivedInfinity: number = $$v === "+" ? Infinity : -Infinity;
+
+			return revivedInfinity;
+		}
+		case TYPE_NAN: {
+			const revivedNan: number = NaN;
+
+			return revivedNan;
+		}
+		case TYPE_REFERENCE: {
+			return cache.get($$v);
+		}
+		case TYPE_ARRAY: {
+			const revivedArray: Array<TransformableOrJsonSerializableType> = [];
+
+			cache.set($$r, revivedArray);
+
+			for (const val of $$v) {
+				revivedArray.push(transformFromSerialization(val, cache));
+			}
+
+			return revivedArray;
+		}
+
+		default: {
+			// Plain o'l object
+			const revivedObject: Record<string, TransformableOrJsonSerializableType> =
+				{};
+
+			cache.set($$r, revivedObject);
+
+			for (const key in data) {
+				if (key === "$$r") continue;
+
+				revivedObject[key] = transformFromSerialization(
+					(data as Record<string, JsonSerializableType>)[key],
 					cache,
 				);
-				result = classConstructor?.fromJSON(transformedData);
-				break;
 			}
-		}
-	} else {
-		// Regular Object
-		result = {};
-		if (doesRefIdExist) cache.set(refId, result);
 
-		for (const key in possiblyPretransformedInput as object) {
-			if (key === REF_KEY) continue;
-			result[key] = transformFromSerialization(
-				possiblyPretransformedInput[key],
-				cache,
-			);
+			return revivedObject;
 		}
 	}
-
-	if (doesRefIdExist && !cache.has(refId)) {
-		cache.set(refId, result);
-	}
-
-	return result;
 };
 
 const serialize = (obj: unknown): string =>
+	//@ts-expect-error I'll fix this in the next commit
 	JSON.stringify(transformForSerialization(obj));
 
 // biome-ignore lint/suspicious/noExplicitAny: <Impractical to specify all types here>

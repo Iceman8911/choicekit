@@ -7,6 +7,8 @@ type SugarBoxClassInstance<TSerializedStructure extends Serialized> = {
 	 * Is required for persistence.
 	 */
 	toJSON: () => TSerializedStructure;
+
+	constructor: SugarBoxClassConstructor<TSerializedStructure>;
 };
 
 /** All userland custom class constructors need to implement this if they must be part of the story's state */
