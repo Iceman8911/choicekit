@@ -185,7 +185,7 @@ const transformForSerialization = (
 ): JsonSerializableType => {
 	// I'm alright having undefined and null values treated the same
 	if (data == null) {
-		return data;
+		return null;
 	}
 
 	switch (typeof data) {
@@ -285,7 +285,7 @@ const transformFromSerialization = (
 	data: JsonSerializableType,
 	cache = new Map<number, TransformableOrJsonSerializableType>(),
 ): TransformableOrJsonSerializableType => {
-	if (data == null) return data;
+	if (data == null) return null;
 
 	switch (typeof data) {
 		case "string":
