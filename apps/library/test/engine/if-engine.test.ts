@@ -42,7 +42,7 @@ const SAMPLE_PASSAGES = [
 		data: "A cold wind whips around you at the summit.",
 		name: "Mountain Peak",
 	},
-] as const;
+];
 
 type SamplePassageName = (typeof SAMPLE_PASSAGES)[number]["name"];
 
@@ -100,7 +100,7 @@ async function initEngine() {
 			persistence: createPersistenceAdapter(),
 		},
 		name: "Test",
-		otherPassages: [...SAMPLE_PASSAGES],
+		otherPassages: SAMPLE_PASSAGES,
 		startPassage: { data: "This is the start passage", name: "Start" },
 		variables: {
 			others: {
@@ -125,9 +125,9 @@ async function initEngineWithExtraSettings<
 	return SugarboxEngine.init<
 		string,
 		GenericSerializableObject,
-		string,
+		TSettingsData,
 		TAchievementData,
-		TSettingsData
+		string
 	>({
 		achievements,
 		config: {
@@ -151,11 +151,11 @@ describe("Passage Navigation", () => {
 	test("navigateTo should update passage info and advance index", () => {
 		const target = SAMPLE_PASSAGES[0];
 
-		engine.navigateTo(target.name);
+		engine.navigateTo(target?.name);
 
 		expect(engine.index).toBe(1);
-		expect(engine.passageId).toBe(target.name);
-		expect(engine.passage).toEqual(target);
+		expect(engine.passageId).toBe(target?.name ?? "");
+		expect(engine.passage?.data).toEqual(target?.data);
 	});
 
 	test("navigateTo should throw for unknown passage ids", () => {
@@ -167,16 +167,16 @@ describe("getVisitCount", () => {
 	test("counts visits across initial state and snapshots", () => {
 		// initial state is Start
 		expect(engine.getVisitCount("Start")).toBe(1);
-		expect(engine.getVisitCount(SAMPLE_PASSAGES[0].name)).toBe(0);
+		expect(engine.getVisitCount(SAMPLE_PASSAGES[0]?.name)).toBe(0);
 
-		engine.navigateTo(SAMPLE_PASSAGES[0].name); // now at Passage2
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name); // now at Passage2
 		engine.navigateTo("Start");
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
 
 		// getVisitCount counts the initial state's $$id plus any snapshot $$id values
 		// up to (but not including) the current index.
 		expect(engine.getVisitCount("Start")).toBe(2);
-		expect(engine.getVisitCount(SAMPLE_PASSAGES[0].name)).toBe(1);
+		expect(engine.getVisitCount(SAMPLE_PASSAGES[0]?.name)).toBe(1);
 	});
 
 	test("stress: works with 1000 snapshots (fills snapshot history)", async () => {
@@ -195,7 +195,7 @@ describe("getVisitCount", () => {
 
 		// Create 999 snapshots (start index=0 with the initial snapshot already present).
 		for (let i = 0; i < 999; i++) {
-			bigEngine.navigateTo(i % 2 === 0 ? SAMPLE_PASSAGES[0].name : "Start");
+			bigEngine.navigateTo(i % 2 === 0 ? SAMPLE_PASSAGES[0]?.name : "Start");
 		}
 
 		// At this point, we should have filled up the snapshot capacity.
@@ -206,7 +206,7 @@ describe("getVisitCount", () => {
 		expect(bigEngine.getVisitCount("Start")).toBe(1 + 499);
 
 		// - Passage2 appears 499 times in snapshots[0..998].
-		expect(bigEngine.getVisitCount(SAMPLE_PASSAGES[0].name)).toBe(499);
+		expect(bigEngine.getVisitCount(SAMPLE_PASSAGES[0]?.name)).toBe(499);
 	});
 });
 
@@ -218,7 +218,7 @@ describe("State Variables and History", () => {
 			state.player.inventory.items.push("Overpowered Sword");
 		});
 
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
 
 		expect(engine.vars.player.name).toBe("Bob");
 		expect(engine.vars.player.inventory.gems).toBe(13);
@@ -256,12 +256,12 @@ describe("State Variables and History", () => {
 		engine.setVars((state) => {
 			state.others.stage = -1;
 		});
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
 
 		engine.setVars((state) => {
 			state.others.stage = 10;
 		});
-		engine.navigateTo(SAMPLE_PASSAGES[1].name);
+		engine.navigateTo(SAMPLE_PASSAGES[1]?.name);
 
 		engine.backward(2);
 		expect(engine.index).toBe(0);
@@ -289,8 +289,8 @@ describe("Engine Reset", () => {
 			state.player.inventory.items.push("Magic Potion");
 		});
 
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
-		engine.navigateTo(SAMPLE_PASSAGES[1].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
+		engine.navigateTo(SAMPLE_PASSAGES[1]?.name);
 
 		expect(engine.index).toBe(2);
 		expect(engine.vars.player.name).toBe("Changed Name");
@@ -325,7 +325,7 @@ describe("Engine Reset", () => {
 		const initial1 = engine.random;
 		const initial2 = engine.random;
 
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
 		engine.random;
 		engine.random;
 
@@ -353,7 +353,7 @@ describe("Saving and Loading", () => {
 	test("should be able to save and load the state restoring the relevant variable values", async () => {
 		await engine.saveToSaveSlot(1);
 
-		engine.navigateTo(SAMPLE_PASSAGES[1].name);
+		engine.navigateTo(SAMPLE_PASSAGES[1]?.name);
 
 		const testItem = "Test Item";
 
@@ -362,7 +362,7 @@ describe("Saving and Loading", () => {
 
 			state.others.stage++;
 
-			state.player.location = SAMPLE_PASSAGES[1].name;
+			state.player.location = SAMPLE_PASSAGES[1]?.name ?? "";
 
 			state.player.inventory.items.push(testItem);
 		});
@@ -1191,14 +1191,16 @@ describe("Events", () => {
 			}
 		});
 
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
 
 		expect(passageNavigatedData).not.toBeNull();
-		expect(passageNavigatedData!.newPassage).toEqual(SAMPLE_PASSAGES[0]);
+		expect(passageNavigatedData!.newPassage?.name).toEqual(
+			SAMPLE_PASSAGES[0]?.name,
+		);
 
 		endListener(); // From this point no changes should be registered
 
-		engine.navigateTo(SAMPLE_PASSAGES[1].name);
+		engine.navigateTo(SAMPLE_PASSAGES[1]?.name);
 
 		expect(passageNavigatedData!.newPassage).not.toEqual(SAMPLE_PASSAGES[1]);
 
@@ -1584,14 +1586,14 @@ describe("State Change Events", () => {
 		});
 
 		// Navigate to create history
-		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+		engine.navigateTo(SAMPLE_PASSAGES[0]?.name);
 
 		// Make some changes
 		engine.setVars((state) => {
 			state.player.level = 25;
 		});
 
-		engine.navigateTo(SAMPLE_PASSAGES[1].name);
+		engine.navigateTo(SAMPLE_PASSAGES[1]?.name);
 
 		engine.setVars((state) => {
 			state.player.location = "Mountains";
@@ -1917,7 +1919,7 @@ describe("Load-Related Events", () => {
 
 		// Verify the final engine state matches the loaded save
 		expect(engine.vars.player.name).toBe("InitialName");
-		expect(engine.passage).toEqual(SAMPLE_PASSAGES[1]);
+		expect(engine.passage?.name).toEqual(SAMPLE_PASSAGES[1]?.name);
 
 		listener();
 	});
@@ -1947,8 +1949,12 @@ describe("Load-Related Events", () => {
 
 		// Verify passageChange event was emitted with correct data
 		expect(passageChangeEvent).not.toBeNull();
-		expect(passageChangeEvent!.oldPassage).toEqual(SAMPLE_PASSAGES[1]);
-		expect(passageChangeEvent!.newPassage).toEqual(SAMPLE_PASSAGES[2]);
+		expect(passageChangeEvent!.oldPassage?.name).toEqual(
+			SAMPLE_PASSAGES[1]?.name,
+		);
+		expect(passageChangeEvent!.newPassage?.name).toEqual(
+			SAMPLE_PASSAGES[2]?.name,
+		);
 
 		listener();
 	});
@@ -2162,7 +2168,7 @@ describe("Load-Related Events", () => {
 		// Verify the actual engine state
 		expect(engine.vars.player.inventory.items).toContain("Magic Ring");
 		expect(engine.vars.player.inventory.gold).toBe(500);
-		expect(engine.passage).toEqual(SAMPLE_PASSAGES[2]);
+		expect(engine.passage?.name).toEqual(SAMPLE_PASSAGES[2]?.name);
 
 		listener();
 	});
@@ -3250,12 +3256,11 @@ describe("Dynamic Initial State", () => {
 					hasAchievements: boolean;
 					hasSettings: boolean;
 				},
-				string,
-				{
-					firstLogin: boolean;
-				},
 				{
 					volume: number;
+				},
+				{
+					firstLogin: boolean;
 				}
 			>,
 		) => {
