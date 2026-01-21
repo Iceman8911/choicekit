@@ -799,7 +799,7 @@ class SugarboxEngine<
 		);
 
 		switch (saveCompatibility) {
-			case "compatible": {
+			case "compat": {
 				// Replace the current state
 				this.#initialState = intialState;
 				this.#stateSnapshots = snapshots;
@@ -808,7 +808,7 @@ class SugarboxEngine<
 				break;
 			}
 
-			case "outdatedSave": {
+			case "old": {
 				// Temporarily replace the current state
 				const originalInitialState = this.#initialState;
 				const originalStateSnapshots = this.#stateSnapshots;
@@ -880,7 +880,7 @@ class SugarboxEngine<
 					throw sanitiseError(e);
 				}
 			}
-			case "newerSave": {
+			case "new": {
 				throw Error(
 					`Save with version ${saveVersion} is too new for the engine with version ${engineVersion}`,
 				);
