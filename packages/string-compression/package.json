@@ -1,6 +1,7 @@
 {
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.5"
+		"@biomejs/biome": "^2.2.5",
+		"@stardazed/streams-polyfill": "^2.4.0"
 	},
 	"exports": {
 		".": "./src/index.ts"
