@@ -187,10 +187,10 @@ type SugarBoxSaveMigrationMap<
 class SugarboxEngine<
 	TPassageData,
 	TVariables extends GenericSerializableObject = GenericSerializableObject,
+	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
+	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
 	TPassageTag extends string = string,
 	TPassageName extends string = string,
-	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
-	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 > {
 	// Instance properties (public → protected → private)
 
@@ -201,10 +201,10 @@ class SugarboxEngine<
 		engine: SugarboxEngine<
 			TPassageData,
 			TVariables,
-			TPassageTag,
-			TPassageName,
+			TSettingsData,
 			TAchievementData,
-			TSettingsData
+			TPassageTag,
+			TPassageName
 		>;
 		passage: SugarBoxPassage<TPassageData, TPassageTag, TPassageName>;
 		config: SugarBoxConfig<TVariables>;
@@ -330,13 +330,13 @@ class SugarboxEngine<
 	static async init<
 		TPassageType,
 		TVariables extends GenericSerializableObject = GenericSerializableObject,
-		TPassageTag extends string = string,
-		TPassageName extends string = string,
+		TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 		TAchievementData extends GenericSerializableObject = Record<
 			string,
 			boolean
 		>,
-		TSettingsData extends GenericSerializableObject = GenericSerializableObject,
+		TPassageTag extends string = string,
+		TPassageName extends string = string,
 	>(args: {
 		/** Name of the engine. Engines initalized with the same name have access to the same saves, acheivements, and story-specific settings */
 		name: string;
@@ -351,10 +351,10 @@ class SugarboxEngine<
 					engine: SugarboxEngine<
 						TPassageType,
 						TVariables,
-						TPassageTag,
-						TPassageName,
+						TSettingsData,
 						TAchievementData,
-						TSettingsData
+						TPassageTag,
+						TPassageName
 					>,
 			  ) => TVariables);
 
@@ -389,10 +389,10 @@ class SugarboxEngine<
 		SugarboxEngine<
 			TPassageType,
 			TVariables,
-			TPassageTag,
-			TPassageName,
+			TSettingsData,
 			TAchievementData,
-			TSettingsData
+			TPassageTag,
+			TPassageName
 		>
 	> {
 		const {
@@ -410,10 +410,10 @@ class SugarboxEngine<
 		const engine = new SugarboxEngine<
 			TPassageType,
 			TVariables,
-			TPassageTag,
-			TPassageName,
+			TSettingsData,
 			TAchievementData,
-			TSettingsData
+			TPassageTag,
+			TPassageName
 		>(
 			name,
 			variables,
