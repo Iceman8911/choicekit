@@ -10,13 +10,15 @@ type JsonSerializableType =
 	| null
 	| undefined
 	| string
-	| { [key: string]: JsonSerializableType }
+	| {
+			[key: string]: JsonSerializableType;
+	  }
 	| TransformedDataType;
 
-export type SugarboxClassConstructorWithValidSerialization =
-	SugarBoxClassConstructor<JsonSerializableType>;
-type SugarboxClassInstanceWithValidSerialization =
-	SugarBoxClassInstance<JsonSerializableType>;
+export interface SugarboxClassConstructorWithValidSerialization
+	extends SugarBoxClassConstructor<TransformableOrJsonSerializableType> {}
+interface SugarboxClassInstanceWithValidSerialization
+	extends SugarBoxClassInstance<TransformableOrJsonSerializableType> {}
 
 type TransformableType =
 	| Array<TransformableOrJsonSerializableType>
