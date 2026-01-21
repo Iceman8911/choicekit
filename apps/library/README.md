@@ -495,7 +495,7 @@ const engine = await SugarboxEngine.init({
 
 ### Advanced
 
-- Compression and decompression are handled internally using the [`@zalari/string-compression-utils`](https://www.npmjs.com/package/@zalari/string-compression-utils) package.
+- Compression and decompression are handled internally using a custom browser-native implementation.
 - The engine will always auto-detect and decompress save data, so you can safely mix compressed and uncompressed saves.
 - Exported save strings are also compressed if `compressSave` is enabled.
 

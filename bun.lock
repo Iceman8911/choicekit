@@ -71,17 +71,15 @@
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
         "@packages/engine-class": "workspace:*",
+        "bun-types": "^1.3.6",
       },
     },
     "packages/string-compression": {
       "name": "@packages/string-compression",
       "version": "0.0.0",
-      "dependencies": {
-        "@zalari/string-compression-utils": "^0.1.1",
-        "@zalari/string-compression-utils": "zalari/string-compression-utils",
-      },
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
+        "bun-types": "^1.3.6",
       },
     },
   },
@@ -673,8 +671,6 @@
     "@vinxi/plugin-directives": ["@vinxi/plugin-directives@0.5.1", "", { "dependencies": { "@babel/parser": "^7.23.5", "acorn": "^8.10.0", "acorn-jsx": "^5.3.2", "acorn-loose": "^8.3.0", "acorn-typescript": "^1.4.3", "astring": "^1.8.6", "magicast": "^0.2.10", "recast": "^0.23.4", "tslib": "^2.6.2" }, "peerDependencies": { "vinxi": "^0.5.5" } }, "sha512-pH/KIVBvBt7z7cXrUH/9uaqcdxjegFC7+zvkZkdOyWzs+kQD5KPf3cl8kC+5ayzXHT+OMlhGhyitytqN3cGmHg=="],
 
     "@vinxi/server-components": ["@vinxi/server-components@0.5.1", "", { "dependencies": { "@vinxi/plugin-directives": "0.5.1", "acorn": "^8.10.0", "acorn-loose": "^8.3.0", "acorn-typescript": "^1.4.3", "astring": "^1.8.6", "magicast": "^0.2.10", "recast": "^0.23.4" }, "peerDependencies": { "vinxi": "^0.5.5" } }, "sha512-0BsG95qac3dkhfdRZxqzqYWJE4NvPL7ILlV43B6K6ho1etXWB2e5b0IxsUAUbyqpqiXM7mSRivojuXjb2G4OsQ=="],
-
-    "@zalari/string-compression-utils": ["@zalari/string-compression-utils@0.1.1", "", {}, "sha512-DF5XCdtIwrJfzpJkzLIayOJtsA8oXMgmd3QTUlMlp3E4xrL+w1hEsuasOvQLAbJDpb45CLdTybRNKcOTaZd6JA=="],
 
     "JSONStream": ["JSONStream@1.3.5", "", { "dependencies": { "jsonparse": "^1.2.0", "through": ">=2.2.7 <3" }, "bin": { "JSONStream": "./bin.js" } }, "sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ=="],
 
@@ -2035,8 +2031,6 @@
     "@isaacs/cliui/string-width": ["string-width@5.1.2", "", { "dependencies": { "eastasianwidth": "^0.2.0", "emoji-regex": "^9.2.2", "strip-ansi": "^7.0.1" } }, "sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA=="],
 
     "@isaacs/cliui/wrap-ansi": ["wrap-ansi@8.1.0", "", { "dependencies": { "ansi-styles": "^6.1.0", "string-width": "^5.0.1", "strip-ansi": "^7.0.1" } }, "sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ=="],
-
-    "@packages/string-compression/@zalari/string-compression-utils": ["@zalari/string-compression-utils@github:zalari/string-compression-utils#1c301d9", {}, "zalari-string-compression-utils-1c301d9"],
 
     "@parcel/watcher/picomatch": ["picomatch@4.0.3", "", {}, "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q=="],
 

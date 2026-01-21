@@ -5,8 +5,7 @@
     "": {
       "name": "sugarbox",
       "dependencies": {
-        "@iceman8911/tiny-prng": "^0.1.2",
-        "@zalari/string-compression-utils": "^0.1.1",
+        "@iceman8911/tiny-prng": "^0.1.2", 
       },
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
@@ -215,8 +214,7 @@
     "@types/node": ["@types/node@24.0.3", "", { "dependencies": { "undici-types": "~7.8.0" } }, "sha512-R4I/kzCYAdRLzfiCabn9hxWfbuHS573x+r0dJMkkzThEa7pbrcDWK+9zu3e7aBOouf+rQAciqPFMnxwr0aWgKg=="],
 
     "@types/react": ["@types/react@19.1.8", "", { "dependencies": { "csstype": "^3.0.2" } }, "sha512-AwAfQ2Wa5bCx9WP8nZL2uMZWod7J7/JSplxbTmBQ5ms6QpqNYm672H0Vu9ZVKVngQ+ii4R/byguVEUZQyeg44g=="],
-
-    "@zalari/string-compression-utils": ["@zalari/string-compression-utils@0.1.1", "", {}, "sha512-DF5XCdtIwrJfzpJkzLIayOJtsA8oXMgmd3QTUlMlp3E4xrL+w1hEsuasOvQLAbJDpb45CLdTybRNKcOTaZd6JA=="],
+ 
 
     "JSONStream": ["JSONStream@1.3.5", "", { "dependencies": { "jsonparse": "^1.2.0", "through": ">=2.2.7 <3" }, "bin": { "JSONStream": "./bin.js" } }, "sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ=="],
 
