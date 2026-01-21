@@ -207,9 +207,10 @@ type SugarBoxConfig<
 type SugarBoxPassage<
 	TPassageType,
 	TPassageTag extends string = string,
+	TPassageName extends string = string,
 > = Readonly<{
 	/** Unique identifier for the passage in the engine */
-	name: string;
+	name: TPassageName;
 	/** Passage data. Whatever this is is up to you. */
 	data: TPassageType;
 	/** Optional tags for querying this and related passages.

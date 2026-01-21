@@ -188,6 +188,7 @@ class SugarboxEngine<
 	TPassageData,
 	TVariables extends GenericSerializableObject = GenericSerializableObject,
 	TPassageTag extends string = string,
+	TPassageName extends string = string,
 	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
 	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 > {
@@ -201,10 +202,11 @@ class SugarboxEngine<
 			TPassageData,
 			TVariables,
 			TPassageTag,
+			TPassageName,
 			TAchievementData,
 			TSettingsData
 		>;
-		passage: SugarBoxPassage<TPassageData, TPassageTag>;
+		passage: SugarBoxPassage<TPassageData, TPassageTag, TPassageName>;
 		config: SugarBoxConfig<TVariables>;
 		state: {
 			complete: StateWithMetadata<TVariables>;
@@ -329,6 +331,7 @@ class SugarboxEngine<
 		TPassageType,
 		TVariables extends GenericSerializableObject = GenericSerializableObject,
 		TPassageTag extends string = string,
+		TPassageName extends string = string,
 		TAchievementData extends GenericSerializableObject = Record<
 			string,
 			boolean
@@ -349,18 +352,19 @@ class SugarboxEngine<
 						TPassageType,
 						TVariables,
 						TPassageTag,
+						TPassageName,
 						TAchievementData,
 						TSettingsData
 					>,
 			  ) => TVariables);
 
 		/** Starting passage */
-		startPassage: SugarBoxPassage<TPassageType, TPassageTag>;
+		startPassage: SugarBoxPassage<TPassageType, TPassageTag, TPassageName>;
 
 		/** Critical passages that must be available asap.
 		 *
 		 * The first argument is the passage id */
-		otherPassages: SugarBoxPassage<TPassageType, TPassageTag>[];
+		otherPassages: SugarBoxPassage<TPassageType, TPassageTag, TPassageName>[];
 
 		/** So you don't have to manually register classes for proper serialization / deserialization */
 		classes?: SugarboxClassConstructorWithValidSerialization[];
@@ -386,6 +390,7 @@ class SugarboxEngine<
 			TPassageType,
 			TVariables,
 			TPassageTag,
+			TPassageName,
 			TAchievementData,
 			TSettingsData
 		>
@@ -406,6 +411,7 @@ class SugarboxEngine<
 			TPassageType,
 			TVariables,
 			TPassageTag,
+			TPassageName,
 			TAchievementData,
 			TSettingsData
 		>(
