@@ -30,7 +30,7 @@ type TransformableType =
 	| bigint
 	| SugarboxClassInstanceWithValidSerialization;
 
-type TransformableOrJsonSerializableType =
+export type TransformableOrJsonSerializableType =
 	| TransformableType
 	| JsonSerializableType;
 
@@ -395,12 +395,10 @@ const transformFromSerialization = (
 	}
 };
 
-const serialize = (obj: unknown): string =>
-	//@ts-expect-error I'll fix this in the next commit
+const serialize = (obj: TransformableOrJsonSerializableType): string =>
 	JSON.stringify(transformForSerialization(obj));
 
-// biome-ignore lint/suspicious/noExplicitAny: <Impractical to specify all types here>
-const deserialize = (str: string): any =>
+const deserialize = (str: string): TransformableOrJsonSerializableType =>
 	transformFromSerialization(JSON.parse(str));
 
 export { serialize, deserialize };

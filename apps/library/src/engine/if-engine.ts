@@ -6,13 +6,12 @@
 // - The current state snapshot is the last state in the list, which is mutable.
 
 import { PRNG } from "@iceman8911/tiny-prng";
-import type { SugarBoxClassConstructor } from "@packages/engine-class";
 import {
 	clone,
-	deserialize as parse,
+	deserialize,
 	registerClass,
 	type SugarboxClassConstructorWithValidSerialization,
-	serialize as stringify,
+	serialize,
 } from "@packages/serializer";
 import {
 	compressStringIfApplicable,
@@ -32,7 +31,7 @@ import type {
 	SugarBoxSettingsKey,
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
-import type { GenericObject } from "../types/shared";
+import type { GenericSerializableObject } from "../types/shared";
 import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
@@ -66,12 +65,11 @@ const MINIMUM_SAVE_SLOTS = 1;
 
 const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
 
-type StateWithMetadata<TVariables extends GenericObject> = TVariables &
-	SugarBoxSnapshotMetadata;
+type StateWithMetadata<TVariables extends GenericSerializableObject> =
+	TVariables & SugarBoxSnapshotMetadata;
 
-type SnapshotWithMetadata<TVariables extends GenericObject> = Partial<
-	TVariables & SugarBoxSnapshotMetadata
->;
+type SnapshotWithMetadata<TVariables extends GenericSerializableObject> =
+	Partial<TVariables & SugarBoxSnapshotMetadata>;
 
 type SaveStartEvent = { slot: "autosave" | "export" | "recent" | number };
 
@@ -188,10 +186,10 @@ type SugarBoxSaveMigrationMap<
  */
 class SugarboxEngine<
 	TPassageData,
-	TVariables extends GenericObject = GenericObject,
+	TVariables extends GenericSerializableObject = GenericSerializableObject,
 	TPassageTag extends string = string,
-	TAchievementData extends GenericObject = Record<string, boolean>,
-	TSettingsData extends GenericObject = GenericObject,
+	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
+	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 > {
 	private declare _type: {
 		engine: SugarboxEngine<
@@ -324,10 +322,13 @@ class SugarboxEngine<
 	/** Use this to initialize the engine */
 	static async init<
 		TPassageType,
-		TVariables extends GenericObject = GenericObject,
+		TVariables extends GenericSerializableObject = GenericSerializableObject,
 		TPassageTag extends string = string,
-		TAchievementData extends GenericObject = Record<string, boolean>,
-		TSettingsData extends GenericObject = GenericObject,
+		TAchievementData extends GenericSerializableObject = Record<
+			string,
+			boolean
+		>,
+		TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 	>(args: {
 		/** Name of the engine. Engines initalized with the same name have access to the same saves, acheivements, and story-specific settings */
 		name: string;
@@ -840,7 +841,7 @@ class SugarboxEngine<
 					storyIndex: this.#index,
 				};
 
-				const stringifiedSaveData = stringify(saveData);
+				const stringifiedSaveData = serialize(saveData);
 
 				const dataToStore = await compressStringIfApplicable(
 					stringifiedSaveData,
@@ -878,7 +879,9 @@ class SugarboxEngine<
 				const jsonString =
 					await decompressPossiblyCompressedJsonString(serializedSaveData);
 
-				this.loadSaveFromData(parse(jsonString));
+				this.loadSaveFromData(
+					deserialize(jsonString) as typeof this._type.saveData,
+				);
 			},
 		);
 	}
@@ -1070,9 +1073,9 @@ class SugarboxEngine<
 
 			if (!serializedSaveData) continue;
 
-			const saveData: typeof this._type.saveData = parse(
+			const saveData: typeof this._type.saveData = deserialize(
 				await decompressPossiblyCompressedJsonString(serializedSaveData),
-			);
+			) as typeof this._type.saveData;
 
 			if (key === this.#getStorageKey()) {
 				yield { data: saveData, type: "autosave" };
@@ -1123,7 +1126,7 @@ class SugarboxEngine<
 					settings: this.#settings,
 				};
 
-				const stringifiedExportData = stringify(exportData);
+				const stringifiedExportData = serialize(exportData);
 
 				const finalDataToExport = await compressStringIfApplicable(
 					stringifiedExportData,
@@ -1151,7 +1154,11 @@ class SugarboxEngine<
 					saveData,
 					settings,
 				}: SugarBoxExportData<TVariables, TSettingsData, TAchievementData> =
-					parse(jsonString);
+					deserialize(jsonString) as SugarBoxExportData<
+						TVariables,
+						TSettingsData,
+						TAchievementData
+					>;
 
 				// Replace the current state
 				this.loadSaveFromData(saveData);
