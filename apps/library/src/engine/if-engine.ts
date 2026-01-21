@@ -191,6 +191,11 @@ class SugarboxEngine<
 	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
 	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 > {
+	// Instance properties (public → protected → private)
+
+	/** Must be unique to prevent conflicts */
+	readonly name: string;
+
 	private declare _type: {
 		engine: SugarboxEngine<
 			TPassageData,
@@ -217,17 +222,13 @@ class SugarboxEngine<
 		>;
 	};
 
-	/** Contains partial updates to the state as a result of moving forwards in the story.
-	 *
-	 * This is also the "state history"
+	/** Achievements meant to be persisted across saves
 	 */
-	#stateSnapshots: Array<typeof this._type.state.snapshot>;
+	#achievements: TAchievementData;
 
-	/**  Contains the structure of stateful variables in the engine.
-	 *
-	 * Will not be modified after initialization.
-	 */
-	#initialState: Readonly<typeof this._type.state.complete>;
+	readonly #config: typeof this._type.config;
+
+	#eventTarget = new EventTarget();
 
 	/** The current position in the state history that the engine is playing.
 	 *
@@ -235,30 +236,17 @@ class SugarboxEngine<
 	 */
 	#index: number;
 
-	readonly #config: typeof this._type.config;
+	/**  Contains the structure of stateful variables in the engine.
+	 *
+	 * Will not be modified after initialization.
+	 */
+	#initialState: Readonly<typeof this._type.state.complete>;
 
 	/** Indexed by the passage id.
 	 *
 	 * Each value is the passage data, which could be a html string, markdown string, regular string, or more complex things like a jsx component, etc.
 	 */
 	#passages = new Map<string, typeof this._type.passage>();
-
-	/** Since recalculating the current state can be expensive */
-	#stateCache?: typeof this._type.adapter.cache;
-
-	#eventTarget = new EventTarget();
-
-	/** Achievements meant to be persisted across saves
-	 *
-	 * **Must be serializable and deserializable by JSON.stringify / parse**
-	 */
-	#achievements: TAchievementData;
-
-	/** Settings data that is not tied to save data, like audio volume, font size, etc
-	 *
-	 * **Must be serializable and deserializable by JSON.stringify / parse**
-	 */
-	#settings: TSettingsData;
 
 	/** Collection of migration functions to keep old saves up to date
 	 *
@@ -267,9 +255,24 @@ class SugarboxEngine<
 	// biome-ignore lint/suspicious/noExplicitAny: <It'll not be worth defining the types for these>
 	#saveMigrationMap: SugarBoxSaveMigrationMap<any, any> = new Map();
 
+	/** Settings data that is not tied to save data, like audio volume, font size, etc
+	 */
+	#settings: TSettingsData;
+
+	/** Since recalculating the current state can be expensive */
+	#stateCache?: typeof this._type.adapter.cache;
+
+	/** Contains partial updates to the state as a result of moving forwards in the story.
+	 *
+	 * This is also the "state history"
+	 */
+	#stateSnapshots: Array<typeof this._type.state.snapshot>;
+
+	// Constructor
+
 	private constructor(
 		/** Must be unique to prevent conflicts */
-		readonly name: string,
+		name: string,
 		initialState:
 			| TVariables
 			| ((engine: typeof this._type.engine) => TVariables),
@@ -279,6 +282,8 @@ class SugarboxEngine<
 		config: Partial<typeof this._type.config>,
 		otherPassages: ReadonlyArray<typeof this._type.passage>,
 	) {
+		this.name = name;
+
 		const { cache, saveSlots, initialSeed = getRandomInteger() } = config;
 
 		this.#stateSnapshots = [{}];
@@ -431,6 +436,8 @@ class SugarboxEngine<
 		return engine;
 	}
 
+	// Public methods (main API of the class)
+
 	/** Immer-style way of updating story variables
 	 *
 	 * Use this **solely** for setting values. If you must read a value, use `this.vars`
@@ -498,130 +505,20 @@ class SugarboxEngine<
 		}
 	}
 
-	/** Returns a readonly copy of the current state of stored variables.
+	/** Adds a new passage to the engine.
 	 *
-	 * May be expensive to calculate depending on the history of the story. */
-	get vars(): Readonly<typeof this._type.state.complete> {
-		return this.#getStateAtIndex(this.#index);
-	}
-
-	/** Returns the id to the appropriate passage for the current state */
-	get passageId(): string {
-		return this.vars.$$id;
-	}
-
-	/** Returns the passage data for the current state.
+	 * The passage id should be unique, and the data can be anything that you want to store for the passage.
 	 *
-	 * If the passage does not exist, returns `null`.
+	 * If the passage already exists, it will be overwritten.
 	 */
-	get passage(): typeof this._type.passage | null {
-		return this.#passages.get(this.passageId) ?? null;
+	addPassage(passageData: typeof this._type.passage): void {
+		this.#passages.set(passageData.name, passageData);
 	}
 
-	/** The current position in the state history that the engine is playing.
-	 *
-	 * This is used to determine the current state of the engine.
-	 *
-	 * READONLY VERSION
-	 */
-	get index(): number {
-		return this.#index;
-	}
-
-	/** Based off an internal PRNG, returns a random float between 0 and 1, inclusively */
-	get random(): number {
-		const { regenSeed } = this.#config;
-
-		const prng = this.#currentStatePrng;
-
-		// This will alter `prng.seed`
-		const randomNumber = prng.nextFloat();
-
-		if (regenSeed === "eachCall") {
-			// Add the new seed to the snapshot on each call
-			// @ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$seed` property
-			this.#getSnapshotAtIndex(this.#index).$$seed = prng.seed;
-		}
-
-		return randomNumber;
-	}
-
-	get achievements(): Readonly<TAchievementData> {
-		return this.#achievements;
-	}
-
-	/** Immer-style producer for setting achievements
-	 *
-	 * If you need to replace the entire achievement object, *return a new object*
-	 *
-	 * @param [emitEvent=true] If true, an ":achievementChange" event will be emitted. Set this to false if you use this within an `:achievementChange` listener
-	 */
-	async setAchievements(
-		producer:
-			| ((state: TAchievementData) => void)
-			| ((state: TAchievementData) => TAchievementData),
-		emitEvent = true,
-	): Promise<void> {
-		const old = clone(this.#achievements);
-
-		const result = producer(this.#achievements);
-
-		if (result) {
-			this.#achievements = result;
-		}
-
-		if (emitEvent) {
-			this.#emitCustomEvent(":achievementChange", {
-				new: this.#achievements,
-				old,
-			});
-		}
-
-		await this.#saveAchievements();
-	}
-
-	get settings(): Readonly<TSettingsData> {
-		return this.#settings;
-	}
-
-	/** Immer-style producer for setting settings
-	 *
-	 * If you need to replace the entire settings object, *return a new object*
-	 *
-	 * @param [emitEvent=true] If true, a ":settingChange" event will be emitted. Set this to false if you use this within a `:settingChange` listener
-	 */
-	async setSettings(
-		producer:
-			| ((state: TSettingsData) => void)
-			| ((state: TSettingsData) => TSettingsData),
-		emitEvent = true,
-	): Promise<void> {
-		const old = clone(this.#settings);
-
-		const result = producer(this.#settings);
-
-		if (result) {
-			this.#settings = result;
-		}
-
-		if (emitEvent) {
-			this.#emitCustomEvent(":settingChange", { new: this.#settings, old });
-		}
-
-		await this.#saveSettings();
-	}
-
-	/** Moves at least one step forward in the state history.
-	 *
-	 * Does nothing if already at the most recent state snapshot.
-	 */
-	forward(step = 1): void {
-		const newIndex = this.#index + step;
-
-		if (newIndex >= this.#snapshotCount) {
-			this.#setIndex(this.#lastSnapshotIndex);
-		} else {
-			this.#setIndex(newIndex);
+	/** Like `addPassage`, but takes in a collection */
+	addPassages(...passageData: ReadonlyArray<typeof this._type.passage>): void {
+		for (const passageDatum of passageData) {
+			this.addPassage(passageDatum);
 		}
 	}
 
@@ -639,20 +536,95 @@ class SugarboxEngine<
 		}
 	}
 
-	/** Adds a new passage to the engine.
-	 *
-	 * The passage id should be unique, and the data can be anything that you want to store for the passage.
-	 *
-	 * If the passage already exists, it will be overwritten.
-	 */
-	addPassage(passageData: typeof this._type.passage): void {
-		this.#passages.set(passageData.name, passageData);
+	async deleteAllSaveSlots(): Promise<unknown> {
+		const deletePromises: Array<Promise<unknown>> = [];
+
+		for await (const save of this.getSaves()) {
+			if (save.type === "autosave") {
+				deletePromises.push(this.deleteSaveSlot());
+			} else {
+				deletePromises.push(this.deleteSaveSlot(save.slot));
+			}
+		}
+
+		return Promise.allSettled(deletePromises);
 	}
 
-	/** Like `addPassage`, but takes in a collection */
-	addPassages(...passageData: ReadonlyArray<typeof this._type.passage>): void {
-		for (const passageDatum of passageData) {
-			this.addPassage(passageDatum);
+	/** Deletes any save data associated with the provided save slot.
+	 *
+	 * @param saveSlot if not provided, defaults to the autosave slot
+	 *
+	 * @throws if the save slot is invalid or if the persistence adapter is not available
+	 */
+	async deleteSaveSlot(saveSlot?: number): Promise<unknown> {
+		const { persistence } = this.#config;
+
+		const slot = saveSlot ?? "autosave";
+
+		this.#emitCustomEvent(":deleteStart", { slot });
+
+		try {
+			SugarboxEngine.#assertPersistenceIsAvailable(persistence);
+
+			const saveSlotKey = this.#getStorageKey(saveSlot);
+
+			const deleted = await persistence.delete(saveSlotKey);
+
+			this.#emitCustomEvent(":deleteEnd", { slot, type: "success" });
+
+			return deleted;
+		} catch (e) {
+			const sanitizedError = sanitiseError(e);
+
+			this.#emitCustomEvent(":deleteEnd", {
+				error: sanitizedError,
+				slot,
+				type: "error",
+			});
+
+			throw sanitizedError;
+		}
+	}
+
+	/** Moves at least one step forward in the state history.
+	 *
+	 * Does nothing if already at the most recent state snapshot.
+	 */
+	forward(step = 1): void {
+		const newIndex = this.#index + step;
+
+		if (newIndex >= this.#snapshotCount) {
+			this.#setIndex(this.#lastSnapshotIndex);
+		} else {
+			this.#setIndex(newIndex);
+		}
+	}
+
+	/** Returns an object containing the data of all present saves */
+	async *getSaves(): AsyncGenerator<
+		| { type: "autosave"; data: SugarBoxSaveData<TVariables> }
+		| { type: "normal"; slot: number; data: SugarBoxSaveData<TVariables> }
+	> {
+		const { persistence } = this.#config;
+
+		SugarboxEngine.#assertPersistenceIsAvailable(persistence);
+
+		for await (const key of this.#getKeysOfPresentSaves()) {
+			const serializedSaveData = await persistence.get(key);
+
+			if (!serializedSaveData) continue;
+
+			const saveData: typeof this._type.saveData = deserialize(
+				await decompressPossiblyCompressedJsonString(serializedSaveData),
+			) as typeof this._type.saveData;
+
+			if (key === this.#getStorageKey()) {
+				yield { data: saveData, type: "autosave" };
+			} else {
+				const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
+
+				yield { data: saveData, slot: slotNumber, type: "normal" };
+			}
 		}
 	}
 
@@ -698,157 +670,33 @@ class SugarboxEngine<
 		return matchedPasages;
 	}
 
-	/** Creates and moves the index over to a new snapshot with the given passage id (or the previous one) and returns a reference to it.
+	/** Can be used when directly loading a save from an exported save on disk
 	 *
-	 * This is essentially the way of linking between passages in the story.
-	 *
-	 * Yes, you can navigate to the same passage multiple times, and it will create a new snapshot each time. It's intended behavior.
-	 *
-	 * @throws if the passage id hasn't been added to the engine
+	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	navigateTo(
-		passageId: string = this.passageId,
-	): typeof this._type.state.snapshot {
-		if (!this.#isPassageIdValid(passageId))
-			throw Error(
-				`Cannot navigate: Passage with ID '${passageId}' not found. Add it using addPassage().`,
-			);
-
-		const newSnapshot = this.#addNewSnapshot();
-
-		if (this.vars.$$id !== passageId) {
-			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$id` property
-			newSnapshot.$$id = passageId;
-		}
-
-		if (this.#config.regenSeed === "passage") {
-			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$seed` property
-			// Create a new seed for the new snapshot
-			newSnapshot.$$seed = this.#currentStatePrng.next();
-		}
-
-		this.#setIndex(this.#index + 1);
-
-		return newSnapshot;
-	}
-
-	/** Clears all snapshot data and reverts to the initial state.
-	 *
-	 * Use this if you want the engine to essentially, start "afresh"
-	 *
-	 * @param [resetSeed=false] if true, the initial seed is randomised
-	 */
-	reset(resetSeed = false): void {
-		this.#rewriteState(
-			resetSeed
-				? { ...this.#initialState, $$seed: getRandomInteger() }
-				: this.#initialState,
-		);
-
-		this.#setIndex(0);
-	}
-
-	/** Subscribe to an event.
-	 *
-	 * @returns a function that can be used to unsubscribe from the event.
-	 */
-	on<TEventType extends keyof typeof this._type.events>(
-		type: TEventType,
-		listener: (
-			event: CustomEvent<(typeof this._type.events)[TEventType]>,
-		) => void,
-		options?: boolean | AddEventListenerOptions,
-	): () => void {
-		//@ts-expect-error TS doesn't know that the custom event will exist at runtime
-		this.#eventTarget.addEventListener(type, listener, options);
-
-		return () => {
-			this.off(type, listener, options);
-		};
-	}
-
-	/** Unsubscribe from an event */
-	off<TEventType extends keyof typeof this._type.events>(
-		type: TEventType,
-		listener:
-			| ((event: CustomEvent<(typeof this._type.events)[TEventType]>) => void)
-			| null,
-		options?: boolean | AddEventListenerOptions,
-	): void {
-		//@ts-expect-error TS doesn't know that the custom event will exist at runtime
-		this.#eventTarget.removeEventListener(type, listener, options);
-	}
-
-	/** Any custom classes stored in the story's state must be registered with this */
-	registerClasses(
-		...customClasses: SugarboxClassConstructorWithValidSerialization[]
-	): void {
-		customClasses.forEach((customClass) => {
-			registerClass(customClass);
-		});
-	}
-
-	/** Use this to register custom callbacks for migrating outdated save data
-	 *
-	 * @throws if a migration for the same version already exists
-	 */
-	registerMigrators<TOldSaveStructure, TNewSaveStructure = TVariables>(
-		...migrators: {
-			from: SugarBoxSemanticVersionString;
-			data: SugarBoxSaveMigration<TOldSaveStructure, TNewSaveStructure>;
-		}[]
-	): void {
-		for (const { from, data } of migrators) {
-			const semanticVersionString = from;
-
-			if (this.#saveMigrationMap.has(semanticVersionString)) {
-				throw Error(
-					`A migration for version ${from} already exists. Cannot register multiple migrations for the same version.`,
-				);
-			}
-
-			this.#saveMigrationMap.set(semanticVersionString, data);
-		}
-	}
-
-	/** Using the provided persistence adapter, this saves all vital data for the combined state, metadata, and current index
-	 *
-	 * @param saveSlot if not provided, defaults to the autosave slot
-	 *
-	 * @throws if the persistence adapter is not available
-	 */
-	async saveToSaveSlot(saveSlot?: number): Promise<void> {
+	async loadFromExport(data: string): Promise<void> {
 		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
-			"save",
-			saveSlot,
+			"load",
+			"export",
 			async () => {
+				const jsonString = await decompressPossiblyCompressedJsonString(data);
+
 				const {
-					persistence,
-					saveVersion,
-					compress: shouldCompressSave,
-				} = this.#config;
+					achievements,
+					saveData,
+					settings,
+				}: SugarBoxExportData<TVariables, TSettingsData, TAchievementData> =
+					deserialize(jsonString) as SugarBoxExportData<
+						TVariables,
+						TSettingsData,
+						TAchievementData
+					>;
 
-				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
+				// Replace the current state
+				this.loadSaveFromData(saveData);
 
-				const saveKey = this.#getStorageKey(saveSlot);
-
-				const saveData: typeof this._type.saveData = {
-					intialState: this.#initialState,
-					lastPassageId: this.passageId,
-					savedOn: new Date(),
-					saveVersion: saveVersion,
-					snapshots: this.#stateSnapshots,
-					storyIndex: this.#index,
-				};
-
-				const stringifiedSaveData = serialize(saveData);
-
-				const dataToStore = await compressStringIfApplicable(
-					stringifiedSaveData,
-					shouldCompressSave,
-				);
-
-				await persistence.set(saveKey, dataToStore);
+				this.#achievements = achievements;
+				this.#settings = settings;
 			},
 		);
 	}
@@ -886,54 +734,17 @@ class SugarboxEngine<
 		);
 	}
 
-	/** Deletes any save data associated with the provided save slot.
-	 *
-	 * @param saveSlot if not provided, defaults to the autosave slot
-	 *
-	 * @throws if the save slot is invalid or if the persistence adapter is not available
-	 */
-	async deleteSaveSlot(saveSlot?: number): Promise<unknown> {
-		const { persistence } = this.#config;
+	/** Loads the most recent save, if any. Doesn't throw */
+	async loadRecentSave(): Promise<void> {
+		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
+			"load",
+			"recent",
+			async () => {
+				const mostRecentSave = await this.#getMostRecentSave();
 
-		const slot = saveSlot ?? "autosave";
-
-		this.#emitCustomEvent(":deleteStart", { slot });
-
-		try {
-			SugarboxEngine.#assertPersistenceIsAvailable(persistence);
-
-			const saveSlotKey = this.#getStorageKey(saveSlot);
-
-			const deleted = await persistence.delete(saveSlotKey);
-
-			this.#emitCustomEvent(":deleteEnd", { slot, type: "success" });
-
-			return deleted;
-		} catch (e) {
-			const sanitizedError = sanitiseError(e);
-
-			this.#emitCustomEvent(":deleteEnd", {
-				error: sanitizedError,
-				slot,
-				type: "error",
-			});
-
-			throw sanitizedError;
-		}
-	}
-
-	async deleteAllSaveSlots(): Promise<unknown> {
-		const deletePromises: Array<Promise<unknown>> = [];
-
-		for await (const save of this.getSaves()) {
-			if (save.type === "autosave") {
-				deletePromises.push(this.deleteSaveSlot());
-			} else {
-				deletePromises.push(this.deleteSaveSlot(save.slot));
-			}
-		}
-
-		return Promise.allSettled(deletePromises);
+				if (mostRecentSave) this.loadSaveFromData(mostRecentSave);
+			},
+		);
 	}
 
 	/** Loads the save data from the provided save data object.
@@ -1059,45 +870,117 @@ class SugarboxEngine<
 		});
 	}
 
-	/** Returns an object containing the data of all present saves */
-	async *getSaves(): AsyncGenerator<
-		| { type: "autosave"; data: SugarBoxSaveData<TVariables> }
-		| { type: "normal"; slot: number; data: SugarBoxSaveData<TVariables> }
-	> {
-		const { persistence } = this.#config;
+	/** Creates and moves the index over to a new snapshot with the given passage id (or the previous one) and returns a reference to it.
+	 *
+	 * This is essentially the way of linking between passages in the story.
+	 *
+	 * Yes, you can navigate to the same passage multiple times, and it will create a new snapshot each time. It's intended behavior.
+	 *
+	 * @throws if the passage id hasn't been added to the engine
+	 */
+	navigateTo(
+		passageId: string = this.passageId,
+	): typeof this._type.state.snapshot {
+		if (!this.#isPassageIdValid(passageId))
+			throw Error(
+				`Cannot navigate: Passage with ID '${passageId}' not found. Add it using addPassage().`,
+			);
 
-		SugarboxEngine.#assertPersistenceIsAvailable(persistence);
+		const newSnapshot = this.#addNewSnapshot();
 
-		for await (const key of this.#getKeysOfPresentSaves()) {
-			const serializedSaveData = await persistence.get(key);
+		if (this.vars.$$id !== passageId) {
+			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$id` property
+			newSnapshot.$$id = passageId;
+		}
 
-			if (!serializedSaveData) continue;
+		if (this.#config.regenSeed === "passage") {
+			//@ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$seed` property
+			// Create a new seed for the new snapshot
+			newSnapshot.$$seed = this.#currentStatePrng.next();
+		}
 
-			const saveData: typeof this._type.saveData = deserialize(
-				await decompressPossiblyCompressedJsonString(serializedSaveData),
-			) as typeof this._type.saveData;
+		this.#setIndex(this.#index + 1);
 
-			if (key === this.#getStorageKey()) {
-				yield { data: saveData, type: "autosave" };
-			} else {
-				const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
+		return newSnapshot;
+	}
 
-				yield { data: saveData, slot: slotNumber, type: "normal" };
+	/** Subscribe to an event.
+	 *
+	 * @returns a function that can be used to unsubscribe from the event.
+	 */
+	on<TEventType extends keyof typeof this._type.events>(
+		type: TEventType,
+		listener: (
+			event: CustomEvent<(typeof this._type.events)[TEventType]>,
+		) => void,
+		options?: boolean | AddEventListenerOptions,
+	): () => void {
+		//@ts-expect-error TS doesn't know that the custom event will exist at runtime
+		this.#eventTarget.addEventListener(type, listener, options);
+
+		return () => {
+			this.off(type, listener, options);
+		};
+	}
+
+	/** Unsubscribe from an event */
+	off<TEventType extends keyof typeof this._type.events>(
+		type: TEventType,
+		listener:
+			| ((event: CustomEvent<(typeof this._type.events)[TEventType]>) => void)
+			| null,
+		options?: boolean | AddEventListenerOptions,
+	): void {
+		//@ts-expect-error TS doesn't know that the custom event will exist at runtime
+		this.#eventTarget.removeEventListener(type, listener, options);
+	}
+
+	/** Any custom classes stored in the story's state must be registered with this */
+	registerClasses(
+		...customClasses: SugarboxClassConstructorWithValidSerialization[]
+	): void {
+		customClasses.forEach((customClass) => {
+			registerClass(customClass);
+		});
+	}
+
+	/** Use this to register custom callbacks for migrating outdated save data
+	 *
+	 * @throws if a migration for the same version already exists
+	 */
+	registerMigrators<TOldSaveStructure, TNewSaveStructure = TVariables>(
+		...migrators: {
+			from: SugarBoxSemanticVersionString;
+			data: SugarBoxSaveMigration<TOldSaveStructure, TNewSaveStructure>;
+		}[]
+	): void {
+		for (const { from, data } of migrators) {
+			const semanticVersionString = from;
+
+			if (this.#saveMigrationMap.has(semanticVersionString)) {
+				throw Error(
+					`A migration for version ${from} already exists. Cannot register multiple migrations for the same version.`,
+				);
 			}
+
+			this.#saveMigrationMap.set(semanticVersionString, data);
 		}
 	}
 
-	/** Loads the most recent save, if any. Doesn't throw */
-	async loadRecentSave(): Promise<void> {
-		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
-			"load",
-			"recent",
-			async () => {
-				const mostRecentSave = await this.#getMostRecentSave();
-
-				if (mostRecentSave) this.loadSaveFromData(mostRecentSave);
-			},
+	/** Clears all snapshot data and reverts to the initial state.
+	 *
+	 * Use this if you want the engine to essentially, start "afresh"
+	 *
+	 * @param [resetSeed=false] if true, the initial seed is randomised
+	 */
+	reset(resetSeed = false): void {
+		this.#rewriteState(
+			resetSeed
+				? { ...this.#initialState, $$seed: getRandomInteger() }
+				: this.#initialState,
 		);
+
+		this.#setIndex(0);
 	}
 
 	/** For saves the need to exported out of the browser */
@@ -1138,36 +1021,166 @@ class SugarboxEngine<
 		);
 	}
 
-	/** Can be used when directly loading a save from an exported save on disk
+	/** Using the provided persistence adapter, this saves all vital data for the combined state, metadata, and current index
 	 *
-	 * @throws if the save was made on a later version than the engine or if a save migration throws
+	 * @param saveSlot if not provided, defaults to the autosave slot
+	 *
+	 * @throws if the persistence adapter is not available
 	 */
-	async loadFromExport(data: string): Promise<void> {
+	async saveToSaveSlot(saveSlot?: number): Promise<void> {
 		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
-			"load",
-			"export",
+			"save",
+			saveSlot,
 			async () => {
-				const jsonString = await decompressPossiblyCompressedJsonString(data);
-
 				const {
-					achievements,
-					saveData,
-					settings,
-				}: SugarBoxExportData<TVariables, TSettingsData, TAchievementData> =
-					deserialize(jsonString) as SugarBoxExportData<
-						TVariables,
-						TSettingsData,
-						TAchievementData
-					>;
+					persistence,
+					saveVersion,
+					compress: shouldCompressSave,
+				} = this.#config;
 
-				// Replace the current state
-				this.loadSaveFromData(saveData);
+				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
 
-				this.#achievements = achievements;
-				this.#settings = settings;
+				const saveKey = this.#getStorageKey(saveSlot);
+
+				const saveData: typeof this._type.saveData = {
+					intialState: this.#initialState,
+					lastPassageId: this.passageId,
+					savedOn: new Date(),
+					saveVersion: saveVersion,
+					snapshots: this.#stateSnapshots,
+					storyIndex: this.#index,
+				};
+
+				const stringifiedSaveData = serialize(saveData);
+
+				const dataToStore = await compressStringIfApplicable(
+					stringifiedSaveData,
+					shouldCompressSave,
+				);
+
+				await persistence.set(saveKey, dataToStore);
 			},
 		);
 	}
+
+	// Public getters (main API, read-only views)
+
+	get achievements(): Readonly<TAchievementData> {
+		return this.#achievements;
+	}
+
+	// Public methods (main API of the class)
+
+	/** Immer-style producer for setting achievements
+	 *
+	 * If you need to replace the entire achievement object, *return a new object*
+	 *
+	 * @param [emitEvent=true] If true, an ":achievementChange" event will be emitted. Set this to false if you use this within an `:achievementChange` listener
+	 */
+	async setAchievements(
+		producer:
+			| ((state: TAchievementData) => void)
+			| ((state: TAchievementData) => TAchievementData),
+		emitEvent = true,
+	): Promise<void> {
+		const old = clone(this.#achievements);
+
+		const result = producer(this.#achievements);
+
+		if (result) {
+			this.#achievements = result;
+		}
+
+		if (emitEvent) {
+			this.#emitCustomEvent(":achievementChange", {
+				new: this.#achievements,
+				old,
+			});
+		}
+
+		await this.#saveAchievements();
+	}
+
+	/** Immer-style producer for setting settings
+	 *
+	 * If you need to replace the entire settings object, *return a new object*
+	 *
+	 * @param [emitEvent=true] If true, a ":settingChange" event will be emitted. Set this to false if you use this within an `:settingChange` listener
+	 */
+	async setSettings(
+		producer:
+			| ((state: TSettingsData) => void)
+			| ((state: TSettingsData) => TSettingsData),
+		emitEvent = true,
+	): Promise<void> {
+		const old = clone(this.#settings);
+
+		const result = producer(this.#settings);
+
+		if (result) {
+			this.#settings = result;
+		}
+
+		if (emitEvent) {
+			this.#emitCustomEvent(":settingChange", { new: this.#settings, old });
+		}
+
+		await this.#saveSettings();
+	}
+
+	/** The current position in the state history that the engine is playing.
+	 *
+	 * This is used to determine the current state of the engine.
+	 *
+	 * READONLY VERSION
+	 */
+	get index(): number {
+		return this.#index;
+	}
+
+	/** Returns the passage data for the current state.
+	 *
+	 * If the passage does not exist, returns `null`.
+	 */
+	get passage(): typeof this._type.passage | null {
+		return this.#passages.get(this.passageId) ?? null;
+	}
+
+	/** Returns the id to the appropriate passage for the current state */
+	get passageId(): string {
+		return this.vars.$$id;
+	}
+
+	/** Based off an internal PRNG, returns a random float between 0 and 1, inclusively */
+	get random(): number {
+		const { regenSeed } = this.#config;
+
+		const prng = this.#currentStatePrng;
+
+		// This will alter `prng.seed`
+		const randomNumber = prng.nextFloat();
+
+		if (regenSeed === "eachCall") {
+			// Add the new seed to the snapshot on each call
+			// @ts-expect-error - At the moment, there's no way to enforce that TVariables should not have a `$$seed` property
+			this.#getSnapshotAtIndex(this.#index).$$seed = prng.seed;
+		}
+
+		return randomNumber;
+	}
+
+	get settings(): Readonly<TSettingsData> {
+		return this.#settings;
+	}
+
+	/** Returns a readonly copy of the current state of stored variables.
+	 *
+	 * May be expensive to calculate depending on the history of the story. */
+	get vars(): Readonly<typeof this._type.state.complete> {
+		return this.#getStateAtIndex(this.#index);
+	}
+
+	// Static methods (utility functions)
 
 	static #assertPersistenceIsAvailable(
 		persistence: SugarBoxConfig["persistence"],
