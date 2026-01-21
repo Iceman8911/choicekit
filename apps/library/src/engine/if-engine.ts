@@ -680,9 +680,11 @@ class SugarboxEngine<
 	 *
 	 * Use this in place of `hasVisited(id)`, i.e `getVisitCount(id) > 0`
 	 *
+	 * @param [passageId=this.passageId]
+	 *
 	 * TODO: benchmark this later to see if caching will be beneficial
 	 */
-	getVisitCount(passageId: string): number {
+	getVisitCount(passageId: string = this.passageId): number {
 		let count = this.#initialState.$$id === passageId ? 1 : 0;
 
 		const snapshots = this.#stateSnapshots;
