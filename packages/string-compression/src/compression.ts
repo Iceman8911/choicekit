@@ -19,21 +19,25 @@ export async function compressString(
 		},
 	}).pipeThrough(new CompressionStream(encoding));
 
-	const compressedBlob = await new Response(compressedStream).blob();
+	const chunks: Uint8Array[] = [];
+	const compressedStreamReader = compressedStream.getReader();
 
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onloadend = () => {
-			const res = `${reader.result}`;
+	while (true) {
+		const { done, value } = await compressedStreamReader.read();
+		if (done) break;
+		chunks.push(value);
+	}
 
-			// Skip the redundant identifier
-			const base64 = `${res.split(",")[1]}`;
+	// Concatenate all chunks into one Uint8Array
+	const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+	const result = new Uint8Array(totalLength);
+	let offset = 0;
+	for (const chunk of chunks) {
+		result.set(chunk, offset);
+		offset += chunk.length;
+	}
 
-			resolve(base64);
-		};
-		reader.onerror = reject;
-		reader.readAsDataURL(compressedBlob);
-	});
+	return result.toBase64();
 }
 
 /**
@@ -43,9 +47,9 @@ export async function decompressString(
 	base64: string,
 	encoding: CompressionFormat,
 ): Promise<string> {
-	// Convert Base64 to a data URL and fetch it to get a blob
-	const resp = await fetch(`${BASE64_IDENTIFIER}${base64}`);
-	const blob = await resp.blob();
+	const compressedBuffer = Uint8Array.fromBase64(base64);
+
+	const blob = new Blob([compressedBuffer]);
 
 	const decompressedStream = blob
 		.stream()
