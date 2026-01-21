@@ -305,7 +305,9 @@ const transformFromSerialization = (
 			if (!classConstructor)
 				throw Error(`Class constructor with id ${$$v.id} not found`);
 
-			const revivedClass = classConstructor.fromJSON($$v.data);
+			const revivedClass = classConstructor.fromJSON(
+				transformFromSerialization($$v.data, cache),
+			);
 
 			cache.set($$r, revivedClass);
 
