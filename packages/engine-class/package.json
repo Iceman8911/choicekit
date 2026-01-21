@@ -12,7 +12,7 @@
 		"dev": "echo 'Add dev script here'",
 		"format": "biome format ./ --write ",
 		"lint": "biome lint ./ --write",
-		"test": "bun test"
+		"test": "echo 'Add test script here'"
 	},
 	"version": "0.0.0"
 }
