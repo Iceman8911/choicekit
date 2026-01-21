@@ -1,8 +1,5 @@
 import { SHARED_UTF8_TEXT_ENCODER } from "./shared";
 
-/** This redundant identifier will be removed in all compressed strings and be reattached during decompression */
-const BASE64_IDENTIFIER = "data:application/octet-stream;base64,";
-
 /**
  * Compress a string with browser native APIs into a base64 string
  */
