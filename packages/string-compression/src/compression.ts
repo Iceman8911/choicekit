@@ -1,5 +1,15 @@
 import { SHARED_UTF8_TEXT_ENCODER } from "./shared";
 
+function uint8ArrayToBase64(buffer: Uint8Array) {
+	let binaryString = "";
+	const bytes = new Uint8Array(buffer);
+	const len = bytes.byteLength;
+	for (let i = 0; i < len; i++) {
+		binaryString += String.fromCharCode(bytes[i] ?? 0);
+	}
+	return btoa(binaryString);
+}
+
 /**
  * Compress a string with browser native APIs into a base64 string
  */
@@ -16,25 +26,9 @@ export async function compressString(
 		},
 	}).pipeThrough(new CompressionStream(encoding));
 
-	const chunks: Uint8Array[] = [];
-	const compressedStreamReader = compressedStream.getReader();
+	const compressedBuffer = await new Response(compressedStream).bytes();
 
-	while (true) {
-		const { done, value } = await compressedStreamReader.read();
-		if (done) break;
-		chunks.push(value);
-	}
-
-	// Concatenate all chunks into one Uint8Array
-	const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-	const result = new Uint8Array(totalLength);
-	let offset = 0;
-	for (const chunk of chunks) {
-		result.set(chunk, offset);
-		offset += chunk.length;
-	}
-
-	return result.toBase64();
+	return uint8ArrayToBase64(compressedBuffer);
 }
 
 /**
@@ -46,11 +40,9 @@ export async function decompressString(
 ): Promise<string> {
 	const compressedBuffer = Uint8Array.fromBase64(base64);
 
-	const blob = new Blob([compressedBuffer]);
-
-	const decompressedStream = blob
+	const decompressedStream = new Blob([compressedBuffer])
 		.stream()
 		.pipeThrough(new DecompressionStream(encoding));
 
-	return await new Response(decompressedStream).text();
+	return new Response(decompressedStream).text();
 }
