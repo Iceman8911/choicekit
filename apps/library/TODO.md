@@ -17,5 +17,5 @@
 		- Although I'm not sure how much use this has.
 	- [ ] Add a turn-based event system (i.e a way to have callbacks run after a certain number of "turns")
 	- [ ] Add Storylet support.
-	- [ ] Add `hasVisited`, and `visitCount` for determining how many times a passage has been navigated to.
+	- [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [ ] Consider making the passage names optionally strongly typed?

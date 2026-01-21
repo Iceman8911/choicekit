@@ -670,6 +670,27 @@ class SugarboxEngine<
 		return matchedPasages;
 	}
 
+	/** Gets all the times the passage has been visited by looping through each snapshot and initial state.
+	 *
+	 * Use this in place of `hasVisited(id)`, i.e `getVisitCount(id) > 0`
+	 *
+	 * TODO: benchmark this later to see if caching will be beneficial
+	 */
+	getVisitCount(passageId: string): number {
+		let count = this.#initialState.$$id === passageId ? 1 : 0;
+
+		const snapshots = this.#stateSnapshots;
+		const limit = Math.min(this.#index, snapshots.length);
+
+		for (let i = 0; i < limit; i++) {
+			if (snapshots[i]?.$$id === passageId) {
+				count++;
+			}
+		}
+
+		return count;
+	}
+
 	/** Can be used when directly loading a save from an exported save on disk
 	 *
 	 * @throws if the save was made on a later version than the engine or if a save migration throws

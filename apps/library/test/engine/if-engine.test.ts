@@ -163,6 +163,53 @@ describe("Passage Navigation", () => {
 	});
 });
 
+describe("getVisitCount", () => {
+	test("counts visits across initial state and snapshots", () => {
+		// initial state is Start
+		expect(engine.getVisitCount("Start")).toBe(1);
+		expect(engine.getVisitCount(SAMPLE_PASSAGES[0].name)).toBe(0);
+
+		engine.navigateTo(SAMPLE_PASSAGES[0].name); // now at Passage2
+		engine.navigateTo("Start");
+		engine.navigateTo(SAMPLE_PASSAGES[0].name);
+
+		// getVisitCount counts the initial state's $$id plus any snapshot $$id values
+		// up to (but not including) the current index.
+		expect(engine.getVisitCount("Start")).toBe(2);
+		expect(engine.getVisitCount(SAMPLE_PASSAGES[0].name)).toBe(1);
+	});
+
+	test("stress: works with 1000 snapshots (fills snapshot history)", async () => {
+		// Use an engine with a large maxStates so we can fill up the snapshot array.
+		const persistence = createPersistenceAdapter();
+		const bigEngine = await SugarboxEngine.init({
+			config: {
+				maxStates: 1000,
+				persistence,
+			},
+			name: "VisitCountStress",
+			otherPassages: [...SAMPLE_PASSAGES],
+			startPassage: { data: "This is the start passage", name: "Start" },
+			variables: {},
+		});
+
+		// Create 999 snapshots (start index=0 with the initial snapshot already present).
+		for (let i = 0; i < 999; i++) {
+			bigEngine.navigateTo(i % 2 === 0 ? SAMPLE_PASSAGES[0].name : "Start");
+		}
+
+		// At this point, we should have filled up the snapshot capacity.
+		expect(bigEngine.index).toBe(999);
+
+		// getVisitCount iterates snapshots[0..index-1]. With our sequence, "Start"
+		// appears 499 times in snapshots[0..998], and initialStart adds +1.
+		expect(bigEngine.getVisitCount("Start")).toBe(1 + 499);
+
+		// - Passage2 appears 499 times in snapshots[0..998].
+		expect(bigEngine.getVisitCount(SAMPLE_PASSAGES[0].name)).toBe(499);
+	});
+});
+
 describe("State Variables and History", () => {
 	test("setVars should persist through navigation", () => {
 		engine.setVars((state) => {
