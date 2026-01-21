@@ -254,7 +254,7 @@ const transformForSerialization = (
 		//@ts-expect-error I'll check whether this is actually registered, since there's no concise, typesafe way of proving that this may be a class
 		const possibleClass: SugarboxClassInstanceWithValidSerialization = data;
 		const possibleClassId = classRegistrybyConstructor.get(
-			possibleClass.constructor,
+			possibleClass.constructor as SugarboxClassConstructorWithValidSerialization,
 		);
 
 		if (possibleClassId != null) {

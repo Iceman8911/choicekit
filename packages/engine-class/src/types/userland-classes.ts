@@ -8,7 +8,8 @@ type SugarBoxClassInstance<TSerializedStructure extends Serialized> = {
 	 */
 	toJSON: () => TSerializedStructure;
 
-	constructor: SugarBoxClassConstructor<TSerializedStructure>;
+	// Typescript will keep saying that this sin't assignable to `Function` or smth
+	// constructor: SugarBoxClassConstructor<TSerializedStructure>
 };
 
 /** All userland custom class constructors need to implement this if they must be part of the story's state */
