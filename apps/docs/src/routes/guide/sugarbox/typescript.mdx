@@ -4,12 +4,12 @@ title: TypeScript
 
 # TypeScript
 
-Sugarbox is written in TypeScript and the engine is strongly typed once you tell it what kinds of data you’re storing.
+Sugarbox is written in TypeScript and the engine becomes strongly typed once you tell it what kinds of data you’re storing.
 
-There are two main TypeScript “tracks” you’ll care about:
+There are two main TypeScript tracks you’ll care about:
 
 - Using generics so `engine.vars`, `engine.passage`, settings, and achievements are typed.
-- Registering custom classes so your richer objects can be serialized into saves and restored on load.
+- Registering custom classes so richer objects can be serialized into saves and restored on load.
 
 This page covers both.
 
@@ -23,7 +23,7 @@ This page covers both.
 - the `achievements` type
 - optional passage tag and name string unions
 
-In plain terms: you can make your engine instance know exactly what your state looks like.
+In plain terms: you can make your engine instance know exactly what your story data looks like.
 
 ### Example: typed passages, vars, settings, achievements
 
@@ -118,16 +118,16 @@ const engine = await SugarboxEngine.init<PassageData, { gold: number }, {}, {}, 
 	vars: { gold: 0 },
 });
 
-// `navigateTo` expects a string at runtime, but you can keep your app typed:
+// `navigateTo` still takes a string at runtime, but you can keep your app typed:
 const next: PassageName = "Town";
 engine.navigateTo(next);
 ```
 
-Sugarbox itself still accepts strings at runtime, so the type safety here is mostly for your own code. It helps prevent typos from turning into “missing passage” bugs.
+Sugarbox still accepts strings at runtime, so this type safety is primarily for your own code. It helps prevent typos from turning into “missing passage” bugs.
 
 ## Achievements and settings typing
 
-Achievements and settings are persisted separately from save slots. If you use them, it’s worth typing them because they often get read across many parts of your UI.
+Achievements and settings are persisted separately from save slots. If you use them, it’s worth typing them because they often get read across your UI.
 
 ```ts
 type Settings = {
@@ -139,17 +139,20 @@ type Achievements = {
 	finishedPrologue: boolean;
 };
 
-engine.addEventListener(":settingChange", (event) => {
+const offSettings = engine.on(":settingChange", (event) => {
 	const settings = event.detail.new as Settings;
 	console.log(settings.volume);
 });
+
+// later
+offSettings();
 
 await engine.setAchievements((a) => {
 	a.finishedPrologue = true;
 });
 ```
 
-Note: event typing depends on how your DOM event types are configured. In many projects you’ll narrow `event` to `CustomEvent` to access `detail` cleanly.
+Note: event typing depends on how your DOM types are configured. In many projects you’ll want to narrow `event` to `CustomEvent` to access `detail` cleanly.
 
 ## Serialization and custom classes
 
@@ -158,7 +161,7 @@ Saves need to serialize your story variables. Plain JSON data works out of the b
 - string, number, boolean, null
 - arrays and objects made up of those values
 
-As soon as you store instances of custom classes inside `vars`, plain JSON isn’t enough. For example:
+As soon as you store instances inside `vars`, plain JSON isn’t enough. For example:
 
 - `Date`
 - `Map` / `Set`
@@ -176,7 +179,7 @@ In this repo’s code, classes are registered through the serializer package Sug
 - a `toJSON()` method that returns a plain object
 - a static “from JSON” method that rebuilds the instance
 
-The exact method names vary depending on your serializer helper, but the intent is the same: serialize explicitly, reconstruct explicitly.
+The exact method names depend on your serializer helper, but the intent is the same: serialize explicitly, reconstruct explicitly.
 
 ### Example: simple class with `toJSON` / `fromJSON`
 
