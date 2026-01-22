@@ -1,67 +1,77 @@
-# Story State
+# State and history
 
-The current **state** of the story represents the most recent values of all variables stored in the engine, think of stuff like the player's gold or weapons.
+The story’s **state** is the current value of your story variables: player stats, inventory, flags, anything you put in `vars`.
 
-In order to support an extensive *history* of modifications made to the state as the story plays on, the engine stores it as two parts, namely:
+Sugarbox keeps state history without cloning the entire state object on every change. It does this by storing:
 
-- The [initial state](#initial-state), and
-- The [state snapshots](#state-snapshots).
+- an **initial state**, and
+- a list of **snapshots** (partial updates) that represent what changed over time.
 
-## Initial Stage
+That history is what makes undo/redo style navigation possible, and it is also why saves can stay small even when your state grows.
 
-This represents the object of variables passed into the engine upon initialization. It is an immutable copy from which every other [snapshot](#state-snapshots) is built upon, and represents the point in the story that will be reversed to if you decided to `reset()` it later.
+## Initial state
 
-E.g
+On initialization you pass `vars`. The initial state is treated as immutable. Every later state is derived from it plus snapshots.
 
 ```tsx
-import { SugarboxEngine } from "sugarbox"
+import { SugarboxEngine } from "sugarbox";
 
 export const engine = await SugarboxEngine.init({
   name: "Dave's Adventure",
-  otherPassages: [],
   startPassage: {
+    name: "Start",
     data: "This is the starting passage",
-    name: "Start Passage",
     tags: ["prologue"],
   },
-  variables: {
+  otherPassages: [],
+  vars: {
     gold: 500,
     level: 1,
-  }
-})
+  },
+});
 ```
 
-Where the object passed into `variables` represents the intial state.
+## Snapshots and state history
 
-## State Snapshots
+A **snapshot** is a partial object containing only the properties you changed since the previous snapshot. Sugarbox stores snapshots in an array (the **state history**) and uses an internal `index` to decide which point in that history represents “now”.
 
-A **state snapshot** is simply a diff of the [intial state](#intial-state), as such it is a *partial* object that only consists of the changes made to variables for that specific point in state history. In comparison to some twine-based interactive fiction frameworks, this avoids having to clone the entire state upon [navigation](../passage#navigation), increasing performance and reducing the data needed to be saved.
-
-The **state history**, otherwise known as an array of all the snapshots, contains every change made throughout the story. It is indexed, by the `index`. This allows one to easily move backwards or forwards without losing any information.
-
-Using the variables structure from the first example, a sample snapshot could look like:
+With the example above, a change like this:
 
 ```tsx
-// Setting the state
-engine.setVars(state=>{
-  state.gold += 100
-})
+engine.setVars((state) => {
+  state.gold += 100;
+});
+```
 
-// The snapshot will look like this
+records a snapshot that looks roughly like:
+
+```tsx
 {
   gold: 600
 }
+```
 
-// Whilist the initial state will still be
+The initial state remains:
+
+```tsx
 {
   gold: 500,
   level: 1
 }
 ```
 
+## Getting the current state
 
-## Combining the Two into the Current State
+The “current state” is what you read via `engine.vars`.
 
-Combining the two data sources, as well as the story's `index` will give us the complete **story state**. It does this by cloning the initial state and updating it by iterating through the entries of each snapshot in state history.
+When the engine needs the current state, it rebuilds it by starting from the initial state and applying snapshots up to the current index. This is why a cache adapter can help if you have a lot of snapshots and you read state frequently.
 
-Depending on the amount of snapshots and entries to iterate over, this could be an expensive operation, as such, if an optional `cache` adapter is passed into the engine during intialization, the results of this operation will be cached and refreshed as required.
+## Updating state safely
+
+Use `engine.setVars()` to update state. It works like Immer in practice:
+
+- treat the callback argument as mutable
+- Sugarbox records your edits into the current snapshot
+- if you need to replace the entire state object, return a new object from the callback
+
+One gotcha: snapshots only store properties you touched. If you want to represent “this thing is intentionally empty” rather than “not set in this snapshot”, use `null` instead of `undefined`.

@@ -1,0 +1,226 @@
+# PRNG
+
+Sugarbox includes a deterministic pseudorandom number generator (PRNG). “Deterministic” means that for a given seed and the same sequence of calls, you get the same random results.
+
+That is useful for:
+
+- reproducible playthroughs (speedrun friendly, “daily seeds”, etc.)
+- bug reports (players can share a seed and a sequence of choices)
+- tests (stable outcomes)
+- balancing (you can replay the same scenario repeatedly)
+
+## The one value you get from the engine
+
+Sugarbox exposes randomness as a float:
+
+- `engine.random` returns a number in the range `[0, 1)`
+
+From there, you build small helpers for the kinds of randomness you need.
+
+Example helpers you can keep in your project:
+
+```ts
+import type { SugarboxEngine } from "sugarbox";
+
+export function randomInt(
+  engine: SugarboxEngine<unknown, any, any, any, any, any>,
+  min: number,
+  max: number,
+) {
+  return Math.floor(engine.random * (max - min + 1)) + min;
+}
+
+export function randomPick<T>(
+  engine: SugarboxEngine<unknown, any, any, any, any, any>,
+  items: readonly T[],
+) {
+  return items[Math.floor(engine.random * items.length)];
+}
+
+export function randomBool(
+  engine: SugarboxEngine<unknown, any, any, any, any, any>,
+  probability = 0.5,
+) {
+  return engine.random < probability;
+}
+```
+
+Using them:
+
+```ts
+const goldDrop = randomInt(engine, 5, 12);
+const encounter = randomPick(engine, ["rat", "thief", "ghost"] as const);
+const foundSecret = randomBool(engine, 0.1);
+```
+
+## Seeding: where determinism comes from
+
+A PRNG is deterministic as soon as its seed is deterministic.
+
+Sugarbox stores the seed in story state metadata, and you can control the initial seed via config:
+
+- `config.initialSeed`: number in `0..(2^32 - 1)`
+- if you omit it, the engine chooses a random seed at init time
+
+Example: fixed seed for repeatable runs
+
+```ts
+import { SugarboxEngine } from "sugarbox";
+
+const engine = await SugarboxEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: {},
+  config: {
+    initialSeed: 12345,
+  },
+});
+```
+
+Example: let Sugarbox choose per-session randomness
+
+```ts
+const engine = await SugarboxEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: {},
+  // no initialSeed -> random on each init
+});
+```
+
+### Resetting and seeds
+
+The engine has `reset(resetSeed?: boolean)`:
+
+- `reset(false)` resets story progress back to initial state and keeps the same initial seed
+- `reset(true)` resets and also randomizes the seed again
+
+That can be useful if you want a “New Game+” button to feel fresh even if your starting variables are otherwise the same.
+
+## Seed regeneration (`regenSeed`)
+
+Sugarbox can “regenerate” the seed automatically, depending on `config.regenSeed`:
+
+- `"passage"` (default): seed changes when you navigate between passages
+- `"eachCall"`: seed changes on every random draw
+- `false`: seed never changes automatically
+
+You can configure it like:
+
+```ts
+const engine = await SugarboxEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: {},
+  config: {
+    initialSeed: 12345,
+    regenSeed: "passage",
+  },
+});
+```
+
+### `"passage"`: stable outcomes per navigation path
+
+This is the default because it tends to behave nicely for interactive fiction:
+
+- random outcomes are consistent if the player replays the same choices
+- randomness “moves forward” as the story moves forward
+
+If your story uses RNG during rendering, `"passage"` can also help avoid outcomes changing just because the UI re-rendered.
+
+### `"eachCall"`: highly dynamic randomness
+
+This mode makes every `engine.random` call advance the seed. It can be a good fit for:
+
+- arcade-like mechanics
+- simulations that call RNG many times per tick
+- cases where you do not care about replayable determinism
+
+Be careful: it’s easier to accidentally change results just by calling RNG in a different order.
+
+### `false`: fully deterministic given the initial seed
+
+If `regenSeed` is `false`, randomness is purely a function of:
+
+- `initialSeed`
+- the number of times you call `engine.random`, and in what order
+
+This is ideal for:
+
+- automated tests
+- “seeded runs” where you want strict reproducibility
+
+It also means you need to be disciplined about where RNG is called.
+
+## Avoiding common RNG pitfalls
+
+### Don’t call RNG during rendering
+
+If your UI calls `engine.random` while rendering a view, you can get weird behavior:
+
+- different results because of re-renders
+- different results between dev and production builds
+- different results if you add a new component that happens to call RNG
+
+Instead, decide random outcomes in response to deliberate actions, and store them in state:
+
+```ts
+engine.setVars((s) => {
+  // Decide once
+  const roll = engine.random;
+
+  // Store the outcome
+  s.encounterRoll = roll;
+  s.encounterType = roll < 0.5 ? "rat" : "ghost";
+});
+```
+
+Then render from `engine.vars.encounterType`, not from new RNG calls.
+
+### Keep RNG usage stable across versions when you care about old saves
+
+If you ship a game that relies on deterministic seeds for reproducibility, changing where and how often RNG is called can change outcomes even with the same seed.
+
+That’s not “wrong”, but it matters if you promise:
+
+- daily seeds that have to remain consistent
+- speedrun categories that expect identical encounters
+
+If you need that stability, treat “RNG call sites and ordering” as part of your stable API.
+
+### If you need “fairer” randomness, build on top of `engine.random`
+
+For example, if you want a shuffle bag (no repeats until exhaustion) or weighted picks with pity timers, implement those patterns explicitly and store their state. The PRNG gives you a deterministic base, not game balance.
+
+## A simple pattern for seeded runs
+
+If you want players to be able to share a seed:
+
+1. accept a seed input (number)
+2. initialize with `initialSeed: seed`
+3. set `regenSeed: false` or `"passage"` depending on your needs
+4. avoid calling RNG in render
+
+```ts
+const seed = 987654; // from user input
+
+const engine = await SugarboxEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: {},
+  config: {
+    initialSeed: seed,
+    regenSeed: false,
+  },
+});
+```
+
+## Related pages
+
+- [Engine Configuration](../config)
+- [State and History](../state)
+- [Saving and Loading](../save)
