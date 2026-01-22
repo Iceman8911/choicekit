@@ -35,6 +35,7 @@ jobs:
       - run: bun run build
         env:
           NITRO_PRESET: github_pages
+          BASE-PATH: "/sugarbox"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
