@@ -5,7 +5,7 @@ import { SolidBaseRoot } from "@kobalte/solidbase/client";
 
 export default function App() {
 	return (
-		<Router root={SolidBaseRoot}>
+		<Router base={import.meta.env.SERVER_BASE_URL} root={SolidBaseRoot}>
 			<FileRoutes />
 		</Router>
 	);

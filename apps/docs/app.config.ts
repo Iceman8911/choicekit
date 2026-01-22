@@ -8,6 +8,7 @@ export default defineConfig(
 		// SolidStart config
 		{
 			server: {
+				baseURL: process.env.BASE_PATH,
 				prerender: {
 					crawlLinks: true,
 					// Generated from TypeDoc JSON so `/reference/all` and exported `/reference/id/:id`
