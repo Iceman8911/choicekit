@@ -2,17 +2,39 @@
 
 ## Passage
 
-A **passage** is an individual self-containing chunk of the story in interactive fiction. In the engine, it's content can be any sort of data from a string to JSX components. Since SugarBox is headless, it is up to you to deal with rendering the data.
+A **passage** is a single chunk of story content. Sugarbox is headless, so a passage’s `data` can be anything you want to render, like plain text, markdown, HTML, or even a component.
 
-Alongside the passage's content, the engine also expects at most two more properties; the passage's name / id which must be unique across all passages that will be added, and an optional array of string tags.
+Passages are objects with:
 
-At least one passage object, `startPassage` must be passed into the engine upon initialization, and it represents the starting passage. Optionally, more passages can also be passed during initialization via `otherPassages` or during runtime via `addPassages()`.
+- `name` (string): a unique id for the passage
+- `data` (any): the passage content payload
+- `tags` (optional string[]): any labels you want to attach for filtering or UI
 
-The passage and it's id / name for the current [state](../state), can be accessed via the getters, `passage` and `passageId`.
+You must provide a `startPassage` when you initialize the engine. You can also preload more passages via `otherPassages`, and add or overwrite passages later with `addPassage()` / `addPassages()`.
 
+The current passage and its id are available via `engine.passage` and `engine.passageId`.
 
 ## Navigation
 
-To move forward and access different passages, the `navigateTo(passageId: string)` method should be used.
+To move between passages, call `navigateTo(passageId: string)`.
 
-Upon navigation, a custom `:passageChange` [event](../event) will be fired by the engine, and can be listened to via the `on()` method. This event contains the passage data for both the old and new passages.
+When navigation happens, the engine fires a `:passageChange` event.
+
+In this repo’s engine code, the recommended way to subscribe is the engine’s typed event API:
+
+- `engine.on(eventName, listener)` (returns an unsubscribe function)
+- `engine.off(eventName, listener)` (optional alternative)
+
+Example:
+
+```tsx
+const off = engine.on(":passageChange", (event) => {
+  const { oldPassage, newPassage } = event.detail;
+  console.log("from", oldPassage?.name, "to", newPassage?.name);
+});
+
+// later
+off();
+```
+
+Important behavior detail: passage navigation also triggers a `:stateChange` event (because passage id is stored in state metadata), so UIs that only listen to state may still re-render on navigation.
