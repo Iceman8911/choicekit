@@ -1,0 +1,19 @@
+{
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.5",
+		"@stardazed/streams-polyfill": "^2.4.0"
+	},
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"name": "@packages/string-compression",
+	"private": true,
+	"scripts": {
+		"build": "echo 'Add build script here'",
+		"dev": "echo 'Add dev script here'",
+		"format": "biome format ./ --write ",
+		"lint": "biome lint ./ --write",
+		"test": "bun test"
+	},
+	"version": "0.0.0"
+}

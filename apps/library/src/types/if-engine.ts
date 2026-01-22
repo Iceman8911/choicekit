@@ -1,12 +1,10 @@
+import type { SugarboxEngine } from "../engine/if-engine";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 import type {
 	SugarBoxCacheAdapter,
 	SugarBoxPersistenceAdapter,
 } from "./adapters";
-import type { GenericObject } from "./shared";
-
-type SugarBoxVariables<TStructure extends GenericObject = GenericObject> =
-	TStructure;
+import type { GenericSerializableObject } from "./shared";
 
 /** Special information attached to every state snapshot */
 type SugarBoxSnapshotMetadata = {
@@ -16,7 +14,7 @@ type SugarBoxSnapshotMetadata = {
 	 *
 	 * @internal
 	 */
-	__id: string;
+	$$id: string;
 
 	/** Current seed of the state at the moment.
 	 *
@@ -26,7 +24,7 @@ type SugarBoxSnapshotMetadata = {
 	 *
 	 * @internal
 	 */
-	__seed: number;
+	$$seed: number;
 };
 
 /** Keys used for indexing save data
@@ -52,41 +50,41 @@ type SugarBoxAnyKey =
  *
  * Contains initial state, snapshots, current story index and other relevant metadata
  */
-type SugarBoxSaveData<TStructure extends GenericObject = GenericObject> =
-	Readonly<{
-		intialState: SugarBoxVariables<TStructure> & SugarBoxSnapshotMetadata;
+type SugarBoxSaveData<
+	TSugarBoxVariables extends
+		GenericSerializableObject = GenericSerializableObject,
+> = Readonly<{
+	intialState: TSugarBoxVariables & SugarBoxSnapshotMetadata;
 
-		snapshots: Partial<
-			SugarBoxVariables<TStructure> & SugarBoxSnapshotMetadata
-		>[];
+	snapshots: Partial<TSugarBoxVariables & SugarBoxSnapshotMetadata>[];
 
-		storyIndex: number;
+	storyIndex: number;
 
-		// Save metadata
-		/** When the save was created */
-		savedOn: Date;
+	// Save metadata
+	/** When the save was created */
+	savedOn: Date;
 
-		/** ID of the last passage that was navigated to */
-		lastPassageId: string;
+	/** ID of the last passage that was navigated to */
+	lastPassageId: string;
 
-		/** A user-provided description for the save. TODO */
-		// description?: string;
+	/** A user-provided description for the save. TODO */
+	// description?: string;
 
-		/** Total play time in seconds. TODO */
-		// playtimeInSeconds: number;
+	/** Total play time in seconds. TODO */
+	// playtimeInSeconds: number;
 
-		/** The version of the story associated with this save */
-		saveVersion: SugarBoxSemanticVersionString;
-	}>;
+	/** The version of the story associated with this save */
+	saveVersion: SugarBoxSemanticVersionString;
+}>;
 
 /** Export data structure used for saving the state of the engine to disk.
  *
  * Contains save data, settings, and achievements
  */
 type SugarBoxExportData<
-	TSaveData extends GenericObject = GenericObject,
-	TSettingsData extends GenericObject = GenericObject,
-	TAchievementData extends GenericObject = Record<string, boolean>,
+	TSaveData extends GenericSerializableObject = GenericSerializableObject,
+	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
+	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
 > = {
 	saveData: SugarBoxSaveData<TSaveData>;
 
@@ -105,7 +103,10 @@ type SugarBoxExportData<
  */
 type SugarBoxSaveVersionCompatiblityMode = "strict" | "liberal";
 
-type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
+type SugarBoxConfig<
+	TSugarBoxVariables extends
+		GenericSerializableObject = GenericSerializableObject,
+> = {
 	/** Maximum number of individual states that will be stored before old ones get merged into each other */
 	maxStates: number;
 
@@ -153,6 +154,8 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 
 	/** Determines whether or not save/achievement/settings data will be compressed.
 	 *
+	 * Note that even when this is enabled, compression will not occur unless the stringified data is long enough (> 1KB)
+	 *
 	 * @default true
 	 */
 	compress: boolean;
@@ -178,7 +181,7 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 	regenSeed: "passage" | "eachCall" | false;
 
 	/** Optional cache adapter to use to speed up state fetching */
-	cache?: SugarBoxCacheAdapter<SugarBoxVariables<TStructure>>;
+	cache?: SugarBoxCacheAdapter<TSugarBoxVariables>;
 
 	/** Optional persistence adapter for saving support */
 	persistence?: SugarBoxPersistenceAdapter;
@@ -197,19 +200,42 @@ type SugarBoxConfig<TStructure extends GenericObject = GenericObject> = {
 	 *   with complex state caching scenarios, `oldState` and `newState` might reference
 	 *   the same object, but provides significant performance benefits for large states.
 	 *
-	 * @default "accuracy"
+	 * @default "acc"
 	 */
 	emitMode?: "perf" | "acc";
 };
 
-type SugarBoxPassage<TPassageType> = {
-	/** Must be unique across all passages */
+type SugarBoxPassage<
+	TPassageType,
+	TPassageTag extends string = string,
+	TPassageName extends string = string,
+> = Readonly<{
+	/** Unique identifier for the passage in the engine */
+	name: TPassageName;
+	/** Passage data. Whatever this is is up to you. */
+	data: TPassageType;
+	/** Optional tags for querying this and related passages.
+	 *
+	 */
+	tags?: ReadonlyArray<TPassageTag>;
+}>;
+
+type SugarBoxStorylet<TEngine extends SugarboxEngine<unknown>> = {
 	name: string;
-	passage: TPassageType;
+	/** Higher priority = Earlier in the resulting array when querying for vaild storylets */
+	priority: number;
+
+	/** Must return `true` for the Storylet to be eligble for the current passage and state.
+	 *
+	 * Couldn't decide on what properties to expose so it gets the whole engine
+	 */
+	requirement: (engine: TEngine) => boolean;
+
+	/** The id / name of the passage to be returned if this storylet requirement callback resolves to `true`  */
+	passageId: TEngine["passageId"];
 };
 
 export type {
-	SugarBoxVariables,
 	SugarBoxConfig,
 	SugarBoxSnapshotMetadata,
 	SugarBoxNormalSaveKey,
@@ -222,4 +248,5 @@ export type {
 	SugarBoxPassage,
 	SugarBoxAutoSaveKey,
 	SugarBoxSaveVersionCompatiblityMode,
+	SugarBoxStorylet,
 };

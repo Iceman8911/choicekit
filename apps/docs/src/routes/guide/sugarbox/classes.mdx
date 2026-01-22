@@ -1,0 +1,199 @@
+---
+title: Custom Classes
+---
+
+# Custom Classes
+
+Custom classes let your state survive save/load without losing methods. Sugarbox can serialize class instances inside `vars` and revive them on load, including cyclic graphs, as long as those classes are registered.
+
+Contents:
+
+- the `classId` / `toJSON()` / `fromJSON(...)` contract
+- registering constructors during `SugarboxEngine.init(...)`
+- what works (cycles, Maps/Sets, BigInt) and what doesn’t (unregistered instances)
+
+> For generics and typing `vars`, see the TypeScript guide.
+
+---
+
+## When you need custom classes
+
+Register classes when persisted state contains instances:
+
+- `Player`, `Inventory`, `QuestLog` stored in `vars`
+- anything that should load back with methods (`player.levelUp()`)
+
+Skip registration for:
+
+- plain objects/arrays (“JSON-like” data)
+- derived UI state you can recompute
+
+The serializer already supports `Date`, `Map`, `Set`, and `bigint`. Registration is for your own classes.
+
+---
+
+## The contract: `SugarBoxClassInstance` and `SugarBoxClassConstructor`
+
+A serializable custom class has two sides:
+
+- `SugarBoxClassInstance<TSerialized>` (instance)
+- `SugarBoxClassConstructor<TSerialized>` (constructor)
+
+Requirements:
+
+- `static readonly classId: string` (stable identifier stored in saves)
+- `toJSON(): TSerialized` (serialized shape)
+- `static fromJSON(data: TSerialized): Instance` (revival)
+
+Round trip: `instance → toJSON() → save → load → fromJSON() → instance`
+
+---
+
+## Example (matches the library tests)
+
+Serialize a plain object and revive by constructing and assigning fields.
+
+```ts
+import type { SugarBoxClassConstructor, SugarBoxClassInstance } from "sugarbox";
+
+type PlayerSerialized = {
+	name: string;
+	age: number;
+	class: string;
+	level: number;
+	location: string;
+	inventory: {
+		gems: number;
+		gold: number;
+		items: string[];
+	};
+};
+
+class Player implements SugarBoxClassInstance<PlayerSerialized> {
+	static readonly classId = "Player";
+
+	name = "Dave";
+	age = 21;
+	class = "Paladin";
+	level = 6;
+	location = "Tavern";
+	inventory = {
+		gems: 12,
+		gold: 123,
+		items: ["Black Sword", "Slug Shield", "Old Cloth"],
+	};
+
+	favouriteItem() {
+		return this.inventory.items[0];
+	}
+
+	toJSON(): PlayerSerialized {
+		const { favouriteItem: _favouriteItem, toJSON: _toJSON, ...rest } = this;
+		return rest;
+	}
+
+	static fromJSON(data: PlayerSerialized): Player {
+		const player = new Player();
+		Object.assign(player, data);
+		return player;
+	}
+}
+
+Player satisfies SugarBoxClassConstructor<PlayerSerialized>;
+```
+
+---
+
+## Registering classes with the engine
+
+Register constructors at init time.
+
+```ts
+import { SugarboxEngine } from "sugarbox";
+
+const engine = await SugarboxEngine.init({
+	name: "ClassesStory",
+	startPassage: { name: "Start", data: "..." },
+	otherPassages: [],
+	vars: {
+		player: new Player(),
+	},
+
+	classes: [Player],
+});
+```
+
+Without registration, instances can load back as plain objects. Methods like `player.favouriteItem()` won’t be there.
+
+---
+
+## `classId` is part of your save format
+
+`classId` is stored in saves. Keep it stable.
+
+If the serialized shape needs breaking changes:
+
+- bump your save version and migrate, or
+- introduce a new class id (for example `Player_v2`) and migrate
+
+---
+
+## What `toJSON()` should return
+
+`toJSON()` should return something serializable and revivable:
+
+- plain objects/arrays
+- primitives
+- supported built-ins (`Date`, `Map`, `Set`, `bigint`)
+- other registered class instances (including cycles)
+
+Avoid returning:
+
+- functions
+- DOM nodes
+- network clients
+- unregistered class instances you expect to revive as classes
+
+---
+
+## Circular / recursive object graphs
+
+Cycles are supported. The library tests cover an `Inventory`/`Item` graph where:
+
+- `Inventory.items` contains `Item` instances
+- each `Item` holds a back-reference to its `Inventory`
+
+That cycle works as long as both constructors are registered.
+
+Rules:
+
+- register every class that can appear in the persisted graph (`classes: [Inventory, Item]`)
+- make `fromJSON(...)` restore any invariants you rely on after revival
+
+---
+
+## Common gotchas
+
+### Register every class involved
+
+If `Player` contains an `Inventory` instance, register both.
+
+For cycles, register every constructor that can appear in the graph so revival can preserve identity across it.
+
+### Keep runtime-only state out of `vars`
+
+Avoid storing:
+
+- DOM nodes
+- functions
+- caches or clients you can rebuild
+
+Persist what defines story progress.
+
+---
+
+## Summary
+
+- Implement `toJSON()` on instances and `static fromJSON(...)` plus `static classId` on constructors.
+- Register constructors via `SugarboxEngine.init({ classes: [...] })`.
+- Cyclic graphs are supported; register all involved classes and restore invariants in `fromJSON`.

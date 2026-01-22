@@ -1,0 +1,38 @@
+# Passages and Navigation
+
+## Passage
+
+A **passage** is one unit of story content. Sugarbox is headless, so `passage.data` can be whatever your renderer expects: plain text, Markdown, HTML, or a component.
+
+A passage has:
+
+- `name` (string): unique id
+- `data` (any): content payload
+- `tags` (optional string[]): labels for filtering or UI
+
+You must provide `startPassage` when initializing the engine. You can preload more passages via `otherPassages`, and add or overwrite passages later with `addPassage()` / `addPassages()`.
+
+The current passage and its id are available as `engine.passage` and `engine.passageId`.
+
+## Navigation
+
+To move between passages, call `navigateTo(passageId: string)`.
+
+Navigation emits a `:passageChange` event. Subscribe with the engine’s typed event API:
+
+- `engine.on(eventName, listener)` (returns an unsubscribe function)
+- `engine.off(eventName, listener)` (optional)
+
+Example:
+
+```tsx
+const off = engine.on(":passageChange", (event) => {
+  const { oldPassage, newPassage } = event.detail;
+  console.log("from", oldPassage?.name, "to", newPassage?.name);
+});
+
+// later
+off();
+```
+
+Note: navigation also emits `:stateChange` because the passage id is stored in state metadata. If your UI re-renders on state changes, it will also re-render on navigation.

@@ -1,0 +1,299 @@
+---
+title: TypeScript
+---
+
+# TypeScript
+
+Sugarbox is written in TypeScript and the engine becomes strongly typed once you tell it what kinds of data you’re storing.
+
+There are two main TypeScript tracks you’ll care about:
+
+- Using generics so `engine.vars`, `engine.passage`, settings, and achievements are typed.
+- Registering custom classes so richer objects can be serialized into saves and restored on load.
+
+This page covers both.
+
+## Engine generics (typing your story data)
+
+`SugarboxEngine` is generic over:
+
+- the passage `data` type
+- the `vars` type (your story variables)
+- the `settings` type
+- the `achievements` type
+- optional passage tag and name string unions
+
+In plain terms: you can make your engine instance know exactly what your story data looks like.
+
+### Example: typed passages, vars, settings, achievements
+
+```ts
+import { SugarboxEngine } from "sugarbox";
+
+type PassageData =
+	| { kind: "text"; text: string }
+	| { kind: "scene"; title: string; body: string };
+
+type StoryVars = {
+	playerName: string;
+	gold: number;
+	inventory: { gems: number };
+};
+
+type Settings = {
+	volume: number;
+	theme: "light" | "dark";
+};
+
+type Achievements = {
+	foundSecret: boolean;
+	beatGame: boolean;
+};
+
+const engine = await SugarboxEngine.init<PassageData, StoryVars, Settings, Achievements>({
+	name: "TypedStory",
+
+	startPassage: {
+		name: "Start",
+		data: { kind: "text", text: "Welcome." },
+		tags: ["intro"],
+	},
+
+	otherPassages: [
+		{
+			name: "Town",
+			data: { kind: "scene", title: "Town", body: "Busy streets." },
+			tags: ["hub"],
+		},
+	],
+
+	vars: {
+		playerName: "Avery",
+		gold: 10,
+		inventory: { gems: 0 },
+	},
+
+	settings: { volume: 50, theme: "dark" },
+	achievements: { foundSecret: false, beatGame: false },
+});
+```
+
+Now you get useful guarantees:
+
+- `engine.vars.gold` is a number
+- `engine.passage?.data.kind` narrows correctly
+- `engine.setVars(...)` only lets you assign valid fields and types
+
+### A note about `engine.vars`
+
+`engine.vars` is read-only. To update state, use `engine.setVars()`. That method is intentionally “Immer-like”: inside the callback you mutate the object, and Sugarbox records the changes into a snapshot.
+
+```ts
+engine.setVars((s) => {
+	s.gold += 25;
+	s.inventory.gems = 3;
+
+	// Type errors are caught early:
+	// s.gold = "a lot"; // not allowed
+});
+```
+
+If you need to replace the entire state object, return a new object from the callback rather than assigning to `s` directly.
+
+## Typing passages and navigation
+
+Passages are stored by `name` (string). If you want tighter typing around passage names, you can declare your passage ids as a union and use it for the engine’s passage name generic.
+
+```ts
+import { SugarboxEngine } from "sugarbox";
+
+type PassageName = "Start" | "Town" | "Cave";
+
+type PassageData = { text: string };
+
+const engine = await SugarboxEngine.init<PassageData, { gold: number }, {}, {}, string, PassageName>({
+	name: "NamedPassages",
+	startPassage: { name: "Start", data: { text: "..." } },
+	otherPassages: [{ name: "Town", data: { text: "..." } }],
+	vars: { gold: 0 },
+});
+
+// `navigateTo` still takes a string at runtime, but you can keep your app typed:
+const next: PassageName = "Town";
+engine.navigateTo(next);
+```
+
+Sugarbox still accepts strings at runtime, so this type safety is primarily for your own code. It helps prevent typos from turning into “missing passage” bugs.
+
+## Achievements and settings typing
+
+Achievements and settings are persisted separately from save slots. If you use them, it’s worth typing them because they often get read across your UI.
+
+```ts
+type Settings = {
+	volume: number;
+	reduceMotion: boolean;
+};
+
+type Achievements = {
+	finishedPrologue: boolean;
+};
+
+const offSettings = engine.on(":settingChange", (event) => {
+	const settings = event.detail.new as Settings;
+	console.log(settings.volume);
+});
+
+// later
+offSettings();
+
+await engine.setAchievements((a) => {
+	a.finishedPrologue = true;
+});
+```
+
+Note: event typing depends on how your DOM types are configured. In many projects you’ll want to narrow `event` to `CustomEvent` to access `detail` cleanly.
+
+## Serialization and custom classes
+
+Saves need to serialize your story variables. Plain JSON data works out of the box:
+
+- string, number, boolean, null
+- arrays and objects made up of those values
+
+As soon as you store instances inside `vars`, plain JSON isn’t enough. For example:
+
+- `Date`
+- `Map` / `Set`
+- your own classes like `Inventory`, `Player`, `QuestLog`
+
+Sugarbox supports custom class serialization by registering classes at engine init time.
+
+### The important rule
+
+If a class instance might appear inside `vars`, you should register its constructor in `init({ classes: [...] })`, and that class must implement a consistent JSON representation plus a way to restore itself.
+
+In this repo’s code, classes are registered through the serializer package Sugarbox uses internally. In practice, your class needs:
+
+- a stable class id (string) that identifies its type
+- a `toJSON()` method that returns a plain object
+- a static “from JSON” method that rebuilds the instance
+
+The exact method names depend on your serializer helper, but the intent is the same: serialize explicitly, reconstruct explicitly.
+
+### Example: simple class with `toJSON` / `fromJSON`
+
+```ts
+type InventoryData = {
+	items: string[];
+};
+
+class Inventory {
+	static readonly classId = "Inventory";
+
+	readonly items: string[];
+
+	constructor(items: string[] = []) {
+		this.items = items;
+	}
+
+	toJSON(): InventoryData {
+		return { items: [...this.items] };
+	}
+
+	static fromJSON(data: InventoryData): Inventory {
+		return new Inventory(data.items ?? []);
+	}
+}
+
+type StoryVars = {
+	inventory: Inventory;
+	gold: number;
+};
+
+const engine = await SugarboxEngine.init<string, StoryVars>({
+	name: "ClassesStory",
+	startPassage: { name: "Start", data: "..." },
+	otherPassages: [],
+	vars: { gold: 0, inventory: new Inventory(["rope"]) },
+
+	classes: [Inventory],
+});
+```
+
+Now when the engine saves and later loads, it can restore `inventory` as an `Inventory` instance instead of a plain object.
+
+### Recursive graphs and parent pointers
+
+If your objects reference each other (for example `Inventory` contains `Item[]` and each `Item` points back to its parent `Inventory`), that creates a cycle.
+
+Sugarbox’s serializer can handle cyclic object graphs internally. You do not need to strip parent pointers or otherwise “break” cycles for saves to work.
+
+What matters is:
+
+- every custom class involved in the graph is registered via `classes: [...]`
+- your `fromJSON(...)` methods restore any invariants you rely on after revival (for example, ensuring back-references point at the revived parent instance)
+
+In other words: keep your object graph natural, register the classes, and make `fromJSON` produce valid instances.
+
+## What not to store in `vars`
+
+Even if something can be serialized, it doesn’t mean it should be saved.
+
+Avoid storing:
+
+- DOM nodes, functions, class instances without serialization support
+- derived UI state (selected tab, hover state, animation state)
+- cached computed values you can recompute
+
+Good candidates for `vars` are things that define story progress:
+
+- choices made
+- player stats and inventory
+- flags and unlocked content
+- the data you need to render the current passage
+
+## Practical typing tips
+
+### 1) Make `vars` a named type early
+
+When your story grows, inline object literals get hard to maintain. Define `StoryVars` and use it everywhere.
+
+```ts
+type StoryVars = {
+	playerName: string;
+	stats: { hp: number; maxHp: number };
+	flags: Record<string, boolean>;
+};
+```
+
+### 2) Keep old save shapes out of your “current” types
+
+If you write migrations, old shapes will exist. Keep migrations loosely typed or define separate legacy types like `StoryVars_0_1_0` so you don’t pollute your current type with `optional` fields forever.
+
+### 3) Prefer unions for state machines
+
+If you have gameplay modes, use a discriminated union so TypeScript can enforce exhaustiveness.
+
+```ts
+type Mode =
+	| { kind: "explore"; location: string }
+	| { kind: "combat"; enemyId: string; turn: number };
+
+type StoryVars = {
+	mode: Mode;
+};
+
+engine.setVars((s) => {
+	if (s.mode.kind === "combat") {
+		s.mode.turn += 1;
+	}
+});
+```
+
+## Summary
+
+- Use `SugarboxEngine.init<...>()` generics so `engine.vars` and `engine.passage` are typed.
+- Store plain JSON-like data in `vars` unless you intentionally register classes.
+- If you store custom classes in state, register them via `classes` and implement explicit serialization and reconstruction.
+- Keep migrations and versioning in mind. Your TypeScript types represent “now”, but your users may load “then”.

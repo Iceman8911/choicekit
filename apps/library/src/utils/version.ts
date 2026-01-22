@@ -21,28 +21,28 @@ const isSaveCompatibleWithEngine = (
 	saveVersion: SemanticVersionString,
 	engineVersion: SemanticVersionString,
 	compatibilityMode: SugarBoxSaveVersionCompatiblityMode,
-): "compatible" | "outdatedSave" | "newerSave" => {
+): "compat" | "old" | "new" => {
 	const [svMajor, svMinor] =
 		getMajorAndMinorAndPatchFromVersionString(saveVersion);
 	const [evMajor, evMinor] =
 		getMajorAndMinorAndPatchFromVersionString(engineVersion);
 
 	if (svMajor > evMajor) {
-		return "newerSave";
+		return "new";
 	}
 
 	if (svMajor < evMajor) {
-		return "outdatedSave";
+		return "old";
 	}
 
 	switch (compatibilityMode) {
 		case "strict": {
 			if (svMinor > evMinor) {
-				return "newerSave";
+				return "new";
 			}
 
 			if (svMinor < evMinor) {
-				return "outdatedSave";
+				return "old";
 			}
 
 			break;
@@ -51,11 +51,11 @@ const isSaveCompatibleWithEngine = (
 		case "liberal":
 			// Backwards compatible within same major
 			if (svMinor > evMinor) {
-				return "newerSave";
+				return "new";
 			}
 	}
 
-	return "compatible";
+	return "compat";
 };
 
 export {

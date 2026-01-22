@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"@apps/library": "workspace:*",
 		"@iconify-json/ri": "^1.2.5",
 		"@kobalte/solidbase": "^0.2.11",
 		"@solidjs/meta": "^0.29.4",
@@ -16,7 +17,7 @@
 	},
 	"name": "@apps/docs",
 	"scripts": {
-		"build": "vinxi build",
+		"build": "node ./scripts/generate-reference-prerender-routes.mjs && vinxi build",
 		"dev": "vinxi dev",
 		"format": "bun biome format ./ --write",
 		"lint": "bun biome lint ./ --write",

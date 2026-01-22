@@ -1,13 +1,15 @@
 {
 	"dependencies": {
 		"@iceman8911/tiny-prng": "^0.1.2",
-		"@zalari/string-compression-utils": "^0.1.1"
+		"@packages/serializer": "workspace:*",
+		"@packages/string-compression": "workspace:*"
 	},
 	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.5",
 		"@commitlint/cli": "^20.1.0",
 		"@commitlint/config-conventional": "^20.0.0",
+		"@packages/engine-class": "workspace:*",
 		"@stardazed/streams-polyfill": "^2.4.0",
 		"@types/bun": "^1.2.23",
 		"bumpp": "^10.3.1",

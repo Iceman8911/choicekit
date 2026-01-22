@@ -10,11 +10,6 @@
     pkgs.lazygit
     pkgs.turbo
     pkgs.git-lfs
+    pkgs.biome
   ];
-
-  # Sets environment variables in the workspace
-  env = {
-    SOME_ENV_VAR = "hello";
-  };
-
 }
