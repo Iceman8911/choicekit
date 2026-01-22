@@ -1,6 +1,8 @@
 import { withSolidBase } from "@kobalte/solidbase/config";
 import { defineConfig } from "@solidjs/start/config";
 
+import referencePrerenderRoutes from "./src/generated/reference-prerender-routes.json";
+
 export default defineConfig(
 	withSolidBase(
 		// SolidStart config
@@ -8,6 +10,9 @@ export default defineConfig(
 			server: {
 				prerender: {
 					crawlLinks: true,
+					// Generated from TypeDoc JSON so `/reference/all` and exported `/reference/id/:id`
+					// pages are prerendered like the rest of the site.
+					routes: referencePrerenderRoutes,
 				},
 			},
 		},
