@@ -1,0 +1,18 @@
+# Passages and Navigation
+
+## Passage
+
+A **passage** is an individual self-containing chunk of the story in interactive fiction. In the engine, it's content can be any sort of data from a string to JSX components. Since SugarBox is headless, it is up to you to deal with rendering the data.
+
+Alongside the passage's content, the engine also expects at most two more properties; the passage's name / id which must be unique across all passages that will be added, and an optional array of string tags.
+
+At least one passage object, `startPassage` must be passed into the engine upon initialization, and it represents the starting passage. Optionally, more passages can also be passed during initialization via `otherPassages` or during runtime via `addPassages()`.
+
+The passage and it's id / name for the current [state](../state), can be accessed via the getters, `passage` and `passageId`.
+
+
+## Navigation
+
+To move forward and access different passages, the `navigateTo(passageId: string)` method should be used.
+
+Upon navigation, a custom `:passageChange` [event](../event) will be fired by the engine, and can be listened to via the `on()` method. This event contains the passage data for both the old and new passages.
