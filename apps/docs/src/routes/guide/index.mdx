@@ -1,6 +1,6 @@
 # Welcome to Sugarbox
 
-Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Sugarbox is a lightweight[^1], headless, and framework-agnostic library for building web-based interactive fiction.
+Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Sugarbox is a lightweight[^1], headless, framework-agnostic library for building web-based interactive fiction.
 
 ---
 
@@ -46,10 +46,10 @@ bun add sugarbox
 
 ## Sample usage
 
-The current API uses:
+Notes on the current API:
 
-- `vars` (not `variables`) when initializing the engine
-- `passage.data` (not `passage.passage`) for passage content
+- Engine initialization uses `vars` (not `variables`)
+- Passage content lives on `passage.data` (not `passage.passage`)
 
 ```typescript
 import { SugarboxEngine } from "sugarbox";

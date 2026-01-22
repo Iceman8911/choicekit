@@ -2,9 +2,9 @@
 title: Custom Classes
 ---
 
-# Custom classes
+# Custom Classes
 
-Custom classes let your state survive save/load without losing methods. Sugarbox can serialize class instances inside `vars` and revive them on load, including cyclic graphs, as long as the classes are registered.
+Custom classes let your state survive save/load without losing methods. Sugarbox can serialize class instances inside `vars` and revive them on load, including cyclic graphs, as long as those classes are registered.
 
 Contents:
 
@@ -12,7 +12,7 @@ Contents:
 - registering constructors during `SugarboxEngine.init(...)`
 - what works (cycles, Maps/Sets, BigInt) and what doesn’t (unregistered instances)
 
-> For generics and typing `vars`, see the `TypeScript` guide.
+> For generics and typing `vars`, see the TypeScript guide.
 
 ---
 

@@ -1,13 +1,13 @@
 # Adapters
 
-Sugarbox is headless and ships without opinions about storage or caching. Instead, you plug in small “adapter” objects that let the engine talk to your environment.
+Sugarbox is headless and does not ship storage or caching implementations. You provide small adapter objects so the engine can read and write data in your environment.
 
 There are two adapter types:
 
-- **Persistence adapter**: where saves, achievements, and settings are stored (localStorage, IndexedDB, filesystem, database, etc.).
-- **Cache adapter**: an optional speed-up for state reconstruction when your history grows.
+- **Persistence adapter**: stores saves, achievements, and settings (for example: localStorage, IndexedDB, filesystem, database).
+- **Cache adapter**: optional; speeds up state reconstruction when history grows.
 
-You configure both under `config` when you initialize the engine.
+Configure adapters under `config` when initializing the engine.
 
 ```ts
 import { SugarboxEngine } from "sugarbox";
@@ -27,11 +27,11 @@ const engine = await SugarboxEngine.init({
 
 ## Persistence adapter
 
-A persistence adapter is an async key/value store. Sugarbox uses it for save slots, achievements, and settings. The engine throws if you try to use save slot operations without a persistence adapter.
+A persistence adapter is an async key/value store. Sugarbox uses it for save slots, achievements, and settings. Save slot operations throw if `config.persistence` is missing.
 
 ### Interface
 
-This matches the actual `SugarBoxPersistenceAdapter` shape in the library:
+This matches the `SugarBoxPersistenceAdapter` shape in the library:
 
 ```ts
 type SugarboxPersistenceAdapter = {
