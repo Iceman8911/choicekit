@@ -19,7 +19,7 @@ export default defineConfig(
 		// SolidBase config
 		{
 			description:
-				"Twine Sugarcube-inspired headless interative fiction library.",
+				"Twine SugarCube-inspired headless interactive fiction library.",
 
 			editPath: "https://github.com/Iceman8911/sugarbox/edit/main/docs/:path",
 			issueAutolink: "https://github.com/Iceman8911/sugarbox/issues/:issue",
@@ -93,7 +93,11 @@ export default defineConfig(
 									link: "/classes",
 									title: "Custom Classes",
 								},
-								// TODO: add storylet page later
+								{
+									link: "/storylets",
+									title: "Storylets",
+								},
+								// TODO: implement Storylets docs page
 							],
 							title: "Sugarbox",
 						},
