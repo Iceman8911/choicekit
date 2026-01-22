@@ -345,7 +345,7 @@ class SugarboxEngine<
 		 *
 		 * May optionally be a callback in the case that the variables require data from the initialized engine (maybe, using the PRNG)
 		 */
-		variables:
+		vars:
 			| TVariables
 			| ((
 					engine: SugarboxEngine<
@@ -402,7 +402,7 @@ class SugarboxEngine<
 			otherPassages,
 			classes,
 			migrations,
-			variables,
+			vars,
 			achievements = {} as TAchievementData,
 			settings = {} as TSettingsData,
 		} = args;
@@ -414,15 +414,7 @@ class SugarboxEngine<
 			TAchievementData,
 			TPassageTag,
 			TPassageName
-		>(
-			name,
-			variables,
-			startPassage,
-			achievements,
-			settings,
-			config,
-			otherPassages,
-		);
+		>(name, vars, startPassage, achievements, settings, config, otherPassages);
 
 		engine.registerClasses(...(classes ?? []));
 
