@@ -225,20 +225,16 @@ Now when the engine saves and later loads, it can restore `inventory` as an `Inv
 
 ### Recursive graphs and parent pointers
 
-If your objects reference each other (for example `Item` has a pointer to its `Inventory`), you cannot naively serialize the whole object graph as JSON because it becomes recursive and either crashes or drops data.
+If your objects reference each other (for example `Inventory` contains `Item[]` and each `Item` points back to its parent `Inventory`), that creates a cycle.
 
-The approach that works is:
+Sugarbox’s serializer can handle cyclic object graphs internally. You do not need to strip parent pointers or otherwise “break” cycles for saves to work.
 
-- serialize the “child” without embedding the full parent object
-- reconstruct using a factory that receives the parent
+What matters is:
 
-This pattern usually looks like:
+- every custom class involved in the graph is registered via `classes: [...]`
+- your `fromJSON(...)` methods restore any invariants you rely on after revival (for example, ensuring back-references point at the revived parent instance)
 
-- `Inventory.toJSON()` returns `{ id, items: ItemData[] }`
-- `Item.toJSON()` returns `{ name }` and does not include the parent
-- `Item.fromJSONWithParent(data, inventory)` rebuilds the child with the parent reference
-
-Sugarbox’s README in this repo demonstrates this pattern with `Inventory` and `Item`.
+In other words: keep your object graph natural, register the classes, and make `fromJSON` produce valid instances.
 
 ## What not to store in `vars`
 
