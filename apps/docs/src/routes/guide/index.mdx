@@ -1,0 +1,79 @@
+# Welcome to SugarBox
+
+Inspired by [Twine Sugarcube](https://www.motoslave.net/sugarcube/2/), SugarBox is an extremely lightweight[^1], headless, and framework-agnostic library to aid developers in creating web-based interactive fiction.
+
+---
+
+## Features
+
+- Easy handling for passages and game state (variables, history, navigation)
+- Save/load system with compression and migration support
+- Deterministic pseudorandom number generation (PRNG) for reproducible gameplay
+- Custom class serialization support for complex game objects
+- Achievements and settings persistence separate from save data
+- State history with undo/redo functionality
+- Headless design with no UI restrictions
+- Event-driven architecture for state and passage changes
+- TypeScript-first with full type safety
+- Framework-agnostic (works with React, Vue, vanilla JS, etc.)
+
+---
+
+# Installation
+
+::::tab-group[packageManager]
+:::tab[npm]
+```
+npm install sugarbox
+```
+:::
+
+:::tab[pnpm]
+```
+pnpm install sugarbox
+```
+:::
+
+:::tab[yarn]
+```
+yarn install sugarbox
+```
+:::
+
+:::tab[bun]
+```
+bun install sugarbox
+```
+:::
+::::
+
+## Sample Usage
+
+```typescript
+import { SugarboxEngine } from "sugarbox";
+
+// Passages must be objects with a unique name and the passage data
+const startPassage = { name: "Test Passage Name", passage: "Lorem Ipsum Dolomet" };
+const otherPassages = [
+  { name: "Other Passage Name", passage: "More Dummy Text" }
+];
+
+const engine = await SugarboxEngine.init({
+  name: "Test",
+  variables: { name: "Dave", inventory: { gold: 123, gems: 12 } },
+  startPassage,
+  otherPassages,
+  // Optionally, you can pass config, classes, achievements, settings, migrations, etc.
+});
+
+engine.setVars((state) => {
+  state.name = "Sheep";
+  state.inventory.gems = 21;
+});
+
+engine.navigateTo("Other Passage Name");
+```
+
+
+
+[^1]: Less than **5KB** after minfication and gzip compression
