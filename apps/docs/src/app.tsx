@@ -5,7 +5,7 @@ import { SolidBaseRoot } from "@kobalte/solidbase/client";
 
 export default function App() {
 	return (
-		<Router base={import.meta.env.SERVER_BASE_URL} root={SolidBaseRoot}>
+		<Router base="/sugarbox" root={SolidBaseRoot}>
 			<FileRoutes />
 		</Router>
 	);
