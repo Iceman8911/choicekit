@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"@apps/library": "workspace:*",
 		"@iconify-json/ri": "^1.2.5",
 		"@kobalte/solidbase": "^0.2.11",
 		"@solidjs/meta": "^0.29.4",
