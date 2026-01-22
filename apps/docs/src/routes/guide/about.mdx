@@ -1,0 +1,29 @@
+---
+title: About
+---
+
+# About
+
+Sugarbox is a small, headless interactive fiction engine inspired by Twine SugarCube.
+
+It gives you a few core pieces you usually end up rebuilding in every story project:
+
+- **Passages and navigation**: you register passages up front (or add them later) and move between them by id.
+- **State with history**: state updates are recorded as snapshots, so you can support rewind/redo style flows and keep saves small.
+- **Saving and loading**: saves are versioned, can be migrated as your data model changes, and can be compressed for storage or export.
+- **Deterministic randomness**: a built-in PRNG lets you make gameplay reproducible when you want it to be.
+
+## What Sugarbox is (and isn’t)
+
+Sugarbox is **not** a renderer, UI framework, or Twine runtime. It does not parse Twine markup or ship a UI. Your app decides how passages are represented (string, markdown, components, etc.) and how they get displayed.
+
+The engine’s job is to manage story flow and data cleanly, while staying out of the way of your UI choices.
+
+## Repository layout
+
+This repo includes:
+
+- `apps/library`: the Sugarbox engine package.
+- `apps/docs`: the documentation site you’re reading now.
+
+If you want to contribute, start by looking at how the library is structured and keep changes focused. The engine tries to stay lightweight and predictable, so additions should be deliberate and well scoped.

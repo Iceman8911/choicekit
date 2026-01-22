@@ -1,35 +1,57 @@
 # Overview
 
-The engine is a single class instantiaded with a static asynchronous `init()` method. It is asynchronous because achievements, settings, and optionally the most recent save file upon instantiation.
+Sugarbox is a single engine class, `SugarboxEngine`, created with the async `init()` method.
 
-An example of creating an engine:
+`init()` is async because it can load previously stored achievements and settings, and it can also load the most recent save on startup (when enabled in config).
+
+## Creating an engine
 
 ```tsx
-import { SugarboxEngine } from "sugarbox"
+import { SugarboxEngine } from "sugarbox";
 
 export const engine = await SugarboxEngine.init({
   name: "Dave's Adventure",
-  otherPassages: [],
+
   startPassage: {
+    name: "Start",
     data: "This is the starting passage",
-    name: "Start Passage",
     tags: ["prologue"],
   },
-  variables: {
+
+  // Note: the current API uses `vars` (not `variables`)
+  vars: {
     player: {
       gold: 500,
       level: 1,
     },
-  }, achievements: {
+  },
+
+  // Optional passages that should be available immediately
+  otherPassages: [
+    {
+      name: "Next",
+      data: "You step forward.",
+    },
+  ],
+
+  // Settings and achievements are stored separately from save slots
+  achievements: {
     unlocked: {
       pirateCove: false,
-      hiddenSchool: false
+      hiddenSchool: false,
     },
-    completedGame: false
+    completedGame: false,
   },
-  // Class constructors to support the serialization and deserialization of.
+
+  settings: {
+    volume: 35,
+    theme: "dark",
+  },
+
+  // Class constructors to support serialization and deserialization
   classes: [],
-  // All properties are optional and have defaults
+
+  // All config fields are optional; these are the defaults
   config: {
     autoSave: false,
     compress: true,
@@ -39,11 +61,13 @@ export const engine = await SugarboxEngine.init({
     regenSeed: "passage",
     saveCompat: "strict",
     saveSlots: 20,
-    saveVersion: `0.0.1`,
+    saveVersion: "0.0.1",
     stateMergeCount: 1,
+    // You can also provide `initialSeed` if you want deterministic runs
+    // initialSeed: 12345,
   },
-  // Migrations to update save data as development progresses
+
+  // Migrations to move old save data forward as your schema changes
   migrations: [],
-  settings: { volume: 35, theme: "dark" },
-})
+});
 ```
