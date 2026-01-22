@@ -84,6 +84,7 @@ export default defineConfig(
 									link: "/typescript",
 									title: "Typescript",
 								},
+								// TODO: add storylet page later
 							],
 							title: "Sugarbox",
 						},
