@@ -102,7 +102,7 @@ async function initEngine() {
 		name: "Test",
 		otherPassages: SAMPLE_PASSAGES,
 		startPassage: { data: "This is the start passage", name: "Start" },
-		variables: {
+		vars: {
 			others: {
 				hoursPlayed: 1.5,
 				stage: 3,
@@ -137,7 +137,7 @@ async function initEngineWithExtraSettings<
 		otherPassages: [],
 		settings,
 		startPassage: { data: "This is the start passage", name: "Start" },
-		variables: {},
+		vars: {},
 	});
 }
 
@@ -190,7 +190,7 @@ describe("getVisitCount", () => {
 			name: "VisitCountStress",
 			otherPassages: [...SAMPLE_PASSAGES],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Create 999 snapshots (start index=0 with the initial snapshot already present).
@@ -389,7 +389,7 @@ describe("Autosave", () => {
 			name: "AutoSaveTest",
 			otherPassages: [{ data: "Next passage.", name: "Next" }],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { counter: 0 },
+			vars: { counter: 0 },
 		});
 
 		// Change state and navigate to trigger autosave
@@ -431,7 +431,7 @@ describe("Autosave", () => {
 			name: "AutoSaveTest2",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { counter: 0 },
+			vars: { counter: 0 },
 		});
 
 		// Change state to trigger autosave
@@ -725,7 +725,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		let didThrow = false;
@@ -746,7 +746,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		let didThrow = false;
@@ -776,7 +776,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { prop1: 12, prop2: "45" } as Version_0_1_0_Variables,
+			vars: { prop1: 12, prop2: "45" } as Version_0_1_0_Variables,
 		});
 
 		await engine.saveToSaveSlot(1);
@@ -813,10 +813,10 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {
+			vars: {
 				prop1: "1",
 				prop2: 12,
-				prop3: { nestedprop: true },
+				prop3: false,
 			} as Version_0_2_0_Variables,
 		});
 
@@ -877,7 +877,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {} as Version_0_3_0_Variables,
+			vars: {} as Version_0_3_0_Variables,
 		});
 
 		await engine3.loadFromSaveSlot(1);
@@ -929,7 +929,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "migration-events-test",
 			otherPassages: [],
 			startPassage: { data: "Start", name: "start" },
-			variables: { bar: 0, baz: false, foo: "init" },
+			vars: { bar: 0, baz: false, foo: "init" },
 		});
 
 		const migrationEvents: unknown[] = [];
@@ -984,7 +984,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { prop1: 123, prop2: "abc" } as Version_0_1_0_Variables,
+			vars: { prop1: 123, prop2: "abc" } as Version_0_1_0_Variables,
 		});
 
 		await engine1.saveToSaveSlot(1);
@@ -1001,7 +1001,7 @@ describe("Advanced Saving and Loading", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { prop1: 0, prop2: "" } as Version_0_1_0_Variables, // Variables type should match the loaded save structure
+			vars: { prop1: 0, prop2: "" } as Version_0_1_0_Variables, // Variables type should match the loaded save structure
 		});
 
 		await engine2.loadFromSaveSlot(1);
@@ -1021,7 +1021,7 @@ describe("Advanced Saving and Loading", () => {
 			name: ENGINE_NAME,
 			otherPassages: [] as Array<{ name: string; data: string }>,
 			startPassage: { data: "TTTT", name: ":p" },
-			variables: {
+			vars: {
 				pain: true,
 				pain2: {
 					pain: true,
@@ -1069,7 +1069,7 @@ describe("Advanced Saving and Loading", () => {
 			name: ENGINE_NAME,
 			otherPassages: [] as Array<{ name: string; data: string }>,
 			startPassage: { data: "TTTT", name: ":p" },
-			variables: {
+			vars: {
 				pain: true,
 				pain2: {
 					pain: true,
@@ -1371,7 +1371,7 @@ describe("Events", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		let deleteStartEvent: { slot: "autosave" | number } | undefined;
@@ -1789,7 +1789,7 @@ describe("State Change Events", () => {
 			name: "PerformanceTest",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: { counter: 0, data: { value: 1 } },
+			vars: { counter: 0, data: { value: 1 } },
 		});
 
 		let eventCount = 0;
@@ -1830,7 +1830,7 @@ describe("State Change Events", () => {
 			name: "PerfTest2",
 			otherPassages: [],
 			startPassage: { data: "Start", name: "Start" },
-			variables: { counter: 0, test: { value: 1 } },
+			vars: { counter: 0, test: { value: 1 } },
 		});
 
 		// Test multiple consecutive changes work correctly
@@ -1970,7 +1970,7 @@ describe("Load-Related Events", () => {
 			name: "PerfLoadTest",
 			otherPassages: [{ data: "Test passage", name: "Test" }],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: { counter: 0, data: { value: 1 } },
+			vars: { counter: 0, data: { value: 1 } },
 		});
 
 		// Set initial state and passage
@@ -2052,7 +2052,7 @@ describe("Load-Related Events", () => {
 			name: "AutoLoadTest",
 			otherPassages: [{ data: "Auto passage", name: "Auto" }],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: { test: "initial" },
+			vars: { test: "initial" },
 		});
 
 		// Change state and navigate (will trigger autosave)
@@ -2188,7 +2188,7 @@ describe("Load-Related Events", () => {
 				name: "AccuracyTest",
 				otherPassages: [],
 				startPassage: { data: "Start", name: "Start" },
-				variables: { shared: { value: 1 } },
+				vars: { shared: { value: 1 } },
 			}),
 			SugarboxEngine.init({
 				achievements: {},
@@ -2199,7 +2199,7 @@ describe("Load-Related Events", () => {
 				name: "PerformanceTest",
 				otherPassages: [],
 				startPassage: { data: "Start", name: "Start" },
-				variables: { shared: { value: 1 } },
+				vars: { shared: { value: 1 } },
 			}),
 		]);
 
@@ -2614,7 +2614,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "Test1",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		const engine2 = await SugarboxEngine.init({
@@ -2625,7 +2625,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "Test2",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Both engines should generate the same sequence
@@ -2654,7 +2654,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "NoRegen",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		const engineWithRegen = await SugarboxEngine.init({
@@ -2665,7 +2665,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "WithRegen",
 			otherPassages: [{ data: "Next passage", name: "Next" }],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Get initial random numbers
@@ -2698,7 +2698,7 @@ describe("PRNG and Random Number Generation", () => {
 				{ data: "Second passage", name: "Passage2" },
 			],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		const initialRandom = engine.random;
@@ -2727,7 +2727,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "EachCallRegen",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Generate multiple random numbers
@@ -2752,7 +2752,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "SaveLoadRandom",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Generate some random numbers to advance the state
@@ -2795,7 +2795,7 @@ describe("PRNG and Random Number Generation", () => {
 				{ data: "Second passage", name: "Passage2" },
 			],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Navigate and collect random numbers at each step
@@ -2828,7 +2828,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "RangeTest",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Generate many random numbers and verify they're all in [0, 1) range
@@ -2848,7 +2848,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "ExportImportRandom",
 			otherPassages: [],
 			startPassage: { data: "Start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		// Generate some randoms to advance state
@@ -2959,7 +2959,7 @@ describe("PRNG and Random Number Generation", () => {
 			name: "RecursiveObjectTest",
 			otherPassages: [],
 			startPassage: { data: "Test passage", name: "Start" },
-			variables: {
+			vars: {
 				chestInventory: new Inventory("treasure-chest"),
 				playerInventory: new Inventory("player"),
 			} as unknown as GenericSerializableObject,
@@ -3090,7 +3090,7 @@ describe("Error Conditions and Edge Cases", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { testProp: "oldValue" },
+			vars: { testProp: "oldValue" },
 		});
 		await engine1.saveToSaveSlot(1);
 
@@ -3116,7 +3116,7 @@ describe("Error Conditions and Edge Cases", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: { testProp: "defaultValue" },
+			vars: { testProp: "defaultValue" },
 		});
 
 		let didThrow = false;
@@ -3140,7 +3140,7 @@ describe("Error Conditions and Edge Cases", () => {
 			name: "Test",
 			otherPassages: [],
 			startPassage: { data: "This is the start passage", name: "Start" },
-			variables: {},
+			vars: {},
 		});
 
 		const migrator1 = {
@@ -3188,7 +3188,7 @@ describe("Error Conditions and Edge Cases", () => {
 				config: { persistence: createPersistenceAdapter() },
 				name: "InvalidInitTest",
 				otherPassages: [],
-				variables: {},
+				vars: {},
 			});
 		} catch (e: unknown) {
 			didThrow = true;
@@ -3213,7 +3213,7 @@ describe("Dynamic Initial State", () => {
 			name: "StaticTest",
 			otherPassages: [],
 			startPassage: { data: "Welcome!", name: "Start" },
-			variables: staticVariables,
+			vars: staticVariables,
 		});
 
 		expect(engine.vars.player.name).toBe("Static Player");
@@ -3235,7 +3235,7 @@ describe("Dynamic Initial State", () => {
 			name: "DynamicTest",
 			otherPassages: [],
 			startPassage: { data: "Welcome!", name: "Start" },
-			variables: dynamicVariables,
+			vars: dynamicVariables,
 		});
 
 		expect(engine.vars.player.name).toBe("Dynamic Player");
@@ -3283,7 +3283,7 @@ describe("Dynamic Initial State", () => {
 			otherPassages: [],
 			settings: { volume: 0.8 },
 			startPassage: { data: "Test content", name: "TestStart" },
-			variables: dynamicVariables,
+			vars: dynamicVariables,
 		});
 
 		expect(engine.vars.engineName).toBe("PropertyAccessTest");
@@ -3308,7 +3308,7 @@ describe("Dynamic Initial State", () => {
 			name: "PreservePropsTest",
 			otherPassages: [],
 			startPassage: { data: "Content", name: "CorrectStart" },
-			variables: dynamicVariables,
+			vars: dynamicVariables,
 		});
 
 		expect(engine.vars.customProp).toBe("test");
