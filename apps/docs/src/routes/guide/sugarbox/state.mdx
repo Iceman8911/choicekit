@@ -1,0 +1,67 @@
+# Story State
+
+The current **state** of the story represents the most recent values of all variables stored in the engine, think of stuff like the player's gold or weapons.
+
+In order to support an extensive *history* of modifications made to the state as the story plays on, the engine stores it as two parts, namely:
+
+- The [initial state](#initial-state), and
+- The [state snapshots](#state-snapshots).
+
+## Initial Stage
+
+This represents the object of variables passed into the engine upon initialization. It is an immutable copy from which every other [snapshot](#state-snapshots) is built upon, and represents the point in the story that will be reversed to if you decided to `reset()` it later.
+
+E.g
+
+```tsx
+import { SugarboxEngine } from "sugarbox"
+
+export const engine = await SugarboxEngine.init({
+  name: "Dave's Adventure",
+  otherPassages: [],
+  startPassage: {
+    data: "This is the starting passage",
+    name: "Start Passage",
+    tags: ["prologue"],
+  },
+  variables: {
+    gold: 500,
+    level: 1,
+  }
+})
+```
+
+Where the object passed into `variables` represents the intial state.
+
+## State Snapshots
+
+A **state snapshot** is simply a diff of the [intial state](#intial-state), as such it is a *partial* object that only consists of the changes made to variables for that specific point in state history. In comparison to some twine-based interactive fiction frameworks, this avoids having to clone the entire state upon [navigation](../passage#navigation), increasing performance and reducing the data needed to be saved.
+
+The **state history**, otherwise known as an array of all the snapshots, contains every change made throughout the story. It is indexed, by the `index`. This allows one to easily move backwards or forwards without losing any information.
+
+Using the variables structure from the first example, a sample snapshot could look like:
+
+```tsx
+// Setting the state
+engine.setVars(state=>{
+  state.gold += 100
+})
+
+// The snapshot will look like this
+{
+  gold: 600
+}
+
+// Whilist the initial state will still be
+{
+  gold: 500,
+  level: 1
+}
+```
+
+
+## Combining the Two into the Current State
+
+Combining the two data sources, as well as the story's `index` will give us the complete **story state**. It does this by cloning the initial state and updating it by iterating through the entries of each snapshot in state history.
+
+Depending on the amount of snapshots and entries to iterate over, this could be an expensive operation, as such, if an optional `cache` adapter is passed into the engine during intialization, the results of this operation will be cached and refreshed as required.
