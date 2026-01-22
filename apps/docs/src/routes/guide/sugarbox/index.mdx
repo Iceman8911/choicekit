@@ -1,0 +1,49 @@
+# Overview
+
+The engine is a single class instantiaded with a static asynchronous `init()` method. It is asynchronous because achievements, settings, and optionally the most recent save file upon instantiation.
+
+An example of creating an engine:
+
+```tsx
+import { SugarboxEngine } from "sugarbox"
+
+export const engine = await SugarboxEngine.init({
+  name: "Dave's Adventure",
+  otherPassages: [],
+  startPassage: {
+    data: "This is the starting passage",
+    name: "Start Passage",
+    tags: ["prologue"],
+  },
+  variables: {
+    player: {
+      gold: 500,
+      level: 1,
+    },
+  }, achievements: {
+    unlocked: {
+      pirateCove: false,
+      hiddenSchool: false
+    },
+    completedGame: false
+  },
+  // Class constructors to support the serialization and deserialization of.
+  classes: [],
+  // All properties are optional and have defaults
+  config: {
+    autoSave: false,
+    compress: true,
+    emitMode: "acc",
+    loadOnStart: true,
+    maxStates: 100,
+    regenSeed: "passage",
+    saveCompat: "strict",
+    saveSlots: 20,
+    saveVersion: `0.0.1`,
+    stateMergeCount: 1,
+  },
+  // Migrations to update save data as development progresses
+  migrations: [],
+  settings: { volume: 35, theme: "dark" },
+})
+```
