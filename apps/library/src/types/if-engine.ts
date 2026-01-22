@@ -1,3 +1,4 @@
+import type { SugarboxEngine } from "../engine/if-engine";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 import type {
 	SugarBoxCacheAdapter,
@@ -219,6 +220,21 @@ type SugarBoxPassage<
 	tags?: ReadonlyArray<TPassageTag>;
 }>;
 
+type SugarBoxStorylet<TEngine extends SugarboxEngine<unknown>> = {
+	name: string;
+	/** Higher priority = Earlier in the resulting array when querying for vaild storylets */
+	priority: number;
+
+	/** Must return `true` for the Storylet to be eligble for the current passage and state.
+	 *
+	 * Couldn't decide on what properties to expose so it gets the whole engine
+	 */
+	requirement: (engine: TEngine) => boolean;
+
+	/** The id / name of the passage to be returned if this storylet requirement callback resolves to `true`  */
+	passageId: TEngine["passageId"];
+};
+
 export type {
 	SugarBoxConfig,
 	SugarBoxSnapshotMetadata,
@@ -232,4 +248,5 @@ export type {
 	SugarBoxPassage,
 	SugarBoxAutoSaveKey,
 	SugarBoxSaveVersionCompatiblityMode,
+	SugarBoxStorylet,
 };
