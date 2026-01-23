@@ -6,7 +6,7 @@ import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
 
 // https://astro.build/config
 export default defineConfig({base:"/sugarbox",
-  site:"https://iceman8911.github.io/" ,
+  site:"https://iceman8911.github.io/",
 	integrations: [
 		starlight({
 		plugins: [viewTransitions()],
