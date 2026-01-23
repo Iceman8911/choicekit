@@ -22,7 +22,7 @@ export default defineConfig({
         },
         {
           label: "SugarBox",
-          autogenerate:{directory:"guides/sugarbox"}
+          autogenerate:{directory:"guides/sugarbox",}
 				},
 				// {
 				// 	label: 'Reference',
