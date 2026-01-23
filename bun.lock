@@ -14,7 +14,7 @@
       },
     },
     "apps/docs": {
-      "name": "@apps/docs-astro",
+      "name": "@apps/docs",
       "version": "0.0.1",
       "dependencies": {
         "@astrojs/starlight": "^0.37.3",
@@ -81,7 +81,7 @@
     },
   },
   "packages": {
-    "@apps/docs-astro": ["@apps/docs-astro@workspace:apps/docs"],
+    "@apps/docs": ["@apps/docs@workspace:apps/docs"],
 
     "@apps/library": ["@apps/library@workspace:apps/library"],
 
