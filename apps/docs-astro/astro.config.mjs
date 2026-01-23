@@ -1,12 +1,15 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
+
 
 // https://astro.build/config
 export default defineConfig({
   site:"https://iceman8911.github.io/sugarbox/" ,
 	integrations: [
 		starlight({
+		plugins: [viewTransitions()],
 			title: 'Sugarbox Docs',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/iceman8911/sugarbox' }],
 			sidebar: [
