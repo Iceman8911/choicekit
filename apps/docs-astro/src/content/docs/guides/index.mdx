@@ -23,31 +23,22 @@ Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Sugarbox 
 
 This library is uploaded to npm at https://www.npmjs.com/package/sugarbox
 
-::::tab-group[packageManager]
-:::tab[npm]
-```
-npm install sugarbox
-```
-:::
+import { Tabs, TabItem, Code } from "@astrojs/starlight/components"
 
-:::tab[pnpm]
-```
-pnpm install sugarbox
-```
-:::
-
-:::tab[yarn]
-```
-yarn add sugarbox
-```
-:::
-
-:::tab[bun]
-```
-bun add sugarbox
-```
-:::
-::::
+<Tabs syncKey="packageManager">
+  <TabItem label="npm">
+    <Code code="npm install sugarbox" lang="bash" />
+  </TabItem>
+  <TabItem label="pnpm">
+    <Code code="pnpm install sugarbox" lang="bash"   />
+  </TabItem>
+  <TabItem label="yarn">
+    <Code code="yarn install sugarbox" lang="bash"  />
+  </TabItem>
+  <TabItem label="bun">
+    <Code code="bun install sugarbox" lang="bash"  />
+  </TabItem>
+</Tabs>
 
 ## Sample usage
 
