@@ -1,0 +1,37 @@
+---
+import { createReferenceItems, loadTypeDocProject } from "../lib/typedoc-data";
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+const project = await loadTypeDocProject();
+const items = createReferenceItems(project);
+---
+
+<StarlightPage frontmatter={{title: "Reference"}}>
+  <h1 style="margin-bottom: 0.25rem;">Reference</h1>
+  <p style="margin-top: 0; max-width: 56rem; opacity: 0.85;">
+	Generated from <code>apps/docs-astro/src/generated/docs.json</code>
+  </p>
+
+  <nav style="display: flex; gap: 0.75rem; margin: 1rem 0 1.25rem;">
+	<a href="/reference/all">Browse all</a>
+  </nav>
+
+  <section aria-label="Reference items">
+	<ul style="margin: 0; padding-left: 1.25rem;">
+		{items.slice(0, 30).map((item) => (
+			<li style="margin: 0.25rem 0;">
+				<a href={`/reference/id/${item.id}`}>
+					<code>{item.name}</code>
+				</a>
+				<span style="opacity: 0.75;">{" — " + item.kind}</span>
+				{item.summary ? <span style="opacity: 0.85;">{" — " + item.summary}</span> : null}
+			</li>
+		))}
+	</ul>
+  </section>
+
+  <p style="margin: 1rem 0 0; opacity: 0.85;">
+	Showing the first <strong>{Math.min(items.length, 30)}</strong> items. For the full list, use{" "}
+	<a href="/reference/all">/reference/all</a>.
+  </p>
+</StarlightPage>

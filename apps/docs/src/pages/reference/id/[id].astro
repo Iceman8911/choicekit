@@ -1,0 +1,187 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import type { ReferenceItem, TypeDocProject, TypeDocReflection } from "../../../lib/typedoc-data";
+import {
+	bestSource,
+	createReferenceItems,
+	flattenReflections,
+	joinText,
+	readableKind,
+	renderTypeInline,
+} from "../../../lib/typedoc-data";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+	const project = (await import("../../../generated/docs.json")).default as TypeDocProject;
+
+	return createReferenceItems(project).map((item) => ({
+		params: { id: String(item.id) },
+	}));
+}
+
+const project = (await import("../../../generated/docs.json")).default as TypeDocProject;
+const allItems = createReferenceItems(project);
+
+const { id: idParam } = Astro.params;
+
+const requestedId = (() => {
+	const raw = typeof idParam === "string" ? idParam : "";
+	const parsed = Number.parseInt(raw, 10);
+	return Number.isFinite(parsed) ? parsed : null;
+})();
+
+const matches = (() => {
+	if (requestedId === null) return [] as TypeDocReflection[];
+	return flattenReflections(project)
+		.filter((r) => typeof r.id === "number" && r.id === requestedId)
+		.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+})();
+
+function getItemForReflection(r: TypeDocReflection): ReferenceItem | undefined {
+	if (typeof r.id !== "number") return undefined;
+	return allItems.find((x) => x.id === r.id);
+}
+---
+
+<StarlightPage frontmatter={{title: `Reference ${requestedId}`}}>
+  <main style="max-width: 72rem;">
+	<header style="margin-bottom: 1.25rem;">
+		<h1 style="margin-bottom: 0.25rem;">
+			Reference: id <code>{requestedId ?? "(invalid)"}</code>
+		</h1>
+		<p style="margin: 0; opacity: 0.85;">
+			Generated from <code>apps/docs-astro/src/generated/docs.json</code>
+		</p>
+	</header>
+
+	{
+		requestedId === null ? (
+			<section>
+				<p>
+					Invalid id: <code>{typeof idParam === "string" ? idParam : ""}</code>
+				</p>
+				<p style="opacity: 0.85;">
+					Expected a numeric TypeDoc reflection id (for example:{" "}
+					<code>/reference/id/1234</code>).
+				</p>
+			</section>
+		) : matches.length === 0 ? (
+			<section>
+				<p>
+					No reflection found for id <code>{requestedId}</code>.
+				</p>
+				<p style="opacity: 0.85;">
+					Tip: visit <a href="/reference/all">/reference/all</a> and click an item
+					to get a valid id.
+				</p>
+			</section>
+		) : (
+			<section>
+				{matches.map((r) => {
+					const summary = joinText(r.comment?.summary);
+					const source = bestSource(r);
+					const typePreview = renderTypeInline(r.type);
+					const item = getItemForReflection(r);
+
+					const viewByNameHref =
+						typeof r.name === "string" && r.name.trim().length > 0
+							? `/reference/symbol/${encodeURIComponent(r.name)}`
+							: null;
+
+					const viewInAllHref =
+						item?.id != null ? `/reference/all#ref-${item.id}` : null;
+
+					return (
+						<article
+							style={{
+								background: "rgba(127,127,127,0.04)",
+								border: "1px solid rgba(127,127,127,0.18)",
+								borderRadius: "0.75rem",
+								marginBottom: "1rem",
+								padding: "1rem",
+							}}
+						>
+							<div
+								style={{
+									alignItems: "baseline",
+									display: "flex",
+									flexWrap: "wrap",
+									gap: "0.75rem",
+								}}
+							>
+								<div style={{ fontSize: "1.1rem" }}>
+									<code>{typeof r.name === "string" ? r.name : "(unnamed)"}</code>
+								</div>
+								<span style={{ opacity: 0.8 }}>{readableKind(r)}</span>
+								{typeof r.id === "number" ? (
+									<span style={{ opacity: 0.7 }}>id: {r.id}</span>
+								) : null}
+							</div>
+
+							{summary ? <p style={{ margin: "0.6rem 0 0" }}>{summary}</p> : null}
+
+							{typePreview ? (
+								<p style={{ margin: "0.6rem 0 0", opacity: 0.9 }}>
+									<strong>Type:</strong> <code>{typePreview}</code>
+								</p>
+							) : null}
+
+							{source?.fileName ? (
+								<p style={{ margin: "0.6rem 0 0", opacity: 0.9 }}>
+									<strong>Source:</strong>{" "}
+									<code>
+										{source.fileName}
+										{typeof source.line === "number" ? `:${source.line}` : ""}
+									</code>{" "}
+									{source.url ? (
+										<a href={source.url} rel="noreferrer" target="_blank">
+											(view)
+										</a>
+									) : null}
+								</p>
+							) : null}
+
+							{viewByNameHref ? (
+								<p style={{ margin: "0.75rem 0 0" }}>
+									<a href={viewByNameHref}>
+										View by name: <code>{r.name}</code>
+									</a>
+								</p>
+							) : null}
+
+							{viewInAllHref ? (
+								<p style={{ margin: "0.4rem 0 0" }}>
+									<a href={viewInAllHref}>See in /reference/all</a>
+								</p>
+							) : null}
+
+							{r.comment?.blockTags?.length ? (
+								<div style={{ margin: "0.75rem 0 0" }}>
+									<strong>Tags</strong>
+									<ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.25rem" }}>
+										{(r.comment?.blockTags ?? []).map((tag) => {
+											const tagContent = joinText(tag.content);
+											return (
+												<li>
+													<code>{tag.tag ?? "@tag"}</code>
+													{tagContent ? (
+														<>
+															{" — "}
+															<span>{tagContent}</span>
+														</>
+													) : null}
+												</li>
+											);
+										})}
+									</ul>
+								</div>
+							) : null}
+						</article>
+					);
+				})}
+			</section>
+		)
+	}
+  </main>
+</StarlightPage>

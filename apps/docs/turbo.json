@@ -4,7 +4,7 @@
 	"tasks": {
 		"build": {
 			"dependsOn": ["@apps/library#build"],
-			"outputs": ["dist/**", "output/**", "generated/**"]
+			"outputs": ["dist/**", ".output/**", "generated/**"]
 		},
 		"dev": {
 			"cache": false,
