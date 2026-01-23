@@ -1,0 +1,23 @@
+{
+	"dependencies": {
+		"@astrojs/starlight": "^0.37.3",
+		"astro": "^5.6.1",
+		"sharp": "^0.34.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.11"
+	},
+	"name": "@apps/docs-astro",
+	"scripts": {
+		"astro": "astro",
+		"build": "astro build",
+		"dev": "astro dev",
+		"format": "bun biome format ./ --write",
+		"lint": "bun biome lint ./ --write",
+		"preview": "astro preview",
+		"start": "astro dev",
+		"test": "echo 'No test script'"
+	},
+	"type": "module",
+	"version": "0.0.1"
+}
