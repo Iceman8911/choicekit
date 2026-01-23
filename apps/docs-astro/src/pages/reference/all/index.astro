@@ -1,0 +1,134 @@
+---
+import type { ReferenceItem } from "../../../lib/typedoc-data";
+import { createReferenceItems, loadTypeDocProject } from "../../../lib/typedoc-data";
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+const project = await loadTypeDocProject();
+const items = createReferenceItems(project);
+
+type KindGroup = { kind: string; items: ReferenceItem[] };
+
+type NamedAnchor = { id: string; label: string };
+
+function toAnchorId(itemId: number): string {
+	return `ref-${itemId}`;
+}
+
+function collectAnchors(items: ReferenceItem[]): NamedAnchor[] {
+	const results: NamedAnchor[] = [];
+	for (const item of items) {
+		results.push({ id: toAnchorId(item.id), label: item.name });
+	}
+	return results.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+const groups: KindGroup[] = (() => {
+	const map = new Map<string, ReferenceItem[]>();
+	for (const item of items) {
+		const list = map.get(item.kind) ?? [];
+		list.push(item);
+		map.set(item.kind, list);
+	}
+	return Array.from(map.entries())
+		.map(([kind, groupedItems]) => ({
+			kind,
+			items: groupedItems.sort((a, b) => a.name.localeCompare(b.name)),
+		}))
+		.sort((a, b) => a.kind.localeCompare(b.kind));
+})();
+
+const anchors = collectAnchors(items);
+---
+
+<StarlightPage frontmatter={{title: "All References"}}>
+  <main style="max-width: 72rem;">
+	<header style="margin-bottom: 1.5rem;">
+		<h1 style="margin-bottom: 0.25rem;">Reference</h1>
+		<p style="margin-top: 0; max-width: 56rem;">
+			This page is generated from TypeDoc JSON at build time and updates when <code>src/generated/docs.json</code> is regenerated.
+		</p>
+	</header>
+
+	<nav style="margin-bottom: 1.25rem;">
+		<a href="/reference">Overview</a>
+		<span style="opacity: 0.6; padding: 0 0.5rem;">/</span>
+		<span>All</span>
+	</nav>
+
+	<section style="margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap;">
+		<p style="margin: 0; opacity: 0.85;">
+			Items: <strong>{items.length}</strong>
+		</p>
+		<a href="#kind-index">Kinds index</a>
+	</section>
+
+	<section id="kind-index" aria-label="Kinds index" style="margin: 1rem 0 1.5rem;">
+		<h2 style="margin: 0 0 0.75rem;">Kinds</h2>
+		<ul style="margin: 0; padding-left: 1.25rem; columns: 2; column-gap: 2rem;">
+			{groups.map((group) => (
+				<li style="margin: 0.25rem 0;">
+					<a href={`#kind-${encodeURIComponent(group.kind)}`}>{group.kind}</a>
+					<span style="opacity: 0.7;"> ({group.items.length})</span>
+				</li>
+			))}
+		</ul>
+	</section>
+
+	<section aria-label="Quick jump" style="margin: 1rem 0 1.75rem;">
+		<h2 style="margin: 0 0 0.75rem;">Jump to an item</h2>
+		<form
+			style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;"
+			onsubmit="event.preventDefault(); const v = this.querySelector('select')?.value; if (v) location.hash = v;"
+		>
+			<label for="ref-jump">Item</label>
+			<select id="ref-jump" name="ref-jump" style="min-width: 18rem;">
+				<option value="">Select…</option>
+				{anchors.map((a) => (
+					<option value={`#${a.id}`}>{a.label}</option>
+				))}
+			</select>
+			<button type="submit">Go</button>
+		</form>
+	</section>
+
+	{groups.map((group) => (
+		<section style="margin: 1.75rem 0;">
+			<h2 id={`kind-${encodeURIComponent(group.kind)}`} style="margin: 0 0 0.75rem;">
+				{group.kind}
+				<span style="opacity: 0.7; font-weight: 400;"> ({group.items.length})</span>
+			</h2>
+
+			<ul style="margin: 0; padding-left: 1.25rem;">
+				{group.items.map((item) => (
+					<li id={toAnchorId(item.id)} style="margin: 0.45rem 0; scroll-margin-top: 6rem;">
+						<a href={`/reference/id/${item.id}`}>
+							<code>{item.name}</code>
+						</a>
+						<span style="opacity: 0.75;"> — id: {item.id}</span>
+						{item.summary ? (
+							<span style="opacity: 0.85;"> — {item.summary}</span>
+						) : null}
+						{item.source?.fileName ? (
+							<span style="opacity: 0.7;">
+								{" "}
+								(<code>
+									{item.source.fileName}
+									{typeof item.source.line === "number" ? `:${item.source.line}` : ""}
+								</code>)
+							</span>
+						) : null}
+						<span style="opacity: 0.7;">
+							{" "}
+							(<a href={`#${toAnchorId(item.id)}`}>link</a>)
+						</span>
+					</li>
+				))}
+			</ul>
+		</section>
+	))}
+  </main>
+
+  <p style="margin-top: 0; opacity: 0.85;">
+	Generated from <code>src/generated/docs.json</code>
+  </p>
+</StarlightPage>
