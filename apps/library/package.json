@@ -50,7 +50,7 @@
 	"scripts": {
 		"build": "bunup & bun run docgen",
 		"dev": "bunup --watch  & bun run docgen",
-		"docgen": "typedoc src/index.ts --json ../docs/src/generated/docs.json && typedoc src/index.ts --json ../docs-astro/src/generated/docs.json",
+		"docgen": "typedoc src/index.ts --json ../docs/src/generated/docs.json",
 		"format": "biome format --write ./src",
 		"lint": "biome check --write ./src",
 		"prepare": "husky",
