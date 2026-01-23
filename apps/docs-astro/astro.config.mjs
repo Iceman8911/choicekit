@@ -4,22 +4,30 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+  site:"https://iceman8911.github.io/sugarbox/" ,
 	integrations: [
 		starlight({
-			title: 'My Docs',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+			title: 'Sugarbox Docs',
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/iceman8911/sugarbox' }],
 			sidebar: [
 				{
-					label: 'Guides',
+					label: 'Getting Started',
 					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: 'Example Guide', slug: 'guides/example' },
+						{ label: 'Introduction', link: 'guides' },
+						{
+							link: "guides/about",
+							label: "About",
+						},
 					],
+        },
+        {
+          label: "SugarBox",
+          autogenerate:{directory:"guides/sugarbox"}
 				},
-				{
-					label: 'Reference',
-					autogenerate: { directory: 'reference' },
-				},
+				// {
+				// 	label: 'Reference',
+				// 	autogenerate: { directory: 'reference' },
+				// },
 			],
 		}),
 	],
