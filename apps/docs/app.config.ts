@@ -2,13 +2,14 @@ import { withSolidBase } from "@kobalte/solidbase/config";
 import { defineConfig } from "@solidjs/start/config";
 
 import referencePrerenderRoutes from "./src/generated/reference-prerender-routes.json";
+import { GITHUB_PAGES_REPO_PATH } from "./src/lib/constants";
 
 export default defineConfig(
 	withSolidBase(
 		// SolidStart config
 		{
 			server: {
-				baseURL: "/sugarbox",
+				baseURL: GITHUB_PAGES_REPO_PATH,
 				prerender: {
 					crawlLinks: true,
 					// Generated from TypeDoc JSON so `/reference/all` and exported `/reference/id/:id`
