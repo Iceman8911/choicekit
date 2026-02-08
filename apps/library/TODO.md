@@ -19,3 +19,4 @@
 	- [ ] Add Storylet support.
 	- [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [x] Consider making the passage names optionally strongly typed?
+- [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
