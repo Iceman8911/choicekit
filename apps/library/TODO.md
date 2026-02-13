@@ -2,12 +2,13 @@
 
 - [ ] Figure out the best way for adding passages
 - [ ] trim down persistence assertions
+	- [ ] I'll likely be able to do this by exporting premade persistence adapters; In Memory, Local Storage, Session Storage, and IndexedDB, and use the In Memory one as default. 
 - [x] compress achievements and settings
 - [x] only apply compression if it is enabled and the string is over 1kb
 - [ ] maybe tie autosaving to a custom setting instead of at the engine level
 - [ ] introduce `has` for the persistence adapter
 - [ ] Consider a complementary **module-scoped** api in addition to the present **class-based** api. 
-	- Functions internally and export them at the module scope as well as a class wrapper for those who prefer the ergonomics. 
+	- Functions internally and export them at the module scope as well as a class wrapper for those who prefer the ergonomics. Similar to how valibot and formisch work. 
 - [x] Reduce non-minifiable object prop names to 12 characters or less.
 - [x] Convert to a monorepo for both the code and documentation (SolidStart ssg + pwa?)
 	- Also link to the github Pages-hosted documentation via the library's readme.
@@ -20,3 +21,5 @@
 	- [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [x] Consider making the passage names optionally strongly typed?
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
+- [ ] Consider using immer and it's patches for state management, since the current system may poorly perform for very large story state (e.g management sims)
+- [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth. 
