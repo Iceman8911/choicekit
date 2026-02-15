@@ -558,8 +558,6 @@ class SugarboxEngine<
 	 * @throws if the save slot is invalid or if the persistence adapter is not available
 	 */
 	async deleteSaveSlot(saveSlot?: number): Promise<unknown> {
-		const { persistence } = this.#config;
-
 		const slot = saveSlot ?? "autosave";
 
 		this.#emitCustomEvent(":deleteStart", { slot });
@@ -567,7 +565,7 @@ class SugarboxEngine<
 		try {
 			const saveSlotKey = this.#getStorageKey(saveSlot);
 
-			const deleted = await persistence.delete(saveSlotKey);
+			const deleted = await this.#persistenceAdapter.delete(saveSlotKey);
 
 			this.#emitCustomEvent(":deleteEnd", { slot, type: "success" });
 
@@ -604,10 +602,8 @@ class SugarboxEngine<
 		| { type: "autosave"; data: SugarBoxSaveData<TVariables> }
 		| { type: "normal"; slot: number; data: SugarBoxSaveData<TVariables> }
 	> {
-		const { persistence } = this.#config;
-
 		for await (const key of this.#getKeysOfPresentSaves()) {
-			const serializedSaveData = await persistence.get(key);
+			const serializedSaveData = await this.#persistenceAdapter.get(key);
 
 			if (!serializedSaveData) continue;
 
@@ -732,11 +728,10 @@ class SugarboxEngine<
 			"load",
 			saveSlot,
 			async () => {
-				const { persistence } = this.#config;
-
 				const saveSlotKey = this.#getStorageKey(saveSlot);
 
-				const serializedSaveData = await persistence.get(saveSlotKey);
+				const serializedSaveData =
+					await this.#persistenceAdapter.get(saveSlotKey);
 
 				if (!serializedSaveData) {
 					throw Error(`No save data found for slot ${saveSlot}`);
@@ -1226,7 +1221,7 @@ class SugarboxEngine<
 	}
 
 	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarBoxSaveKey> {
-		const persistence = this.#config.persistence;
+		const persistence = this.#persistenceAdapter;
 
 		const keys = await persistence.keys?.();
 
@@ -1519,23 +1514,19 @@ class SugarboxEngine<
 	}
 
 	async #saveAchievements(): Promise<void> {
-		const persistenceAdapter = this.#config.persistence;
-
 		const dataToStore = await compressStringIfApplicable(
 			JSON.stringify(this.#achievements),
 			this.#config.compress,
 		);
 
-		await persistenceAdapter.set(
+		await this.#persistenceAdapter.set(
 			this.#getStorageKey("achievements"),
 			dataToStore,
 		);
 	}
 
 	async #loadAchievements(): Promise<void> {
-		const persistenceAdapter = this.#config.persistence;
-
-		const serializedAchievements = await persistenceAdapter.get(
+		const serializedAchievements = await this.#persistenceAdapter.get(
 			this.#getStorageKey("achievements"),
 		);
 
@@ -1547,20 +1538,19 @@ class SugarboxEngine<
 	}
 
 	async #saveSettings(): Promise<void> {
-		const persistenceAdapter = this.#config.persistence;
-
 		const dataToStore = await compressStringIfApplicable(
 			JSON.stringify(this.#settings),
 			this.#config.compress,
 		);
 
-		await persistenceAdapter.set(this.#getStorageKey("settings"), dataToStore);
+		await this.#persistenceAdapter.set(
+			this.#getStorageKey("settings"),
+			dataToStore,
+		);
 	}
 
 	async #loadSettings(): Promise<void> {
-		const persistenceAdapter = this.#config.persistence;
-
-		const serializedSettings = await persistenceAdapter.get(
+		const serializedSettings = await this.#persistenceAdapter.get(
 			this.#getStorageKey("settings"),
 		);
 
@@ -1586,6 +1576,10 @@ class SugarboxEngine<
 
 	get #shouldCloneOldState(): boolean {
 		return this.#config.emitMode !== "perf";
+	}
+
+	get #persistenceAdapter() {
+		return this.#config.persistence;
 	}
 }
 

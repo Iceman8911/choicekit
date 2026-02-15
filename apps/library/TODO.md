@@ -1,7 +1,7 @@
 # TODO
 
 - [ ] Figure out the best way for adding passages
-- [ ] trim down persistence assertions
+- [x] trim down persistence assertions
 	- [x] I'll likely be able to do this by exporting premade persistence adapters; In Memory, Local Storage, Session Storage, and IndexedDB, and use the In Memory one as default. 
 - [x] compress achievements and settings
 - [x] only apply compression if it is enabled and the string is over 1kb
