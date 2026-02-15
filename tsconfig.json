@@ -4,7 +4,7 @@
 		"declaration": true,
 		"esModuleInterop": true,
 		"exactOptionalPropertyTypes": true,
-		"module": "ESNext",
+		"module": "esnext",
 		"moduleResolution": "bundler",
 		"noEmit": true,
 		"noFallthroughCasesInSwitch": true,
@@ -15,7 +15,7 @@
 		"noUnusedParameters": true,
 		"skipLibCheck": true,
 		"strict": true,
-		"target": "esnext"
+		"target": "es2020"
 	},
 	"exclude": ["node_modules", "dist"]
 }
