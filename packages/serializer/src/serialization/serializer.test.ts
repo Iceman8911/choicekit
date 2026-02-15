@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test";
 import type {
 	SugarBoxClassConstructor,
 	SugarBoxClassInstance,
 } from "@packages/engine-class";
+import { describe, expect, test } from "vitest";
 import {
 	deserialize,
 	registerClass,
@@ -46,9 +46,9 @@ describe("Serialization and Deserialization", () => {
 	});
 
 	test("Booleans", () => {
-		expect(serialiseThenDeserialize(true)).toBeTrue();
+		expect(serialiseThenDeserialize(true)).toBeTruthy();
 
-		expect(serialiseThenDeserialize(false)).toBeFalse();
+		expect(serialiseThenDeserialize(false)).toBeFalsy();
 	});
 
 	test("Nullish", () => {
