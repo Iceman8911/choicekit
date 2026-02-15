@@ -25,7 +25,7 @@ type PersistenceAdapter<TKey, TData> = {
 	delete(key: TKey): Promise<unknown>;
 
 	/** If provided, makes returning an iterable / list of used save slots more efficient. Otherwise, `get()` will be used as a workaround */
-	keys?(): Promise<Iterable<TKey>>;
+	keys?(): Promise<Iterable<TKey | string>>;
 };
 
 /** Persistence Adapter specifically for saving the state of variables */
