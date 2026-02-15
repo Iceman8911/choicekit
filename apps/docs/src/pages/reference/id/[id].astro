@@ -1,6 +1,10 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-import type { ReferenceItem, TypeDocProject, TypeDocReflection } from "../../../lib/typedoc-data";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import type {
+	ReferenceItem,
+	TypeDocProject,
+	TypeDocReflection,
+} from "../../../lib/typedoc-data";
 import {
 	bestSource,
 	createReferenceItems,
@@ -13,14 +17,16 @@ import {
 export const prerender = true;
 
 export async function getStaticPaths() {
-	const project = (await import("../../../generated/docs.json")).default as TypeDocProject;
+	const project = (await import("../../../generated/docs.json"))
+		.default as TypeDocProject;
 
 	return createReferenceItems(project).map((item) => ({
 		params: { id: String(item.id) },
 	}));
 }
 
-const project = (await import("../../../generated/docs.json")).default as TypeDocProject;
+const project = (await import("../../../generated/docs.json"))
+	.default as TypeDocProject;
 const allItems = createReferenceItems(project);
 
 const { id: idParam } = Astro.params;

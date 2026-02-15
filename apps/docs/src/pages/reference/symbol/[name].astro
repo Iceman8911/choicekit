@@ -7,17 +7,20 @@ import {
 	renderTypeInline,
 	type TypeDocProject,
 } from "../../../lib/typedoc-data";
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 
 export async function getStaticPaths() {
-	const project = (await import("../../../generated/docs.json")).default as TypeDocProject;
+	const project = (await import("../../../generated/docs.json"))
+		.default as TypeDocProject;
 	const all = flattenReflections(project);
 
 	const names = all
 		.map((r) => (typeof r.name === "string" ? r.name.trim() : ""))
 		.filter((n) => n.length > 0 && !n.startsWith("__"));
 
-	const uniqueNames = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+	const uniqueNames = Array.from(new Set(names)).sort((a, b) =>
+		a.localeCompare(b),
+	);
 
 	return uniqueNames.map((name) => ({
 		params: { name: encodeURIComponent(name) },
@@ -41,7 +44,8 @@ function normalize(value: string): string {
 }
 
 const requestedName = safeDecodeURIComponent(rawName);
-const project = (await import("../../../generated/docs.json")).default as TypeDocProject;
+const project = (await import("../../../generated/docs.json"))
+	.default as TypeDocProject;
 
 const wanted = normalize(requestedName);
 const all = flattenReflections(project);

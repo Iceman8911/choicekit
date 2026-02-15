@@ -1,7 +1,10 @@
 ---
 import type { ReferenceItem } from "../../../lib/typedoc-data";
-import { createReferenceItems, loadTypeDocProject } from "../../../lib/typedoc-data";
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import {
+	createReferenceItems,
+	loadTypeDocProject,
+} from "../../../lib/typedoc-data";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 
 const project = await loadTypeDocProject();
 const items = createReferenceItems(project);
