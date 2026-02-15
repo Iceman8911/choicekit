@@ -32,6 +32,7 @@ import type {
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
 import type { GenericSerializableObject } from "../types/shared";
+import { InMemoryPersistenceAdapter } from "../utils/persistence-adapters/in-memory";
 import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
@@ -47,6 +48,8 @@ const defaultConfig = {
 	loadOnStart: true,
 
 	maxStates: 100,
+
+	persistence: InMemoryPersistenceAdapter,
 
 	regenSeed: "passage",
 
@@ -562,8 +565,6 @@ class SugarboxEngine<
 		this.#emitCustomEvent(":deleteStart", { slot });
 
 		try {
-			SugarboxEngine.#assertPersistenceIsAvailable(persistence);
-
 			const saveSlotKey = this.#getStorageKey(saveSlot);
 
 			const deleted = await persistence.delete(saveSlotKey);
@@ -604,8 +605,6 @@ class SugarboxEngine<
 		| { type: "normal"; slot: number; data: SugarBoxSaveData<TVariables> }
 	> {
 		const { persistence } = this.#config;
-
-		SugarboxEngine.#assertPersistenceIsAvailable(persistence);
 
 		for await (const key of this.#getKeysOfPresentSaves()) {
 			const serializedSaveData = await persistence.get(key);
@@ -734,8 +733,6 @@ class SugarboxEngine<
 			saveSlot,
 			async () => {
 				const { persistence } = this.#config;
-
-				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
 
 				const saveSlotKey = this.#getStorageKey(saveSlot);
 
@@ -1059,8 +1056,6 @@ class SugarboxEngine<
 					compress: shouldCompressSave,
 				} = this.#config;
 
-				SugarboxEngine.#assertPersistenceIsAvailable(persistence);
-
 				const saveKey = this.#getStorageKey(saveSlot);
 
 				const saveData: typeof this._type.saveData = {
@@ -1201,16 +1196,6 @@ class SugarboxEngine<
 		return this.#getStateAtIndex(this.#index);
 	}
 
-	// Static methods (utility functions)
-
-	static #assertPersistenceIsAvailable(
-		persistence: SugarBoxConfig["persistence"],
-	): asserts persistence is NonNullable<SugarBoxConfig["persistence"]> {
-		if (!persistence) {
-			throw Error("Unable to save. No persistence adapter");
-		}
-	}
-
 	#assertSaveSlotIsValid(saveSlot: number): void {
 		const { saveSlots: MAX_SAVE_SLOTS } = this.#config;
 
@@ -1243,8 +1228,6 @@ class SugarboxEngine<
 	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarBoxSaveKey> {
 		const persistence = this.#config.persistence;
 
-		SugarboxEngine.#assertPersistenceIsAvailable(persistence);
-
 		const keys = await persistence.keys?.();
 
 		const autosaveKey = this.#getStorageKey();
@@ -1276,10 +1259,6 @@ class SugarboxEngine<
 	}
 
 	async #getMostRecentSave(): Promise<typeof this._type.saveData | null> {
-		const persistence = this.#config.persistence;
-
-		SugarboxEngine.#assertPersistenceIsAvailable(persistence);
-
 		let mostRecentSave: typeof this._type.saveData | null = null;
 
 		for await (const { data } of this.getSaves()) {
@@ -1542,8 +1521,6 @@ class SugarboxEngine<
 	async #saveAchievements(): Promise<void> {
 		const persistenceAdapter = this.#config.persistence;
 
-		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
-
 		const dataToStore = await compressStringIfApplicable(
 			JSON.stringify(this.#achievements),
 			this.#config.compress,
@@ -1557,8 +1534,6 @@ class SugarboxEngine<
 
 	async #loadAchievements(): Promise<void> {
 		const persistenceAdapter = this.#config.persistence;
-
-		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
 		const serializedAchievements = await persistenceAdapter.get(
 			this.#getStorageKey("achievements"),
@@ -1574,8 +1549,6 @@ class SugarboxEngine<
 	async #saveSettings(): Promise<void> {
 		const persistenceAdapter = this.#config.persistence;
 
-		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
-
 		const dataToStore = await compressStringIfApplicable(
 			JSON.stringify(this.#settings),
 			this.#config.compress,
@@ -1586,8 +1559,6 @@ class SugarboxEngine<
 
 	async #loadSettings(): Promise<void> {
 		const persistenceAdapter = this.#config.persistence;
-
-		SugarboxEngine.#assertPersistenceIsAvailable(persistenceAdapter);
 
 		const serializedSettings = await persistenceAdapter.get(
 			this.#getStorageKey("settings"),

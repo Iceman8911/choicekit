@@ -2,7 +2,7 @@
 
 - [ ] Figure out the best way for adding passages
 - [ ] trim down persistence assertions
-	- [ ] I'll likely be able to do this by exporting premade persistence adapters; In Memory, Local Storage, Session Storage, and IndexedDB, and use the In Memory one as default. 
+	- [x] I'll likely be able to do this by exporting premade persistence adapters; In Memory, Local Storage, Session Storage, and IndexedDB, and use the In Memory one as default. 
 - [x] compress achievements and settings
 - [x] only apply compression if it is enabled and the string is over 1kb
 - [ ] maybe tie autosaving to a custom setting instead of at the engine level
@@ -23,4 +23,4 @@
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
 - [ ] Consider using immer and it's patches for state management, since the current system may poorly perform for very large story state (e.g management sims)
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
-- [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from. 
+- [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.

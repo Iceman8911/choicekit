@@ -183,8 +183,11 @@ type SugarBoxConfig<
 	/** Optional cache adapter to use to speed up state fetching */
 	cache?: SugarBoxCacheAdapter<TSugarBoxVariables>;
 
-	/** Optional persistence adapter for saving support */
-	persistence?: SugarBoxPersistenceAdapter;
+	/** Optional persistence adapter for saving support.
+	 *
+	 * @default defaults to an imemory adapter
+	 */
+	persistence: SugarBoxPersistenceAdapter;
 
 	/** Optimization strategy for state change events.
 	 *
