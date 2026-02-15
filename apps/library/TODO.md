@@ -21,6 +21,7 @@
 	- [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [x] Consider making the passage names optionally strongly typed?
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
-- [ ] Consider using immer and it's patches for state management, since the current system may poorly perform for very large story state (e.g management sims)
+- [-] ~~Consider using immer and it's patches for state management, since the current system may poorly perform for very large story state (e.g management sims)~~
+  - No immer, cus it'll bloat up the bundle size real quick
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
