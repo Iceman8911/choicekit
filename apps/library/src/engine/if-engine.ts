@@ -188,7 +188,7 @@ type SugarBoxSaveMigrationMap<
  * Dispatches custom events that can be listened to with "addEventListener"
  */
 class SugarboxEngine<
-	TPassageData,
+	TPassageData = unknown,
 	TVariables extends GenericSerializableObject = GenericSerializableObject,
 	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
 	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
