@@ -229,9 +229,9 @@ class SugarboxEngine<
 
 	/** Achievements meant to be persisted across saves
 	 */
-	#achievements: TAchievementData;
+	#achievements!: TAchievementData;
 
-	readonly #config: typeof this._type.config;
+	#config!: typeof this._type.config;
 
 	#eventTarget = new EventTarget();
 
@@ -239,13 +239,13 @@ class SugarboxEngine<
 	 *
 	 * This is used to determine the current state of the engine.
 	 */
-	#index: number;
+	#index!: number;
 
 	/**  Contains the structure of stateful variables in the engine.
 	 *
 	 * Will not be modified after initialization.
 	 */
-	#initialState: Readonly<typeof this._type.state.complete>;
+	#initialState!: Readonly<typeof this._type.state.complete>;
 
 	/** Indexed by the passage id.
 	 *
@@ -262,7 +262,7 @@ class SugarboxEngine<
 
 	/** Settings data that is not tied to save data, like audio volume, font size, etc
 	 */
-	#settings: TSettingsData;
+	#settings!: TSettingsData;
 
 	/** Since recalculating the current state can be expensive */
 	#stateCache?: typeof this._type.adapter.cache;
@@ -271,62 +271,13 @@ class SugarboxEngine<
 	 *
 	 * This is also the "state history"
 	 */
-	#stateSnapshots: Array<typeof this._type.state.snapshot>;
-
-	// Constructor
+	#stateSnapshots!: Array<typeof this._type.state.snapshot>;
 
 	private constructor(
 		/** Must be unique to prevent conflicts */
 		name: string,
-		initialState:
-			| TVariables
-			| ((engine: typeof this._type.engine) => TVariables),
-		startPassage: typeof this._type.passage,
-		achievements: TAchievementData,
-		settings: TSettingsData,
-		config: Partial<typeof this._type.config>,
-		otherPassages: ReadonlyArray<typeof this._type.passage>,
 	) {
 		this.name = name;
-
-		const { cache, saveSlots, initialSeed = getRandomInteger() } = config;
-
-		this.#stateSnapshots = [{}];
-
-		this.#index = 0;
-
-		this.#achievements = achievements;
-
-		this.#settings = settings;
-
-		if (saveSlots && saveSlots < MINIMUM_SAVE_SLOTS)
-			throw Error(`Invalid number of save slots: ${saveSlots}`);
-
-		this.#config = { ...defaultConfig, ...config };
-
-		this.addPassages(startPassage, ...otherPassages);
-
-		if (cache) {
-			this.#stateCache = cache;
-		}
-
-		const isInitialStateCallback = initialState instanceof Function;
-
-		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
-		this.#initialState = {
-			...(isInitialStateCallback ? ({} as TVariables) : initialState),
-			$$id: startPassage.name,
-			$$seed: initialSeed,
-		};
-
-		// If the initial state is a function, call it with the engine instance
-		if (isInitialStateCallback) {
-			this.#initialState = {
-				...initialState(this),
-				$$id: startPassage.name,
-				$$seed: initialSeed,
-			};
-		}
 	}
 
 	/** Use this to initialize the engine */
@@ -410,6 +361,13 @@ class SugarboxEngine<
 			settings = {} as TSettingsData,
 		} = args;
 
+		// Merge config up-front so the constructor receives a fully-merged configuration
+		const mergedConfig = {
+			...defaultConfig,
+			...(config ?? {}),
+		} as SugarBoxConfig<TVariables>;
+		const { cache, saveSlots, initialSeed = getRandomInteger() } = mergedConfig;
+
 		const engine = new SugarboxEngine<
 			TPassageType,
 			TVariables,
@@ -417,7 +375,43 @@ class SugarboxEngine<
 			TAchievementData,
 			TPassageTag,
 			TPassageName
-		>(name, vars, startPassage, achievements, settings, config, otherPassages);
+		>(name);
+
+		// Perform the initialization that used to live in the constructor.
+		// This keeps the private constructor dumb and centralizes setup here.
+		engine.#stateSnapshots = [{}];
+		engine.#index = 0;
+		engine.#achievements = achievements;
+		engine.#settings = settings;
+
+		if (saveSlots && saveSlots < MINIMUM_SAVE_SLOTS)
+			throw Error(`Invalid number of save slots: ${saveSlots}`);
+
+		// Add passages and set cache if provided
+		engine.addPassages(startPassage, ...otherPassages);
+
+		if (cache) {
+			engine.#stateCache = cache;
+		}
+
+		const isInitialStateCallback = vars instanceof Function;
+
+		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
+		engine.#initialState = {
+			...(isInitialStateCallback ? ({} as TVariables) : vars),
+			$$id: startPassage.name,
+			$$seed: initialSeed,
+		} as Readonly<StateWithMetadata<TVariables>>;
+
+		// If the initial state is a function, call it with the engine instance
+		if (isInitialStateCallback) {
+			// `vars` is typed as possibly a callback; call it with the engine instance
+			engine.#initialState = {
+				...vars(engine),
+				$$id: startPassage.name,
+				$$seed: initialSeed,
+			} as Readonly<StateWithMetadata<TVariables>>;
+		}
 
 		engine.registerClasses(...(classes ?? []));
 
