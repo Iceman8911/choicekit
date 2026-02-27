@@ -220,10 +220,10 @@ type SugarBoxPassage<
 	/** Optional tags for querying this and related passages.
 	 *
 	 */
-	tags?: ReadonlyArray<TPassageTag>;
+	tags: ReadonlyArray<TPassageTag>;
 }>;
 
-type SugarBoxStorylet<TEngine extends SugarboxEngine<unknown>> = {
+type SugarBoxStorylet<TEngine extends SugarboxEngine> = {
 	name: string;
 	/** Higher priority = Earlier in the resulting array when querying for vaild storylets */
 	priority: number;
