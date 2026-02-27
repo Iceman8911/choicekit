@@ -1,6 +1,12 @@
 # TODO
 
 - [ ] Figure out the best way for adding passages
+
+## Engine Refactoring & Extensibility
+- [ ] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
+
+## Vars & Async
+- [ ] Make the "vars" possible callback async
 - [x] trim down persistence assertions
 	- [x] I'll likely be able to do this by exporting premade persistence adapters; In Memory, Local Storage, Session Storage, and IndexedDB, and use the In Memory one as default. 
 - [x] compress achievements and settings
