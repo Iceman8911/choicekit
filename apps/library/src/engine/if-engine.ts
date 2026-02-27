@@ -302,7 +302,7 @@ class SugarboxEngine<
 		if (isInitialStateCallback) {
 			// `vars` is typed as possibly a callback; call it with the engine instance
 			engine.#initialState = {
-				...vars({ prng: engine.random }),
+				...(await vars({ prng: engine.random })),
 				$$id: passages[0].name,
 				$$seed: initialSeed,
 			} as Readonly<StateWithMetadata<TGenerics["vars"]>>;

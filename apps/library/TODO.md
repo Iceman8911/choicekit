@@ -5,7 +5,7 @@
 ## HIGH PRIORITY
 
 - [ ] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
-- [ ] Make the "vars" possible callback async
+- [x] Make the "vars" possible callback async
 - [ ] Add Storylet support
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.

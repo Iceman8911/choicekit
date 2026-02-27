@@ -88,7 +88,9 @@ export class SugarboxEngineBuilder<
 
 	/** Set an object containing the variables to be used in the story via the engine */
 	withVars<const TVars extends TGenerics["vars"]>(
-		vars: TVars | ((init: SugarBoxEngineVariableInitData) => TVars),
+		vars:
+			| TVars
+			| ((init: SugarBoxEngineVariableInitData) => TVars | Promise<TVars>),
 	): SugarboxEngineBuilder<TGenerics & { [sbVars]: DeepWiden<TVars> }> {
 		this.#forceAddProp(sbVars, vars);
 

@@ -54,7 +54,9 @@ export interface SugarBoxEngineArguments<
 	 */
 	vars:
 		| TEngineGenerics["vars"]
-		| ((init: SugarBoxEngineVariableInitData) => TEngineGenerics["vars"]);
+		| ((
+				init: SugarBoxEngineVariableInitData,
+		  ) => TEngineGenerics["vars"] | Promise<TEngineGenerics["vars"]>);
 
 	/** All the passages to intialize asap.
 	 *

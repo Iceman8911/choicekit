@@ -6,11 +6,13 @@ describe(SugarboxEngine.name, () => {
 	it("should have strict types", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("Greg")
-			.withVars({
-				bar: 1,
-				baz: 2n,
-				foo: "",
-				nested: { barbaz: 3n, foobar: "1" },
+			.withVars(async ({ prng }) => {
+				return {
+					bar: prng,
+					baz: 2n,
+					foo: "",
+					nested: { barbaz: 3n, foobar: "1" },
+				};
 			})
 			.withPassages(
 				{
