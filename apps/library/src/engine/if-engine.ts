@@ -25,7 +25,6 @@ import type {
 	SugarBoxConfig,
 	SugarBoxExportData,
 	SugarBoxNormalSaveKey,
-	SugarBoxPassage,
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
 	SugarBoxSettingsKey,
@@ -37,8 +36,14 @@ import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
 } from "../utils/version";
+import type {
+	SugarBoxEngineArguments,
+	SugarBoxEngineGenerics,
+	SugarBoxSaveMigration,
+	SugarBoxSaveMigrationMap,
+} from "./_shared";
 
-const defaultConfig = {
+const DEFAULT_CONFIG = {
 	autoSave: false,
 
 	compress: true,
@@ -158,78 +163,39 @@ type SugarBoxEvents<TPassageData, TStateVariables, TAchievements, TSettings> = {
 	>;
 };
 
-type SugarBoxSaveMigration<
-	TOldSaveStructure,
-	TNewSaveStructure,
-	TNewVersion extends
-		SugarBoxSemanticVersionString = SugarBoxSemanticVersionString,
-> = {
-	/** Version that the save will be set to if the migration function works */
-	to: TNewVersion;
-
-	/** Function to be run on the old save data to migrate it to the given version */
-	migrater: (saveDataToMigrate: TOldSaveStructure) => TNewSaveStructure;
-};
-
-type SugarBoxSaveMigrationMap<
-	TOldSaveStructure,
-	TNewSaveStructure,
-	TOldVersion extends
-		SugarBoxSemanticVersionString = SugarBoxSemanticVersionString,
-	TNewVersion extends
-		SugarBoxSemanticVersionString = SugarBoxSemanticVersionString,
-> = Map<
-	TOldVersion,
-	SugarBoxSaveMigration<TOldSaveStructure, TNewSaveStructure, TNewVersion>
->;
-
 /** The main engine for Sugarbox that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
  */
 class SugarboxEngine<
-	TPassageData = unknown,
-	TVariables extends GenericSerializableObject = GenericSerializableObject,
-	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
-	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
-	TPassageTag extends string = string,
-	TPassageName extends string = string,
+	const TEngineGenerics extends SugarBoxEngineGenerics = SugarBoxEngineGenerics,
 > {
-	// Instance properties (public → protected → private)
-
 	/** Must be unique to prevent conflicts */
-	readonly name: string;
+	readonly name: TEngineGenerics["name"];
 
 	private declare _type: {
-		engine: SugarboxEngine<
-			TPassageData,
-			TVariables,
-			TSettingsData,
-			TAchievementData,
-			TPassageTag,
-			TPassageName
-		>;
-		passage: SugarBoxPassage<TPassageData, TPassageTag, TPassageName>;
-		config: SugarBoxConfig<TVariables>;
+		engine: SugarboxEngine<TEngineGenerics>;
+		passage: TEngineGenerics["passages"];
+		config: SugarBoxConfig<TEngineGenerics["vars"]>;
 		state: {
-			complete: StateWithMetadata<TVariables>;
-			snapshot: SnapshotWithMetadata<TVariables>;
+			complete: StateWithMetadata<TEngineGenerics["vars"]>;
+			snapshot: SnapshotWithMetadata<TEngineGenerics["vars"]>;
 		};
-		saveData: SugarBoxSaveData<TVariables>;
+		saveData: SugarBoxSaveData<TEngineGenerics["vars"]>;
 		adapter: {
-			cache: SugarBoxCacheAdapter<TVariables>;
+			cache: SugarBoxCacheAdapter<TEngineGenerics["vars"]>;
 		};
 		events: SugarBoxEvents<
-			SugarBoxPassage<TPassageData, TPassageTag>,
-			TVariables,
-			TAchievementData,
-			TSettingsData
+			TEngineGenerics["passages"],
+			TEngineGenerics["vars"],
+			TEngineGenerics["achievements"],
+			TEngineGenerics["settings"]
 		>;
 	};
 
 	/** Achievements meant to be persisted across saves
 	 */
-	#achievements!: TAchievementData;
+	#achievements!: TEngineGenerics["achievements"];
 
 	#config!: typeof this._type.config;
 
@@ -251,7 +217,10 @@ class SugarboxEngine<
 	 *
 	 * Each value is the passage data, which could be a html string, markdown string, regular string, or more complex things like a jsx component, etc.
 	 */
-	#passages = new Map<string, typeof this._type.passage>();
+	#passages = new Map<
+		typeof this._type.passage.name,
+		typeof this._type.passage
+	>();
 
 	/** Collection of migration functions to keep old saves up to date
 	 *
@@ -262,7 +231,7 @@ class SugarboxEngine<
 
 	/** Settings data that is not tied to save data, like audio volume, font size, etc
 	 */
-	#settings!: TSettingsData;
+	#settings!: TEngineGenerics["settings"];
 
 	/** Since recalculating the current state can be expensive */
 	#stateCache?: typeof this._type.adapter.cache;
@@ -280,102 +249,28 @@ class SugarboxEngine<
 		this.name = name;
 	}
 
-	/** Use this to initialize the engine */
-	static async init<
-		TPassageType,
-		TVariables extends GenericSerializableObject = GenericSerializableObject,
-		TSettingsData extends GenericSerializableObject = GenericSerializableObject,
-		TAchievementData extends GenericSerializableObject = Record<
-			string,
-			boolean
-		>,
-		TPassageTag extends string = string,
-		TPassageName extends string = string,
-	>(args: {
-		/** Name of the engine. Engines initalized with the same name have access to the same saves, acheivements, and story-specific settings */
-		name: string;
-
-		/** The initial set of variables to be uses as the starting state.
-		 *
-		 * May optionally be a callback in the case that the variables require data from the initialized engine (maybe, using the PRNG)
-		 */
-		vars:
-			| TVariables
-			| ((
-					engine: SugarboxEngine<
-						TPassageType,
-						TVariables,
-						TSettingsData,
-						TAchievementData,
-						TPassageTag,
-						TPassageName
-					>,
-			  ) => TVariables);
-
-		/** Starting passage */
-		startPassage: SugarBoxPassage<TPassageType, TPassageTag, TPassageName>;
-
-		/** Critical passages that must be available asap.
-		 *
-		 * The first argument is the passage id */
-		otherPassages: SugarBoxPassage<TPassageType, TPassageTag, TPassageName>[];
-
-		/** So you don't have to manually register classes for proper serialization / deserialization */
-		classes?: SugarboxClassConstructorWithValidSerialization[];
-
-		/** Achievements that should persist across saves */
-		achievements?: TAchievementData;
-
-		/** Settings data that is not tied to save data, like audio volume, font size, etc */
-		settings?: TSettingsData;
-
-		config?: Partial<SugarBoxConfig<TVariables>>;
-
-		/** If the engine had been intialised before with a lower version.
-		 *
-		 * Add migrations to this array to migrate the old save data to the new version.
-		 */
-		migrations?: {
-			from: SugarBoxSemanticVersionString;
-			data: SugarBoxSaveMigration<never, unknown>;
-		}[];
-	}): Promise<
-		SugarboxEngine<
-			TPassageType,
-			TVariables,
-			TSettingsData,
-			TAchievementData,
-			TPassageTag,
-			TPassageName
-		>
-	> {
+	static async init<const TGenerics extends SugarBoxEngineGenerics>(
+		args: Partial<SugarBoxEngineArguments<TGenerics>>,
+	): Promise<SugarboxEngine<TGenerics>> {
 		const {
-			config = defaultConfig,
-			name,
-			startPassage,
-			otherPassages,
-			classes,
-			migrations,
-			vars,
-			achievements = {} as TAchievementData,
-			settings = {} as TSettingsData,
+			config = { ...DEFAULT_CONFIG },
+			name = "",
+			passages = [{ data: "", name: "", tags: [] }],
+			classes = [],
+			migrations = [],
+			vars = {},
+			achievements = {},
+			settings = {},
 		} = args;
 
 		// Merge config up-front so the constructor receives a fully-merged configuration
 		const mergedConfig = {
-			...defaultConfig,
+			...DEFAULT_CONFIG,
 			...(config ?? {}),
-		} as SugarBoxConfig<TVariables>;
+		} as SugarBoxConfig<TGenerics["vars"]>;
 		const { cache, saveSlots, initialSeed = getRandomInteger() } = mergedConfig;
 
-		const engine = new SugarboxEngine<
-			TPassageType,
-			TVariables,
-			TSettingsData,
-			TAchievementData,
-			TPassageTag,
-			TPassageName
-		>(name);
+		const engine = new SugarboxEngine<TGenerics>(name);
 
 		// Perform the initialization that used to live in the constructor.
 		// This keeps the private constructor dumb and centralizes setup here.
@@ -388,7 +283,7 @@ class SugarboxEngine<
 			throw Error(`Invalid number of save slots: ${saveSlots}`);
 
 		// Add passages and set cache if provided
-		engine.addPassages(startPassage, ...otherPassages);
+		engine.addPassages(...passages);
 
 		if (cache) {
 			engine.#stateCache = cache;
@@ -398,19 +293,19 @@ class SugarboxEngine<
 
 		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
 		engine.#initialState = {
-			...(isInitialStateCallback ? ({} as TVariables) : vars),
-			$$id: startPassage.name,
+			...(isInitialStateCallback ? ({} as TGenerics["vars"]) : vars),
+			$$id: passages[0].name,
 			$$seed: initialSeed,
-		} as Readonly<StateWithMetadata<TVariables>>;
+		} as Readonly<StateWithMetadata<TGenerics["vars"]>>;
 
 		// If the initial state is a function, call it with the engine instance
 		if (isInitialStateCallback) {
 			// `vars` is typed as possibly a callback; call it with the engine instance
 			engine.#initialState = {
-				...vars(engine),
-				$$id: startPassage.name,
+				...vars({ prng: engine.random }),
+				$$id: passages[0].name,
 				$$seed: initialSeed,
-			} as Readonly<StateWithMetadata<TVariables>>;
+			} as Readonly<StateWithMetadata<TGenerics["vars"]>>;
 		}
 
 		engine.registerClasses(...(classes ?? []));
@@ -443,8 +338,8 @@ class SugarboxEngine<
 	 */
 	setVars(
 		producer:
-			| ((variables: TVariables) => void)
-			| ((variables: TVariables) => TVariables),
+			| ((variables: TEngineGenerics["vars"]) => void)
+			| ((variables: TEngineGenerics["vars"]) => TEngineGenerics["vars"]),
 		emitEvent = true,
 	): void {
 		const self = this;
@@ -476,7 +371,6 @@ class SugarboxEngine<
 			},
 		});
 
-		//@ts-expect-error <Missing properties will have their values thanks to the proxy but typescript can't know that>
 		const possibleValueToUseForReplacing = producer(proxy);
 
 		if (possibleValueToUseForReplacing) {
@@ -593,8 +487,12 @@ class SugarboxEngine<
 
 	/** Returns an object containing the data of all present saves */
 	async *getSaves(): AsyncGenerator<
-		| { type: "autosave"; data: SugarBoxSaveData<TVariables> }
-		| { type: "normal"; slot: number; data: SugarBoxSaveData<TVariables> }
+		| { type: "autosave"; data: SugarBoxSaveData<TEngineGenerics["vars"]> }
+		| {
+				type: "normal";
+				slot: number;
+				data: SugarBoxSaveData<TEngineGenerics["vars"]>;
+		  }
 	> {
 		for await (const key of this.#getKeysOfPresentSaves()) {
 			const serializedSaveData = await this.#persistenceAdapter.get(key);
@@ -625,18 +523,18 @@ class SugarboxEngine<
 			| {
 					/** Matches any passage that has all of the given tags */
 					type: "all";
-					tags: ReadonlyArray<TPassageTag>;
+					tags: [...TEngineGenerics["passages"]["tags"]];
 			  }
 			| {
 					/** Matches any passage that has at least one of the given tags */
 					type: "any";
-					tags: ReadonlyArray<TPassageTag>;
+					tags: [...TEngineGenerics["passages"]["tags"]];
 			  },
 	): ReadonlyArray<typeof this._type.passage> {
 		const matchedPasages: (typeof this._type.passage)[] = [];
 
 		const doesMatchPassageDataTags = (
-			tag: TPassageTag,
+			tag: TEngineGenerics["passages"]["tags"][number],
 			passageData: typeof this._type.passage,
 		) => !!passageData.tags?.includes(tag);
 
@@ -691,16 +589,13 @@ class SugarboxEngine<
 			async () => {
 				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
-				const {
-					achievements,
-					saveData,
-					settings,
-				}: SugarBoxExportData<TVariables, TSettingsData, TAchievementData> =
-					deserialize(jsonString) as SugarBoxExportData<
-						TVariables,
-						TSettingsData,
-						TAchievementData
-					>;
+				const { achievements, saveData, settings } = deserialize(
+					jsonString,
+				) as SugarBoxExportData<
+					TEngineGenerics["vars"],
+					TEngineGenerics["settings"],
+					TEngineGenerics["achievements"]
+				>;
 
 				// Replace the current state
 				this.loadSaveFromData(saveData);
@@ -955,7 +850,10 @@ class SugarboxEngine<
 	 *
 	 * @throws if a migration for the same version already exists
 	 */
-	registerMigrators<TOldSaveStructure, TNewSaveStructure = TVariables>(
+	registerMigrators<
+		TOldSaveStructure,
+		TNewSaveStructure = TEngineGenerics["vars"],
+	>(
 		...migrators: {
 			from: SugarBoxSemanticVersionString;
 			data: SugarBoxSaveMigration<TOldSaveStructure, TNewSaveStructure>;
@@ -999,9 +897,9 @@ class SugarboxEngine<
 				const { saveVersion, compress } = this.#config;
 
 				const exportData: SugarBoxExportData<
-					TVariables,
-					TSettingsData,
-					TAchievementData
+					TEngineGenerics["vars"],
+					TEngineGenerics["settings"],
+					TEngineGenerics["achievements"]
 				> = {
 					achievements: this.#achievements,
 					saveData: {
@@ -1070,7 +968,7 @@ class SugarboxEngine<
 
 	// Public getters (main API, read-only views)
 
-	get achievements(): Readonly<TAchievementData> {
+	get achievements(): Readonly<TEngineGenerics["achievements"]> {
 		return this.#achievements;
 	}
 
@@ -1084,8 +982,10 @@ class SugarboxEngine<
 	 */
 	async setAchievements(
 		producer:
-			| ((state: TAchievementData) => void)
-			| ((state: TAchievementData) => TAchievementData),
+			| ((state: TEngineGenerics["achievements"]) => void)
+			| ((
+					state: TEngineGenerics["achievements"],
+			  ) => TEngineGenerics["achievements"]),
 		emitEvent = true,
 	): Promise<void> {
 		const old = clone(this.#achievements);
@@ -1114,8 +1014,8 @@ class SugarboxEngine<
 	 */
 	async setSettings(
 		producer:
-			| ((state: TSettingsData) => void)
-			| ((state: TSettingsData) => TSettingsData),
+			| ((state: TEngineGenerics["settings"]) => void)
+			| ((state: TEngineGenerics["settings"]) => TEngineGenerics["settings"]),
 		emitEvent = true,
 	): Promise<void> {
 		const old = clone(this.#settings);
@@ -1152,7 +1052,7 @@ class SugarboxEngine<
 	}
 
 	/** Returns the id to the appropriate passage for the current state */
-	get passageId(): string {
+	get passageId(): (typeof this._type.passage)["name"] {
 		return this.vars.$$id;
 	}
 
@@ -1174,7 +1074,7 @@ class SugarboxEngine<
 		return randomNumber;
 	}
 
-	get settings(): Readonly<TSettingsData> {
+	get settings(): Readonly<TEngineGenerics["settings"]> {
 		return this.#settings;
 	}
 
@@ -1401,7 +1301,7 @@ class SugarboxEngine<
 		const state = clone<typeof this._type.state.complete>(this.#initialState);
 
 		for (let i = 0; i <= effectiveIndex; i++) {
-			let partialUpdateKey: keyof TVariables;
+			let partialUpdateKey: keyof TEngineGenerics["vars"];
 
 			const partialUpdate: typeof this._type.state.snapshot =
 				this.#getSnapshotAtIndex(i);

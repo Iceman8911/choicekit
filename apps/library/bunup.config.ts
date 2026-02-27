@@ -1,7 +1,9 @@
 import { defineConfig } from "bunup";
 
-export default defineConfig({
+const config = defineConfig({
 	entry: ["src/index.ts"],
 	format: ["esm", "cjs"],
 	noExternal: ["@packages/serializer", "@packages/string-compression"],
 });
+
+export default config as ReturnType<typeof defineConfig>;

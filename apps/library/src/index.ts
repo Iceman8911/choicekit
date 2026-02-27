@@ -2,7 +2,7 @@ import type {
 	SugarBoxClassConstructor,
 	SugarBoxClassInstance,
 } from "@packages/engine-class";
-import { SugarboxEngine } from "./engine/if-engine";
+import { SugarboxEngineBuilder } from "./engine/builder";
 import type {
 	SugarBoxCacheAdapter,
 	SugarBoxPersistenceAdapter,
@@ -19,7 +19,7 @@ import { LocalStoragePersistenceAdapter } from "./utils/persistence-adapters/loc
 import { SessionStoragePersistenceAdapter } from "./utils/persistence-adapters/session-storage";
 
 export {
-	SugarboxEngine,
+	SugarboxEngineBuilder,
 	type SugarBoxConfig,
 	type SugarBoxClassConstructor,
 	type SugarBoxClassInstance,
