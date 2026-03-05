@@ -30,7 +30,8 @@ import type {
 	SugarBoxSettingsKey,
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
-import type { GenericSerializableObject } from "../types/shared";
+import type { SugarboxPlugin } from "../types/plugin";
+import type { GenericObject, GenericSerializableObject } from "../types/shared";
 import { InMemoryPersistenceAdapter } from "../utils/persistence-adapters/in-memory";
 import {
 	isSaveCompatibleWithEngine,
@@ -172,6 +173,8 @@ class SugarboxEngine<
 > {
 	/** Must be unique to prevent conflicts */
 	readonly name: TEngineGenerics["name"];
+
+	$: GenericObject & TEngineGenerics["plugins"] = {};
 
 	private declare _type: {
 		engine: SugarboxEngine<TEngineGenerics>;
@@ -1474,6 +1477,135 @@ class SugarboxEngine<
 
 	get #persistenceAdapter() {
 		return this.#config.persistence;
+	}
+
+	/** Takes a plugin param and runs it's callback against the engine.
+	/** Registers and initializes a plugin, adding its functionality to the engine's `$` namespace.
+	 *
+	 * The return type tracks plugin mounting behavior at compile time:
+	 *
+	 * - **New namespace**: Plugin always mounts, returns engine with new plugin type
+	 * - **Existing namespace + "ignore"**: Plugin is NOT mounted, returns `this` (unchanged engine type)
+	 * - **Existing namespace + "override"**: Plugin replaces existing, returns engine with new plugin type
+	 * - **Existing namespace + "err"**: Runtime throws error, but compile-time shows success type
+	 *
+	 * @example
+	 * ```ts
+	 * const plugin = definePlugin({
+	 *   name: "math",
+	 *   onOverride: "err",
+	 *   init(engine, config: { multiplier: number }) {
+	 *     return { multiply: (x: number) => x * config.multiplier };
+	 *   }
+	 * });
+	 *
+	 * const enhanced = await engine.usePlugin(plugin, { multiplier: 2 });
+	 * enhanced.$.math.multiply(5); // 10 - fully typed!
+	 * ```
+	 *
+	 * @returns the engine after the plugin has been mounted (or unchanged if ignored)
+	 */
+	async usePlugin<const TPlugin extends SugarboxPlugin<any>>(
+		pluginToUse: TPlugin,
+		config: TPlugin extends SugarboxPlugin<infer TPluginGenerics>
+			? TPluginGenerics["config"]
+			: never,
+	): Promise<
+		// Extract plugin generics for use in return type
+		TPlugin extends SugarboxPlugin<infer TPluginGenerics>
+			? TPlugin["name"] extends keyof TEngineGenerics["plugins"]
+				? // Namespace already exists - check onOverride behavior
+					TPlugin["onOverride"] extends "ignore"
+					? // "ignore" mode: don't mount, return unchanged engine
+						this
+					: TPlugin["onOverride"] extends "override"
+						? // "override" mode: replace existing plugin with new mutations
+							SugarboxEngine<
+								TEngineGenerics & {
+									plugins: TEngineGenerics["plugins"] & {
+										[K in TPlugin["name"]]: TPluginGenerics["mutations"];
+									};
+								}
+							>
+						: // "err" mode: will throw at runtime, but type shows success
+							SugarboxEngine<
+								TEngineGenerics & {
+									plugins: TEngineGenerics["plugins"] & {
+										[K in TPlugin["name"]]: TPluginGenerics["mutations"];
+									};
+								}
+							>
+				: // Namespace is new - always mount the plugin
+					SugarboxEngine<
+						TEngineGenerics & {
+							plugins: TEngineGenerics["plugins"] & {
+								[K in TPlugin["name"]]: TPluginGenerics["mutations"];
+							};
+						}
+					>
+			: never
+	> {
+		const {
+			init,
+			name,
+			onOverride,
+			dependencies = [],
+		} = pluginToUse as SugarboxPlugin;
+
+		const activePluginUsingNameSpace = this.$[name];
+
+		const isNamespaceUsed = !!activePluginUsingNameSpace;
+
+		const applyPlugin = async () => {
+			let engine = this;
+
+			for (const [dependencyPlugin, dependencyConfig] of dependencies) {
+				try {
+					//@ts-expect-error Type schenanigans
+					engine = await engine.usePlugin(dependencyPlugin, dependencyConfig);
+				} catch (e) {
+					console.warn(
+						`Plugin ${dependencyPlugin.name} could not be mounted, perhaps it was already mounted?`,
+					);
+				}
+			}
+
+			//@ts-expect-error Type schenanigans
+			const mutations = await init(engine, config);
+
+			//@ts-expect-error Type schenanigans
+			engine.$[name] = mutations;
+
+			return engine;
+		};
+
+		switch (onOverride) {
+			case "err":
+				if (isNamespaceUsed)
+					throw Error(
+						`Plugin namespace '${name}' is already used by ${JSON.stringify(activePluginUsingNameSpace)}. Cannot mount plugin ${JSON.stringify(pluginToUse)}`,
+					);
+				else return applyPlugin() as any;
+			case "ignore":
+				if (isNamespaceUsed) {
+					console.warn(
+						`Plugin ${JSON.stringify(activePluginUsingNameSpace)} tried to override plugin ${JSON.stringify(pluginToUse)} on namespace ${name}, but it was ignored.`,
+					);
+					//@ts-expect-error Type narrowing for this in conditional return type
+					return this;
+				} else return applyPlugin() as any;
+			case "override": {
+				if (isNamespaceUsed) {
+					console.warn(
+						`Plugin ${JSON.stringify(activePluginUsingNameSpace)} has overriden plugin ${JSON.stringify(pluginToUse)} on namespace ${name}`,
+					);
+				}
+				return applyPlugin() as any;
+			}
+
+			default:
+				throw Error("Shouldn't be here.");
+		}
 	}
 }
 
