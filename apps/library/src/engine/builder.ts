@@ -1,31 +1,11 @@
+import type { SugarboxPlugin } from "../types/plugin";
+import type { GenericObject } from "../types/shared";
 import type {
 	SugarBoxEngineArguments,
 	SugarBoxEngineGenerics,
 	SugarBoxEngineVariableInitData,
 } from "./_shared";
 import { SugarboxEngine } from "./if-engine";
-
-type DeepWiden<T> = T extends string
-	? string
-	: T extends number
-		? number
-		: T extends bigint
-			? bigint
-			: T extends boolean
-				? boolean
-				: T extends symbol
-					? symbol
-					: T extends Function
-						? T
-						: T extends Array<infer U>
-							? Array<DeepWiden<U>>
-							: T extends object
-								? { [K in keyof T]: DeepWiden<T[K]> }
-								: T extends Set<infer U>
-									? Set<DeepWiden<U>>
-									: T extends Map<infer K, infer V>
-										? Map<DeepWiden<K>, DeepWiden<V>>
-										: T;
 
 type SugarBoxEngineArgumentKeys = keyof SugarBoxEngineArguments;
 
@@ -64,6 +44,7 @@ export class SugarboxEngineBuilder<
 > implements BuilderMethods
 {
 	#args: Partial<TArgs> = {};
+	#pluginsAndConfig: [SugarboxPlugin, GenericObject][] = [];
 
 	#forceAddProp(prop: SugarBoxEngineArgumentKeys, val: unknown) {
 		//@ts-expect-error tired of figthing ts
@@ -87,9 +68,9 @@ export class SugarboxEngineBuilder<
 	}
 
 	/** Set an object containing the variables to be used in the story via the engine */
-	withVars<const TVars extends TGenerics["vars"]>(
+	withVars<TVars extends TGenerics["vars"]>(
 		vars: TVars | ((init: SugarBoxEngineVariableInitData) => TVars),
-	): SugarboxEngineBuilder<TGenerics & { [sbVars]: DeepWiden<TVars> }> {
+	): SugarboxEngineBuilder<TGenerics & { [sbVars]: TVars }> {
 		this.#forceAddProp(sbVars, vars);
 
 		return this.#returnThis();
@@ -116,11 +97,9 @@ export class SugarboxEngineBuilder<
 	 *
 	 * Unlike the story variables, this is persisted seperately from saved states.
 	 */
-	withAchievements<const TAchievements extends TGenerics["achievements"]>(
+	withAchievements<TAchievements extends TGenerics["achievements"]>(
 		achievements: TAchievements,
-	): SugarboxEngineBuilder<
-		TGenerics & { [sbAchievements]: DeepWiden<TAchievements> }
-	> {
+	): SugarboxEngineBuilder<TGenerics & { [sbAchievements]: TAchievements }> {
 		this.#forceAddProp(sbAchievements, achievements);
 
 		return this.#returnThis();
@@ -130,9 +109,9 @@ export class SugarboxEngineBuilder<
 	 *
 	 * Unlike the story variables, this is persisted seperately from saved states.
 	 */
-	withSettings<const TSettings extends TGenerics["settings"]>(
+	withSettings<TSettings extends TGenerics["settings"]>(
 		settings: TSettings,
-	): SugarboxEngineBuilder<TGenerics & { [sbSettings]: DeepWiden<TSettings> }> {
+	): SugarboxEngineBuilder<TGenerics & { [sbSettings]: TSettings }> {
 		this.#forceAddProp(sbSettings, settings);
 
 		return this.#returnThis();
@@ -161,9 +140,39 @@ export class SugarboxEngineBuilder<
 		return this.#returnThis();
 	}
 
+	/** Register a plugin with its configuration.
+	 *
+	 * Call this method multiple times to register multiple plugins.
+	 * Each plugin's mutations will be properly typed and accumulated.
+	 */
+	withPlugin<
+		const TPlugin extends SugarboxPlugin<any>,
+		TPluginGenerics extends TPlugin extends SugarboxPlugin<infer G> ? G : never,
+		TExistingPlugins extends TGenerics extends { plugins: infer P } ? P : {},
+	>(
+		plugin: TPlugin,
+		config: TPluginGenerics["config"],
+	): SugarboxEngineBuilder<
+		Omit<TGenerics, "plugins"> & {
+			plugins: TExistingPlugins & {
+				[K in TPluginGenerics["namespace"]]: TPluginGenerics["mutations"];
+			};
+		}
+	> {
+		this.#pluginsAndConfig.push([plugin, config]);
+
+		return this.#returnThis();
+	}
+
 	/** Use the given configuration to create a new typesafe engine for use */
 	async build(): Promise<SugarboxEngine<TGenerics>> {
+		let engine = await SugarboxEngine.init(this.#args);
+
+		for (const [plugin, config] of this.#pluginsAndConfig) {
+			engine = await engine.usePlugin(plugin, config);
+		}
+
 		//@ts-expect-error Yeah, yeah, `#args` as a partial works here unless I do something stupid in `init` but that's what tests are for :D
-		return SugarboxEngine.init(this.#args);
+		return engine;
 	}
 }
