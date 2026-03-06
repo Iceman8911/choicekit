@@ -1,0 +1,22 @@
+{
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.5",
+		"@types/bun": "^1.1.15",
+		"typescript": "^5.9.3"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./map": "./src/map.ts",
+		"./weak-map": "./src/weak-map.ts"
+	},
+	"name": "@packages/polyfills",
+	"private": true,
+	"scripts": {
+		"build": "echo 'Add build script here'",
+		"dev": "echo 'Add dev script here'",
+		"format": "biome format ./ --write",
+		"lint": "biome lint ./ --write",
+		"test": "bun test"
+	},
+	"version": "0.0.0"
+}

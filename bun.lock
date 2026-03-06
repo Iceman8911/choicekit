@@ -30,24 +30,25 @@
       "name": "@apps/library",
       "version": "0.8.0",
       "dependencies": {
-        "@iceman8911/tiny-prng": "latest",
+        "@iceman8911/tiny-prng": "^0.1.2",
+        "@packages/polyfills": "workspace:*",
         "@packages/serializer": "workspace:*",
         "@packages/string-compression": "workspace:*",
       },
       "devDependencies": {
-        "@biomejs/biome": "latest",
-        "@commitlint/cli": "latest",
-        "@commitlint/config-conventional": "latest",
+        "@biomejs/biome": "^2.4.4",
+        "@commitlint/cli": "^20.4.2",
+        "@commitlint/config-conventional": "^20.4.2",
         "@packages/engine-class": "workspace:*",
-        "@stardazed/streams-polyfill": "latest",
-        "@types/bun": "latest",
-        "bumpp": "latest",
-        "bunup": "latest",
-        "husky": "latest",
-        "quick-lru": "latest",
-        "turbo": "latest",
-        "typedoc": "latest",
-        "typescript": "latest",
+        "@stardazed/streams-polyfill": "^2.4.0",
+        "@types/bun": "^1.3.9",
+        "bumpp": "^10.4.1",
+        "bunup": "^0.16.31",
+        "husky": "^9.1.7",
+        "quick-lru": "^7.3.0",
+        "turbo": "^2.8.12",
+        "typedoc": "^0.28.17",
+        "typescript": "^5.9.3",
       },
       "peerDependencies": {
         "typescript": ">=4.5.0",
@@ -61,6 +62,15 @@
       "version": "0.0.0",
       "devDependencies": {
         "@biomejs/biome": "^2.2.5",
+      },
+    },
+    "packages/polyfills": {
+      "name": "@packages/polyfills",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@biomejs/biome": "^2.2.5",
+        "@types/bun": "^1.1.15",
+        "typescript": "^5.9.3",
       },
     },
     "packages/serializer": {
@@ -404,6 +414,8 @@
     "@oxc-transform/binding-win32-x64-msvc": ["@oxc-transform/binding-win32-x64-msvc@0.93.0", "", { "os": "win32", "cpu": "x64" }, "sha512-6QN3DEaEw3eWioWEFRgNsTvYq8czYSnpkjB2za+/WdLN0g5FzOl2ZEfNiPrBWIPnSmjUmDWtWVWcSjwY7fX5/Q=="],
 
     "@packages/engine-class": ["@packages/engine-class@workspace:packages/engine-class"],
+
+    "@packages/polyfills": ["@packages/polyfills@workspace:packages/polyfills"],
 
     "@packages/serializer": ["@packages/serializer@workspace:packages/serializer"],
 
