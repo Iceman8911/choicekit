@@ -1,6 +1,7 @@
 {
 	"dependencies": {
 		"@iceman8911/tiny-prng": "^0.1.2",
+		"@packages/polyfills": "workspace:*",
 		"@packages/serializer": "workspace:*",
 		"@packages/string-compression": "workspace:*"
 	},
