@@ -31,6 +31,7 @@
       "version": "0.8.0",
       "dependencies": {
         "@iceman8911/tiny-prng": "^0.1.2",
+        "@packages/event-emitter": "workspace:*",
         "@packages/polyfills": "workspace:*",
         "@packages/serializer": "workspace:*",
         "@packages/string-compression": "workspace:*",

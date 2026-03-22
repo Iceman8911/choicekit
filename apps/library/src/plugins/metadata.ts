@@ -1,5 +1,6 @@
 import { definePlugin, type SugarboxPlugin } from "../types/plugin";
 import "@packages/polyfills/weak-map";
+import { TypedEventEmitter } from "@packages/event-emitter";
 import type { ReadonlyDeep } from "type-fest";
 import type { SugarboxEngine } from "../engine/if-engine";
 import { createStateSetter } from "../shared/utils/producers";
@@ -30,6 +31,8 @@ interface MetadataPluginNamespaceProps<
 		settings: StateSetter<TGenerics["settings"], "settingsChange">;
 		achievements: StateSetter<TGenerics["achievements"], "achievementChange">;
 	};
+	/** Event emitter object */
+	emitter: TypedEventEmitter<MetadataPluginEvents<TGenerics>>;
 }
 
 interface MetadataPluginConfig<
@@ -66,8 +69,13 @@ const metadataPlugin = definePlugin({
 		const privateProps = () =>
 			privateEngineProps.getOrInsert(engine, DEFAULT_PRIVATE_PROPS);
 
+		const emitter = new TypedEventEmitter<
+			MetadataPluginEvents<SharedGenerics>
+		>();
+
 		return {
 			achievements: privateProps().achievements,
+			emitter,
 			set: {
 				achievements: createStateSetter(privateProps().achievements),
 				settings: createStateSetter(privateProps().settings),
