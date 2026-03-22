@@ -65,6 +65,15 @@
         "@biomejs/biome": "^2.2.5",
       },
     },
+    "packages/event-emitter": {
+      "name": "@packages/event-emitter",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@biomejs/biome": "^2.2.5",
+        "@types/bun": "^1.1.15",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/polyfills": {
       "name": "@packages/polyfills",
       "version": "0.0.0",
@@ -415,6 +424,8 @@
     "@oxc-transform/binding-win32-x64-msvc": ["@oxc-transform/binding-win32-x64-msvc@0.93.0", "", { "os": "win32", "cpu": "x64" }, "sha512-6QN3DEaEw3eWioWEFRgNsTvYq8czYSnpkjB2za+/WdLN0g5FzOl2ZEfNiPrBWIPnSmjUmDWtWVWcSjwY7fX5/Q=="],
 
     "@packages/engine-class": ["@packages/engine-class@workspace:packages/engine-class"],
+
+    "@packages/event-emitter": ["@packages/event-emitter@workspace:packages/event-emitter"],
 
     "@packages/polyfills": ["@packages/polyfills@workspace:packages/polyfills"],
 
