@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "bun:test";
 import { SugarboxEngineBuilder } from "../../src/engine/builder";
-import { definePlugin } from "../../src/types/plugin";
+import { definePlugin } from "../plugins/plugin";
 
 describe("SugarboxEngineBuilder - Plugin Type Accumulation", () => {
 	it("should properly accumulate multiple plugin types in builder", async () => {

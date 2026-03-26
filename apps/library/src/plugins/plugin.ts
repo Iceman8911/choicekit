@@ -1,0 +1,309 @@
+import {
+	clone,
+	type TransformableOrJsonSerializableType,
+} from "@packages/serializer";
+import type { Merge, Promisable, ReadonlyDeep, SimplifyDeep } from "type-fest";
+import type { SugarboxEngine } from "../engine/if-engine";
+import type { GenericObject } from "../types/shared";
+import type { SugarBoxSemanticVersionString } from "../utils/version";
+
+type SugarboxPluginBehaviourOnOverride = "err" | "ignore" | "override";
+
+type SugarboxPlugins = ReadonlyArray<SugarboxPlugin>;
+
+type MapPluginsToPluginAndConfigTuple<TPlugins extends SugarboxPlugins> = {
+	[K in keyof TPlugins]: TPlugins[K] extends SugarboxPlugin
+		? {
+				readonly plugin: TPlugins[K];
+				readonly config: InferConfigFromPlugin<TPlugins[K]>;
+			}
+		: TPlugins[K];
+};
+type MapPluginsToApiRecord<TPlugins extends SugarboxPlugins> = {
+	readonly [KPlugin in TPlugins[number] as KPlugin extends SugarboxPlugin
+		? InferIdFromPlugin<KPlugin>
+		: never]: KPlugin extends SugarboxPlugin
+		? InferApiFromPlugin<KPlugin>
+		: never;
+};
+
+export interface SugarboxPluginInputGenerics {
+	/** Unique id / name / namespace.
+	 *
+	 * Only one plugin can be mounted at a time on the engine with the same id.
+	 *
+	 * NOTE: CHANGING THIS WILL BREAK PLUGIN SAVES
+	 */
+	readonly id: string;
+
+	/** Optional configuration exposed to users when your plugin should behave differently under situations */
+	readonly config?: GenericObject;
+
+	/** Optional internal state isolated to a single engine instance.
+	 *
+	 * Ideal since you'd otherwise have to fiddle with weakmaps for partitioned state
+	 */
+	readonly state?: GenericObject;
+
+	/** Optional engine structure that this plugin supports.
+	 *
+	 * You will likely not have to modify this.
+	 */
+	readonly engine?: SugarboxEngine;
+
+	/** All the public props and functionality the plugin will attach the given namespace on the engine */
+	readonly api?: GenericObject;
+
+	/** How the engine will resolve "conflicts" when multiple plugins try to mount onto the same namespace
+	 *
+	 * @default "err"
+	 */
+	readonly overrideBehaviour?: SugarboxPluginBehaviourOnOverride;
+
+	/** Optional external plugins this plugin needs to be mounted beforehand. */
+	readonly dependencies?: SugarboxPlugins;
+
+	/** Optional data shape if you need to persist some plugin state. */
+	readonly serializedState?: TransformableOrJsonSerializableType;
+}
+
+/** Typed helper for creating your plugin's generics with autocomplete on any competent IDE */
+export type ValidatePluginGenerics<
+	TGenerics extends SugarboxPluginInputGenerics,
+> = TGenerics;
+
+type InferIdFromPlugin<TPlugin extends SugarboxPlugin> = TPlugin["id"];
+type InferConfigFromPlugin<TPlugin extends SugarboxPlugin> =
+	TPlugin extends SugarboxPlugin<infer RGenerics>
+		? RGenerics["config"]
+		: SugarboxPluginInputGenerics["config"];
+type InferApiFromPlugin<TPlugin extends SugarboxPlugin> =
+	TPlugin extends SugarboxPlugin<infer RGenerics>
+		? RGenerics["api"]
+		: SugarboxPluginInputGenerics["api"];
+
+type NormalizeEngine<TEngine extends SugarboxEngine | undefined> =
+	undefined extends TEngine
+		? SugarboxEngine
+		: TEngine extends undefined
+			? SugarboxEngine
+			: TEngine;
+type NormalizeApi<TApi extends GenericObject | undefined> =
+	undefined extends TApi ? void : TApi extends undefined ? void : TApi;
+type NormalizeOverrideBehaviour<
+	TOverride extends SugarboxPluginBehaviourOnOverride | undefined,
+> = undefined extends TOverride
+	? "err"
+	: TOverride extends undefined
+		? "err"
+		: TOverride;
+type NormalizeDependencies<TDeps extends SugarboxPlugins | undefined> =
+	undefined extends TDeps ? readonly [] : TDeps extends undefined ? [] : TDeps;
+type NormalizeSerializedState<
+	TSerialized extends TransformableOrJsonSerializableType | undefined,
+> = undefined extends TSerialized
+	? never
+	: TSerialized extends undefined
+		? never
+		: TSerialized;
+
+type AddDependenciesToEngine<
+	TEngine extends SugarboxEngine,
+	TDeps extends SugarboxPlugins,
+> =
+	TEngine extends SugarboxEngine<infer REngineGenerics>
+		? SugarboxEngine<
+				REngineGenerics & {
+					plugins: Merge<
+						REngineGenerics["plugins"],
+						MapPluginsToApiRecord<TDeps>
+					>;
+				}
+			>
+		: SugarboxEngine;
+
+interface SugarboxPluginSerializeConfig<
+	TNormalState extends GenericObject | undefined,
+	TSerializedState extends TransformableOrJsonSerializableType,
+> {
+	/** Whether the plugin's save data should be stored and loaded alongside regular save data, or be stored and loaded with the export data.
+	 *
+	 * I.e. whether the state of this plugin should be influenced when a user loads a previous save.
+	 *
+	 * E.g. stuff like achievements and settings should not be affected when the user loads a previous state, so a plugin implementing these should set this to `false`.
+	 */
+	readonly withSave: boolean;
+
+	/** The method that serializes and returns the plugin's internal state.
+	 *
+	 * DO NOT MUTATE THE `state` ARGUMENT.
+	 */
+	method(
+		state: SimplifyDeep<ReadonlyDeep<TNormalState>>,
+	): Promisable<TSerializedState>;
+}
+
+interface BaseSugarboxPlugin<TGenerics extends SugarboxPluginInputGenerics> {
+	/** Serves as the unique namespace and id on the engine instance where all methods and functionality are mounted.
+	 *
+	 * All ids/namespaces are within an object `$`, e.g `engine.$.storylet`
+	 *
+	 * If multiple plugins have the same namespace, plugin instantiation throws.
+	 *
+	 * NOTE: CHANGING THIS WILL BREAK PLUGIN SAVES
+	 */
+	readonly id: TGenerics["id"];
+
+	/** How the engine should react when another plugin directly / indeirectly attempts to register itself on the same namespace.
+	 *
+	 * `err` - Keep original plugin, throw an error
+	 *
+	 * `ignore` - Keep original plugin, no error is thrown, but it is logged
+	 *
+	 * `override` - Override original plugin, no error is thrown, but it is logged
+	 *
+	 * @default "err"
+	 */
+	readonly onOverride?: NormalizeOverrideBehaviour<
+		TGenerics["overrideBehaviour"]
+	>;
+
+	/** Other plugins and their configs that must be loaded before hand.
+	 *
+	 * @default []
+	 */
+	readonly dependencies?: MapPluginsToPluginAndConfigTuple<
+		NormalizeDependencies<TGenerics["dependencies"]>
+	>;
+
+	/** Save data version for help with migrations.
+	 *
+	 * @default "0.0.1"
+	 */
+	version?: SugarBoxSemanticVersionString;
+}
+
+type ConditionalStatePluginExtension<
+	TGenerics extends SugarboxPluginInputGenerics,
+> = undefined extends TGenerics["state"]
+	? {}
+	: {
+			/** Use this to initialize any per-engine state, e.g. event targets for event stuff, private data, etc.
+			 *
+			 * Is called only once when the plugin is mounted to the engine.
+			 *
+			 * NOTE: This function must be PURE and must return a deep-copy (i.e. if this is called a 100 times, none of the results (or any of their descendant props) must be referentially equivalent).
+			 */
+			readonly initState: () => Promisable<TGenerics["state"]>;
+		};
+
+type ConditionalApiPluginExtension<
+	TGenerics extends SugarboxPluginInputGenerics,
+> = undefined extends TGenerics["api"]
+	? {}
+	: {
+			/** Use this to attach public functionality to the engine under the plugin's id/namespace.
+			 *
+			 * This is where the bulk of the plugin's functionality wil lie. Use this handler to setup listeners to events from the engine and / or other plugins.
+			 *
+			 * All dependencies will be loaded into the engine before this will ever be called.
+			 */
+			readonly initApi: (arg: {
+				engine: AddDependenciesToEngine<
+					NormalizeEngine<TGenerics["engine"]>,
+					NormalizeDependencies<TGenerics["dependencies"]>
+				>;
+				config: SimplifyDeep<ReadonlyDeep<TGenerics["config"]>>;
+				state: TGenerics["state"];
+			}) => Promisable<NormalizeApi<TGenerics["api"]>>;
+		};
+
+type ConditionalSerializedStatePluginExtension<
+	TGenerics extends SugarboxPluginInputGenerics,
+> = undefined extends TGenerics["serializedState"]
+	? {}
+	: {
+			/** If you need persistent state, implement this property. */
+			readonly serialize: SugarboxPluginSerializeConfig<
+				TGenerics["state"],
+				NormalizeSerializedState<TGenerics["serializedState"]>
+			>;
+
+			/**
+			 * This is called whenever the engine is triggered to load a save, matching `serialize?.withSave`'s behaviour.
+			 *
+			 * Use this for restoring the plugin's internal state.
+			 *
+			 * You can run save-data migrations here.
+			 *
+			 * @param data
+			 * @param version
+			 */
+			readonly onDeserialize: (arg: {
+				/** The result of `serialize?.method()` */
+				data: NormalizeSerializedState<TGenerics["serializedState"]>;
+
+				/** The version of the plugin that created the serialized state last.
+				 *
+				 * Useful for migrations
+				 */
+				version?: SugarBoxSemanticVersionString;
+
+				/** Internal state of the plugin that may be updated here.
+				 *
+				 * `NOTE`: Do not try to reassign this variable. Only mutate it's properties.
+				 */
+				state: TGenerics["state"];
+			}) => Promisable<void>;
+		};
+
+export type SugarboxPlugin<
+	TGenerics extends SugarboxPluginInputGenerics = SugarboxPluginInputGenerics,
+	TMode extends "input" | "output" = "input",
+> = ("input" extends TMode
+	? BaseSugarboxPlugin<TGenerics>
+	: /** Since *purely* optional properties will be supplied defaults, they can be assumed to be always be non optional after `definePlugin` is called */
+		Required<BaseSugarboxPlugin<TGenerics>>) &
+	ConditionalApiPluginExtension<TGenerics> &
+	ConditionalSerializedStatePluginExtension<TGenerics> &
+	ConditionalStatePluginExtension<TGenerics>;
+
+/** Has all the properties of a *complete* plugin but they're all optional, bar the `id`.
+ *
+ * Not exported to the public package.
+ */
+export type AnySugarboxPlugin = Partial<
+	SugarboxPlugin<
+		{
+			id: string;
+			config: {};
+			state: {};
+			engine: SugarboxEngine;
+			api: {};
+			overrideBehaviour: SugarboxPluginBehaviourOnOverride;
+			dependencies: SugarboxPlugins;
+			serializedState: {};
+		},
+		"output"
+	>
+> & { id: string };
+
+const PLUGIN_DEFAULTS = {
+	dependencies: [],
+	id: "",
+	onOverride: "err",
+	version: "0.0.1",
+} as const satisfies SugarboxPlugin;
+
+/** Small wrapper with a single object generic paramter for creating strongly-typed plugins.
+ *
+ * Applies defaults to missing properties.
+ */
+export function definePlugin<
+	const TInputGenerics extends SugarboxPluginInputGenerics,
+>(
+	plugin: SugarboxPlugin<TInputGenerics, "input">,
+): SugarboxPlugin<TInputGenerics, "output"> {
+	//@ts-expect-error Inference limitation
+	return Object.assign(clone(PLUGIN_DEFAULTS), plugin);
+}

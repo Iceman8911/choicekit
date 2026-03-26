@@ -1,0 +1,1 @@
+- Perhaps add an optional `migrations` property to the plugin interface.

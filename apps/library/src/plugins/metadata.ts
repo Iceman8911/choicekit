@@ -1,4 +1,4 @@
-import { definePlugin, type SugarboxPlugin } from "../types/plugin";
+import { definePlugin, type SugarboxPlugin } from "./plugin";
 import "@packages/polyfills/weak-map";
 import { TypedEventEmitter } from "@packages/event-emitter";
 import type { ReadonlyDeep } from "type-fest";

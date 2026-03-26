@@ -1,4 +1,4 @@
-import type { SugarboxPlugin } from "../types/plugin";
+import type { SugarboxPlugin } from "../plugins/plugin";
 import type { GenericObject } from "../types/shared";
 import type {
 	SugarBoxEngineArguments,

@@ -17,6 +17,7 @@ import {
 	compressStringIfApplicable,
 	decompressPossiblyCompressedJsonString,
 } from "@packages/string-compression";
+import type { SugarboxPlugin } from "../plugins/plugin";
 import type { SugarBoxCacheAdapter } from "../types/adapters";
 import type {
 	SugarBoxAchievementsKey,
@@ -30,7 +31,6 @@ import type {
 	SugarBoxSettingsKey,
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
-import type { SugarboxPlugin } from "../types/plugin";
 import type { GenericObject, GenericSerializableObject } from "../types/shared";
 import { InMemoryPersistenceAdapter } from "../utils/persistence-adapters/in-memory";
 import {
