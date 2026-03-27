@@ -17,7 +17,12 @@ import {
 	compressStringIfApplicable,
 	decompressPossiblyCompressedJsonString,
 } from "@packages/string-compression";
-import type { SugarboxPlugin } from "../plugins/plugin";
+import type { Promisable } from "type-fest";
+import type {
+	AnySugarboxPlugin,
+	SugarboxPlugin,
+	SugarboxPluginSaveStructure,
+} from "../plugins/plugin";
 import type { SugarBoxCacheAdapter } from "../types/adapters";
 import type {
 	SugarBoxAchievementsKey,
@@ -26,6 +31,7 @@ import type {
 	SugarBoxConfig,
 	SugarBoxExportData,
 	SugarBoxNormalSaveKey,
+	SugarBoxPluginSaveKey,
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
 	SugarBoxSettingsKey,
@@ -245,6 +251,9 @@ class SugarboxEngine<
 	 */
 	#stateSnapshots!: Array<typeof this._type.state.snapshot>;
 
+	#plugins: TEngineGenerics["plugins"] = {};
+	#pluginState: Record<string, GenericObject> = {};
+
 	private constructor(
 		/** Must be unique to prevent conflicts */
 		name: string,
@@ -317,12 +326,15 @@ class SugarboxEngine<
 
 		const { loadOnStart } = config;
 
+		// TODO: Mount plugins, THEN load their saves
+
 		// If there's any stored achievements or settings, load them in place of the data provided
 		// If the user want to empty the acheivements or settings, they can explicitly do so with the `set***()` methods
 		// Also load the most recent save if `loadOnStart` is true
 		await Promise.allSettled([
 			engine.#loadAchievements(),
 			engine.#loadSettings(),
+			engine.#loadPluginSaveDataFromStorageArea(),
 			loadOnStart ? engine.loadRecentSave() : Promise.resolve(),
 		]);
 
@@ -502,6 +514,7 @@ class SugarboxEngine<
 
 			if (!serializedSaveData) continue;
 
+			//@ts-expect-error Inference Limitation
 			const saveData: typeof this._type.saveData = deserialize(
 				await decompressPossiblyCompressedJsonString(serializedSaveData),
 			) as typeof this._type.saveData;
@@ -592,7 +605,8 @@ class SugarboxEngine<
 			async () => {
 				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
-				const { achievements, saveData, settings } = deserialize(
+				//@ts-expect-error Inference Limitation
+				const { achievements, saveData, settings, plugins } = deserialize(
 					jsonString,
 				) as SugarBoxExportData<
 					TEngineGenerics["vars"],
@@ -600,8 +614,10 @@ class SugarboxEngine<
 					TEngineGenerics["achievements"]
 				>;
 
+				await this.#loadPluginSaveDataFromRecord(plugins);
+
 				// Replace the current state
-				this.loadSaveFromData(saveData);
+				await this.loadSaveFromData(saveData);
 
 				this.#achievements = achievements;
 				this.#settings = settings;
@@ -632,7 +648,8 @@ class SugarboxEngine<
 				const jsonString =
 					await decompressPossiblyCompressedJsonString(serializedSaveData);
 
-				this.loadSaveFromData(
+				await this.loadSaveFromData(
+					//@ts-expect-error Inference Limitation
 					deserialize(jsonString) as typeof this._type.saveData,
 				);
 			},
@@ -647,7 +664,7 @@ class SugarboxEngine<
 			async () => {
 				const mostRecentSave = await this.#getMostRecentSave();
 
-				if (mostRecentSave) this.loadSaveFromData(mostRecentSave);
+				if (mostRecentSave) await this.loadSaveFromData(mostRecentSave);
 			},
 		);
 	}
@@ -660,8 +677,10 @@ class SugarboxEngine<
 	 *
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	loadSaveFromData(save: typeof this._type.saveData): void {
-		const { intialState, snapshots, storyIndex, saveVersion } = save;
+	async loadSaveFromData(save: typeof this._type.saveData): Promise<void> {
+		const { intialState, snapshots, storyIndex, saveVersion, plugins } = save;
+
+		await this.#loadPluginSaveDataFromRecord(plugins);
 
 		const oldPassage = this.passage;
 
@@ -773,6 +792,35 @@ class SugarboxEngine<
 			newPassage: this.passage,
 			oldPassage,
 		});
+	}
+
+	/** Using a record of serialized plugin save data, loads the mounted plugins with the save data in parallel
+	 *
+	 * @throws if the any plugin throws
+	 */
+	async #loadPluginSaveDataFromRecord(
+		pluginSaveData: Record<string, SugarboxPluginSaveStructure>,
+	): Promise<void> {
+		const loadingPromises: Promisable<void>[] = [];
+
+		for (const pluginId in pluginSaveData) {
+			const mountedPlugin = this.#plugins[pluginId];
+
+			if (!mountedPlugin) continue;
+
+			const { data, version } = pluginSaveData[pluginId]!;
+
+			//@ts-expect-error Inference Limitation
+			loadingPromises.push(
+				mountedPlugin.onDeserialize?.({
+					data,
+					state: this.#pluginState,
+					version,
+				}),
+			);
+		}
+
+		await Promise.all(loadingPromises);
 	}
 
 	/** Creates and moves the index over to a new snapshot with the given passage id (or the previous one) and returns a reference to it.
@@ -897,7 +945,7 @@ class SugarboxEngine<
 			"save",
 			"export",
 			async () => {
-				const { saveVersion, compress } = this.#config;
+				const { compress } = this.#config;
 
 				const exportData: SugarBoxExportData<
 					TEngineGenerics["vars"],
@@ -905,18 +953,12 @@ class SugarboxEngine<
 					TEngineGenerics["achievements"]
 				> = {
 					achievements: this.#achievements,
-					saveData: {
-						intialState: this.#initialState,
-						lastPassageId: this.passageId,
-
-						savedOn: new Date(),
-						saveVersion,
-						snapshots: this.#stateSnapshots,
-						storyIndex: this.#index,
-					},
+					plugins: await this.#getPluginSaveData(false),
+					saveData: await this.#getSaveData(),
 					settings: this.#settings,
 				};
 
+				//@ts-expect-error Inference Limitation
 				const stringifiedExportData = serialize(exportData);
 
 				const finalDataToExport = await compressStringIfApplicable(
@@ -940,23 +982,13 @@ class SugarboxEngine<
 			"save",
 			saveSlot,
 			async () => {
-				const {
-					persistence,
-					saveVersion,
-					compress: shouldCompressSave,
-				} = this.#config;
+				const { persistence, compress: shouldCompressSave } = this.#config;
 
 				const saveKey = this.#getStorageKey(saveSlot);
 
-				const saveData: typeof this._type.saveData = {
-					intialState: this.#initialState,
-					lastPassageId: this.passageId,
-					savedOn: new Date(),
-					saveVersion: saveVersion,
-					snapshots: this.#stateSnapshots,
-					storyIndex: this.#index,
-				};
+				const saveData = await this.#getSaveData();
 
+				//@ts-expect-error Inference Limitation
 				const stringifiedSaveData = serialize(saveData);
 
 				const dataToStore = await compressStringIfApplicable(
@@ -1098,23 +1130,59 @@ class SugarboxEngine<
 		}
 	}
 
-	/** Depending on the parameter, returns a key used for indexing specific data stored in the provided persistence */
+	// Some of these could be properties instead, but I like the consistency
+	#getAutoSaveStorageKey(): SugarBoxAutoSaveKey {
+		return `sugarbox-${this.name}-autosave`;
+	}
+
+	#getAchievementsStorageKey(): SugarBoxAchievementsKey {
+		return `sugarbox-${this.name}-achievements`;
+	}
+
+	#getSettingsStorageKey(): SugarBoxSettingsKey {
+		return `sugarbox-${this.name}-settings`;
+	}
+
+	#getPluginStorageKey(pluginId: string): SugarBoxPluginSaveKey {
+		return `sugarbox-${this.name}-plugin-${pluginId}` as const;
+	}
+
+	#getSaveSlotStorageKey(saveSlot: number): SugarBoxNormalSaveKey {
+		this.#assertSaveSlotIsValid(saveSlot);
+		return `sugarbox-${this.name}-slot${saveSlot}` as const;
+	}
+
+	/** Depending on the parameter, returns a key used for indexing specific data stored in the provided persistence.
+	 *
+	 * `undefined` results in the autosave.
+	 *
+	 * TODO: Maybe I should make it more explict????
+	 */
 	#getStorageKey(type?: "autosave"): SugarBoxAutoSaveKey;
 	#getStorageKey(type: "achievements"): SugarBoxAchievementsKey;
 	#getStorageKey(type: "settings"): SugarBoxSettingsKey;
+	#getStorageKey(type: "plugin", pluginId: string): SugarBoxPluginSaveKey;
 	#getStorageKey(type: number): SugarBoxNormalSaveKey;
 	#getStorageKey(type: number | undefined): SugarBoxSaveKey;
 	#getStorageKey(
-		type?: "autosave" | "achievements" | "settings" | number,
+		keyType?: "autosave" | "achievements" | "settings" | "plugin" | number,
+		possiblePluginId?: string,
 	): SugarBoxAnyKey {
-		const suffix =
-			typeof type === "number"
-				? (`slot${type}` as const)
-				: (type ?? "autosave");
+		if (typeof keyType === "undefined" || keyType === "autosave")
+			return this.#getAutoSaveStorageKey();
 
-		if (typeof type === "number") this.#assertSaveSlotIsValid(type);
+		if (typeof keyType === "number") {
+			return this.#getSaveSlotStorageKey(keyType);
+		}
 
-		return `sugarbox-${this.name}-${suffix}`;
+		switch (keyType) {
+			case "achievements":
+				return this.#getAchievementsStorageKey();
+			case "settings":
+				return this.#getSettingsStorageKey();
+			case "plugin":
+				return this.#getPluginStorageKey(possiblePluginId!);
+		}
 	}
 
 	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarBoxSaveKey> {
@@ -1124,10 +1192,10 @@ class SugarboxEngine<
 
 		const autosaveKey = this.#getStorageKey();
 
+		const saveSlotKeyPrefix = `sugarbox-${this.name}-slot` as const;
+
 		if (keys) {
 			// Filter out the keys that are not save slots
-			const saveSlotKeyPrefix = `sugarbox-${this.name}-slot` as const;
-
 			for (const key of keys) {
 				if (key.startsWith(saveSlotKeyPrefix) || key === autosaveKey) {
 					//@ts-expect-error TS doesn't know that the key is a SugarBoxSaveKey
@@ -1458,6 +1526,42 @@ class SugarboxEngine<
 		}
 	}
 
+	/** TODO: make this cleaner.
+	 * Using the plugin ids, attmepts to load all plugin data from their persistent partitions
+	 *
+	 * NOTE: `this.#plugins` must be populated before hand
+	 */
+	async #loadPluginSaveDataFromStorageArea() {
+		const plugins = this.#plugins;
+		const promises: Promise<void>[] = [];
+
+		for (const pluginId in plugins) {
+			promises.push(
+				(async () => {
+					const plugin = plugins[pluginId]!;
+
+					const storageKey = this.#getStorageKey("plugin", pluginId);
+					const stringifiedData =
+						await this.#persistenceAdapter.get(storageKey);
+
+					if (!stringifiedData) return;
+
+					const { data, version }: SugarboxPluginSaveStructure =
+						JSON.parse(stringifiedData);
+
+					//@ts-expect-error Inference Limitation
+					plugin.onDeserialize?.({
+						data,
+						state: this.#pluginState[pluginId]!,
+						version,
+					});
+				})(),
+			);
+		}
+
+		await Promise.all(promises);
+	}
+
 	get #currentStatePrngSeed(): number {
 		return this.vars.$$seed;
 	}
@@ -1477,6 +1581,18 @@ class SugarboxEngine<
 
 	get #persistenceAdapter() {
 		return this.#config.persistence;
+	}
+
+	async #getSaveData(): Promise<typeof this._type.saveData> {
+		return {
+			intialState: this.#initialState,
+			lastPassageId: this.passageId,
+			plugins: await this.#getPluginSaveData(true),
+			savedOn: new Date(),
+			saveVersion: this.#config.saveVersion,
+			snapshots: this.#stateSnapshots,
+			storyIndex: this.#index,
+		};
 	}
 
 	/** Takes a plugin param and runs it's callback against the engine.
@@ -1606,6 +1722,46 @@ class SugarboxEngine<
 			default:
 				throw Error("Shouldn't be here.");
 		}
+	}
+
+	// TODO: add tests for these
+	/** Plugin save data that should be stored with saves or outside of saves */
+	async #getPluginSaveData(
+		shouldBeBoundToSave: boolean,
+	): Promise<Record<string, SugarboxPluginSaveStructure>> {
+		const saveData: Record<string, SugarboxPluginSaveStructure> = {};
+
+		const pendingPromises: Promise<void>[] = [];
+
+		for (const pluginId in this.#plugins) {
+			const { serialize, version } = this.#plugins[pluginId]!;
+
+			if (!serialize) continue;
+
+			const { method, withSave } = serialize;
+
+			switch (shouldBeBoundToSave) {
+				case true:
+					if (!withSave) continue;
+					break;
+				case false:
+					if (withSave) continue;
+					break;
+			}
+
+			pendingPromises.push(
+				(async () => {
+					saveData[pluginId] = {
+						data: await method(this.#pluginState[pluginId]!),
+						version: version!,
+					};
+				})(),
+			);
+		}
+
+		await Promise.all(pendingPromises);
+
+		return saveData;
 	}
 }
 

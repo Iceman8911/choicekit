@@ -1,6 +1,11 @@
 import type { SugarboxClassConstructorWithValidSerialization } from "@packages/serializer";
+import {
+	type AnySugarboxPlugin,
+	SugarboxPlugin,
+	SugarboxPluginInputGenerics,
+} from "../plugins/plugin";
 import type { SugarBoxConfig, SugarBoxPassage } from "../types/if-engine";
-import type { GenericObject, GenericSerializableObject } from "../types/shared";
+import type { GenericSerializableObject } from "../types/shared";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 
 export type SugarBoxSaveMigration<
@@ -34,8 +39,8 @@ export interface SugarBoxEngineGenerics {
 	settings: GenericSerializableObject;
 	achievements: GenericSerializableObject;
 	name: string;
-	/** A map of namespaces and mutations done by plugins */
-	plugins: GenericObject;
+	/** A record of namespaces and plugins */
+	plugins: Record<string, AnySugarboxPlugin>;
 }
 
 /** Relevant data that can be made available for the variable intialization for the engine e.g PRNG */

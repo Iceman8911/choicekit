@@ -208,14 +208,32 @@ type ConditionalApiPluginExtension<
 			 *
 			 * All dependencies will be loaded into the engine before this will ever be called.
 			 */
-			readonly initApi: (arg: {
-				engine: AddDependenciesToEngine<
-					NormalizeEngine<TGenerics["engine"]>,
-					NormalizeDependencies<TGenerics["dependencies"]>
-				>;
-				config: SimplifyDeep<ReadonlyDeep<TGenerics["config"]>>;
-				state: TGenerics["state"];
-			}) => Promisable<NormalizeApi<TGenerics["api"]>>;
+			readonly initApi: (
+				arg: SimplifyDeep<
+					ReadonlyDeep<{
+						/** Sugarbox Engine for you to do all you need */
+						engine: AddDependenciesToEngine<
+							NormalizeEngine<TGenerics["engine"]>,
+							NormalizeDependencies<TGenerics["dependencies"]>
+						>;
+
+						/** User-provided config where applicable */
+						config: TGenerics["config"];
+
+						/** Mutable plugin state.
+						 *
+						 * Just mutate the props if you must.
+						 */
+						state: TGenerics["state"];
+
+						/** Tells the engine to immediately try saving this plugin's data to it's isolated storage area.
+						 *
+						 * Only useful if the plugin's save data isn't bounded to the actual story data, i.e `serialize.withSave` is `false`
+						 */
+						triggerSave: () => Promise<void>;
+					}>
+				>,
+			) => Promisable<NormalizeApi<TGenerics["api"]>>;
 		};
 
 type ConditionalSerializedStatePluginExtension<
@@ -287,6 +305,14 @@ export type AnySugarboxPlugin = Partial<
 		"output"
 	>
 > & { id: string };
+
+export interface SugarboxPluginSaveStructure<
+	TSerialized extends
+		TransformableOrJsonSerializableType = TransformableOrJsonSerializableType,
+> {
+	version: SugarBoxSemanticVersionString;
+	data: TSerialized;
+}
 
 const PLUGIN_DEFAULTS = {
 	dependencies: [],

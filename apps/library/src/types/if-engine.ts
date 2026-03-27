@@ -1,4 +1,5 @@
 import type { SugarboxEngine } from "../engine/if-engine";
+import type { SugarboxPluginSaveStructure } from "../plugins/plugin";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 import type {
 	SugarBoxCacheAdapter,
@@ -39,12 +40,15 @@ type SugarBoxAchievementsKey = `sugarbox-${string}-achievements`;
 
 type SugarBoxSettingsKey = `sugarbox-${string}-settings`;
 
+type SugarBoxPluginSaveKey = `sugarbox-${string}-plugin-${string}`;
+
 type SugarBoxSaveKey = SugarBoxAutoSaveKey | SugarBoxNormalSaveKey;
 
 type SugarBoxAnyKey =
 	| SugarBoxSaveKey
 	| SugarBoxAchievementsKey
-	| SugarBoxSettingsKey;
+	| SugarBoxSettingsKey
+	| SugarBoxPluginSaveKey;
 
 /** Data structure used for saving the state of the engine
  *
@@ -75,6 +79,11 @@ type SugarBoxSaveData<
 
 	/** The version of the story associated with this save */
 	saveVersion: SugarBoxSemanticVersionString;
+
+	/** Plugin data that should be altered / sync up when the user saves or loads save-data
+	 *
+	 * Indexed by the plugin's namespace */
+	plugins: Record<string, SugarboxPluginSaveStructure>;
 }>;
 
 /** Export data structure used for saving the state of the engine to disk.
@@ -96,6 +105,11 @@ type SugarBoxExportData<
 	 * So it can persist across saves and be used to track achievements.
 	 */
 	achievements: TAchievementData;
+
+	/** Plugin data that should be unaltered when the user saves or loads save-data
+	 *
+	 * Indexed by the plugin's namespace */
+	plugins: Record<string, SugarboxPluginSaveStructure>;
 };
 
 /**
@@ -244,6 +258,7 @@ export type {
 	SugarBoxNormalSaveKey,
 	SugarBoxAnyKey,
 	SugarBoxSaveKey,
+	SugarBoxPluginSaveKey,
 	SugarBoxSaveData,
 	SugarBoxExportData,
 	SugarBoxAchievementsKey,
