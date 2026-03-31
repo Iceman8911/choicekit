@@ -1,13 +1,11 @@
 import { defineConfig } from "bunup";
 
 const config = defineConfig({
-	entry: ["src/index.ts"],
+	entry: ["src/*.ts", "src/plugins/**/*.ts", "!src/plugins/**/*.test.ts"],
+	exports: true,
 	format: ["esm", "cjs"],
-	noExternal: [
-		"@packages/serializer",
-		"@packages/string-compression",
-		"@packages/polyfills",
-	],
+	packages: "bundle",
+	target: "browser",
 });
 
 export default config as ReturnType<typeof defineConfig>;

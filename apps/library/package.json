@@ -33,6 +33,37 @@
 				"default": "./dist/index.cjs",
 				"types": "./dist/index.d.cts"
 			}
+		},
+		"./package.json": "./package.json",
+		"./plugins/examples/achievements": {
+			"import": {
+				"default": "./dist/plugins/examples/achievements.js",
+				"types": "./dist/plugins/examples/achievements.d.ts"
+			},
+			"require": {
+				"default": "./dist/plugins/examples/achievements.cjs",
+				"types": "./dist/plugins/examples/achievements.d.cts"
+			}
+		},
+		"./plugins/examples/settings": {
+			"import": {
+				"default": "./dist/plugins/examples/settings.js",
+				"types": "./dist/plugins/examples/settings.d.ts"
+			},
+			"require": {
+				"default": "./dist/plugins/examples/settings.cjs",
+				"types": "./dist/plugins/examples/settings.d.cts"
+			}
+		},
+		"./plugins/plugin": {
+			"import": {
+				"default": "./dist/plugins/plugin.js",
+				"types": "./dist/plugins/plugin.d.ts"
+			},
+			"require": {
+				"default": "./dist/plugins/plugin.cjs",
+				"types": "./dist/plugins/plugin.d.cts"
+			}
 		}
 	},
 	"files": [
