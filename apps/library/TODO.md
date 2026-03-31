@@ -25,3 +25,6 @@
   - No immer, cus it'll bloat up the bundle size real quick
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
+- [ ] Allow Sugarbox class instances to provide a `.clone()` method for more efficient cloning, in comparison to the more expensive way of serializing and de-serializing.
+- [ ] Make types better.
+- [ ] Use `const` over `function` for better minifcation.
