@@ -9,7 +9,10 @@ import { SugarboxEngine } from "./if-engine";
 type SugarBoxEngineArgumentKeys = keyof SugarBoxEngineArguments;
 
 type BuilderMethods = Record<
-	`with${Capitalize<SugarBoxEngineArgumentKeys>}`,
+	// For clarity sake
+	"withPlugins" extends `with${Capitalize<SugarBoxEngineArgumentKeys>}`
+		? "withPlugin"
+		: `with${Capitalize<SugarBoxEngineArgumentKeys>}`,
 	(...args: any) => SugarboxEngineBuilder<any>
 >;
 
@@ -145,7 +148,7 @@ export class SugarboxEngineBuilder<
 	 * Call this method multiple times to register multiple plugins.
 	 * Each plugin's mutations will be properly typed and accumulated.
 	 */
-	withPlugins<const TPlugin extends SugarboxPlugin>(
+	withPlugin<const TPlugin extends SugarboxPlugin>(
 		plugin: TPlugin,
 		config: TPlugin extends SugarboxPlugin<infer RGenerics>
 			? RGenerics["config"]

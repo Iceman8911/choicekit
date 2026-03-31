@@ -35,7 +35,7 @@ describe("Achievements Plugin", () => {
 	it("should add the simple getter and setter to the engine on mount", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-achievements")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -52,7 +52,7 @@ describe("Achievements Plugin", () => {
 	it("should not apply achievement mutations if the producer throws", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-achievements")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -71,7 +71,7 @@ describe("Achievements Plugin", () => {
 	it("should allow listeners for achievement changes to be created", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-achievements")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -96,7 +96,7 @@ describe("Achievements Plugin", () => {
 	it("should allow listeners for achievement changes to be removed", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-achievements")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -132,7 +132,7 @@ describe("Achievements Plugin", () => {
 	it("should support deep updates to nested achievement state", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-deep-update")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -151,7 +151,7 @@ describe("Achievements Plugin", () => {
 	it("should allow multiple listeners and all should be called", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-multi-listener")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -176,7 +176,7 @@ describe("Achievements Plugin", () => {
 	it("should handle rapid consecutive updates and emit correct events", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-rapid-updates")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -208,7 +208,7 @@ describe("Achievements Plugin", () => {
 	it("should not allow off() to remove unrelated listeners", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-off-test")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();
@@ -237,7 +237,7 @@ describe("Achievements Plugin", () => {
 	it("should support interactive fiction style: unlock, progress, and reset achievements", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-if-style")
-			.withPlugins(simpleAchievementsplugin, {
+			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
 			})
 			.build();

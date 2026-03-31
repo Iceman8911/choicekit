@@ -34,7 +34,7 @@ describe("Settings Plugin", () => {
 	it("should add the simple getter and setter to the engine on mount", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-settings")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -51,7 +51,7 @@ describe("Settings Plugin", () => {
 	it("should not apply settings mutations if the producer throws", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-settings")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -70,7 +70,7 @@ describe("Settings Plugin", () => {
 	it("should allow listeners for settings changes to be created", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-settings")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -95,7 +95,7 @@ describe("Settings Plugin", () => {
 	it("should allow listeners for settings changes to be removed", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-with-simple-settings")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -131,7 +131,7 @@ describe("Settings Plugin", () => {
 	it("should support deep updates to nested settings state", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-deep-update")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -150,7 +150,7 @@ describe("Settings Plugin", () => {
 	it("should allow multiple listeners and all should be called", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-multi-listener")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -175,7 +175,7 @@ describe("Settings Plugin", () => {
 	it("should handle rapid consecutive updates and emit correct events", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-rapid-updates")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -207,7 +207,7 @@ describe("Settings Plugin", () => {
 	it("should not allow off() to remove unrelated listeners", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-off-test")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
@@ -236,7 +236,7 @@ describe("Settings Plugin", () => {
 	it("should support interactive fiction style: toggle, progress and reset settings", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-if-style")
-			.withPlugins(simpleSettingsPlugin, {
+			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
 			})
 			.build();
