@@ -1,5 +1,8 @@
 import type { SugarboxEngine } from "../engine/if-engine";
-import type { SugarboxPluginSaveStructure } from "../plugins/plugin";
+import type {
+	SugarboxPlugin,
+	SugarboxPluginSaveStructure,
+} from "../plugins/plugin";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 import type {
 	SugarBoxCacheAdapter,
@@ -120,6 +123,7 @@ type SugarBoxSaveVersionCompatiblityMode = "strict" | "liberal";
 type SugarBoxConfig<
 	TSugarBoxVariables extends
 		GenericSerializableObject = GenericSerializableObject,
+	TPlugins extends SugarboxPlugin[] = SugarboxPlugin[],
 > = {
 	/** Maximum number of individual states that will be stored before old ones get merged into each other */
 	maxStates: number;
@@ -220,6 +224,12 @@ type SugarBoxConfig<
 	 * @default "acc"
 	 */
 	emitMode?: "perf" | "acc";
+
+	/** Optional plugins to mount onto the engine.
+	 *
+	 * @default []
+	 */
+	plugins?: TPlugins;
 };
 
 type SugarBoxPassage<

@@ -48,7 +48,7 @@ describe(SugarboxEngine.name, () => {
 			onOverride: "err",
 		});
 
-		const enginePlusPlugin = await engine.usePlugin(testPlugin, {
+		const enginePlusPlugin = await engine.#usePlugin(testPlugin, {
 			bar: 1,
 			foo: "foo",
 		});
@@ -77,7 +77,7 @@ describe(SugarboxEngine.name, () => {
 			onOverride: "err",
 		} as const);
 
-		const engineWithTwoPlugins = await enginePlusPlugin.usePlugin(
+		const engineWithTwoPlugins = await enginePlusPlugin.#usePlugin(
 			secondPlugin,
 			{ multiplier: 10n },
 		);
@@ -107,7 +107,7 @@ describe(SugarboxEngine.name, () => {
 			onOverride: "ignore",
 		} as const);
 
-		const engineAfterIgnore = await enginePlusPlugin.usePlugin(ignorePlugin, {
+		const engineAfterIgnore = await enginePlusPlugin.#usePlugin(ignorePlugin, {
 			shouldBeIgnored: true,
 		});
 

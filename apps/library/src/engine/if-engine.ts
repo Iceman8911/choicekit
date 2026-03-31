@@ -19,7 +19,6 @@ import {
 } from "@packages/string-compression";
 import type { Promisable } from "type-fest";
 import type {
-	AnySugarboxPlugin,
 	SugarboxPlugin,
 	SugarboxPluginSaveStructure,
 } from "../plugins/plugin";
@@ -62,6 +61,8 @@ const DEFAULT_CONFIG = {
 	maxStates: 100,
 
 	persistence: InMemoryPersistenceAdapter,
+
+	plugins: [],
 
 	regenSeed: "passage",
 
@@ -170,6 +171,32 @@ type SugarBoxEvents<TPassageData, TStateVariables, TAchievements, TSettings> = {
 	>;
 };
 
+// type ApplyPluginsToEngineType<
+// 	TEngine extends SugarboxEngine,
+// 	TPlugins extends SugarBoxEngineGenerics["plugins"],
+// > =
+// 	TEngine extends SugarboxEngine<infer REngineGenerics>
+// 		? SugarboxEngine<
+// 				REngineGenerics & {
+// 					plugins: REngineGenerics["plugins"] & {
+// 						[KPlugin in TPlugins[number] as KPlugin extends AnySugarboxPlugin
+// 							? KPlugin["id"]
+// 							: never]: KPlugin;
+// 					};
+// 				}
+// 			>
+// 		: never;
+
+type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
+	[KPlugin in TPlugins[number] as KPlugin extends SugarboxPlugin
+		? KPlugin["id"]
+		: never]: "initApi" extends keyof KPlugin
+		? KPlugin["initApi"] extends (...args: any) => any
+			? Awaited<ReturnType<KPlugin["initApi"]>>
+			: never
+		: never;
+};
+
 /** The main engine for Sugarbox that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
@@ -180,12 +207,13 @@ class SugarboxEngine<
 	/** Must be unique to prevent conflicts */
 	readonly name: TEngineGenerics["name"];
 
-	$: GenericObject & TEngineGenerics["plugins"] = {};
+	//@ts-expect-error Inference Limitation
+	$: MapPluginsToApi<TEngineGenerics["plugins"]> = {};
 
 	private declare _type: {
 		engine: SugarboxEngine<TEngineGenerics>;
 		passage: TEngineGenerics["passages"];
-		config: SugarBoxConfig<TEngineGenerics["vars"]>;
+		config: SugarBoxConfig<TEngineGenerics["vars"], TEngineGenerics["plugins"]>;
 		state: {
 			complete: StateWithMetadata<TEngineGenerics["vars"]>;
 			snapshot: SnapshotWithMetadata<TEngineGenerics["vars"]>;
@@ -251,7 +279,7 @@ class SugarboxEngine<
 	 */
 	#stateSnapshots!: Array<typeof this._type.state.snapshot>;
 
-	#plugins: TEngineGenerics["plugins"] = {};
+	#plugins: Record<string, SugarboxPlugin> = {};
 	#pluginState: Record<string, GenericObject> = {};
 
 	private constructor(
@@ -280,9 +308,13 @@ class SugarboxEngine<
 			...DEFAULT_CONFIG,
 			...(config ?? {}),
 		} as SugarBoxConfig<TGenerics["vars"]>;
-		const { cache, saveSlots, initialSeed = getRandomInteger() } = mergedConfig;
 
-		const engine = new SugarboxEngine<TGenerics>(name);
+		mergedConfig.initialSeed ??= getRandomInteger();
+
+		const { cache, saveSlots, initialSeed } = mergedConfig;
+
+		const engine = new SugarboxEngine(name);
+		engine.#config = mergedConfig;
 
 		// Perform the initialization that used to live in the constructor.
 		// This keeps the private constructor dumb and centralizes setup here.
@@ -324,9 +356,15 @@ class SugarboxEngine<
 
 		engine.registerMigrators(...(migrations ?? []));
 
-		const { loadOnStart } = config;
+		// Mount plugins that were provided during initialization (if any).
+		const initPlugins = args.plugins ?? [];
+		for (const entry of initPlugins) {
+			const { plugin: pluginToUse, config: pluginConfig } = entry;
 
-		// TODO: Mount plugins, THEN load their saves
+			await engine.#usePlugin(pluginToUse, pluginConfig);
+		}
+
+		const { loadOnStart } = config;
 
 		// If there's any stored achievements or settings, load them in place of the data provided
 		// If the user want to empty the acheivements or settings, they can explicitly do so with the `set***()` methods
@@ -335,7 +373,7 @@ class SugarboxEngine<
 			engine.#loadAchievements(),
 			engine.#loadSettings(),
 			engine.#loadPluginSaveDataFromStorageArea(),
-			loadOnStart ? engine.loadRecentSave() : Promise.resolve(),
+			loadOnStart ? engine.loadRecentSave() : "",
 		]);
 
 		return engine;
@@ -810,7 +848,6 @@ class SugarboxEngine<
 
 			const { data, version } = pluginSaveData[pluginId]!;
 
-			//@ts-expect-error Inference Limitation
 			loadingPromises.push(
 				mountedPlugin.onDeserialize?.({
 					data,
@@ -1526,37 +1563,86 @@ class SugarboxEngine<
 		}
 	}
 
+	#assertPluginExists(pluginId: string): SugarboxPlugin {
+		const plugin = this.#plugins[pluginId];
+
+		if (!plugin) throw Error(`Plugin ''${pluginId}'' has not been mounted.`);
+
+		return plugin;
+	}
+
+	async #getPluginState(pluginId: string): Promise<GenericObject | null> {
+		const plugin = this.#assertPluginExists(pluginId);
+
+		const state = this.#pluginState[pluginId];
+
+		if (state) return state;
+
+		const newState = await plugin.initState?.();
+
+		if (newState) {
+			this.#pluginState[pluginId] = newState;
+
+			return newState;
+		}
+
+		return null;
+	}
+
+	/** Only useful for plguins that shouldn't store their state with story data */
+	async #savePluginDataToStoragePartition(pluginId: string): Promise<void> {
+		const plugin = this.#assertPluginExists(pluginId);
+		const pluginState = await this.#getPluginState(pluginId);
+
+		if (!pluginState) {
+			console.warn(
+				`Cannot save data for plugin ''${pluginId}'' since no such state exists.`,
+			);
+			return;
+		}
+
+		const { method, withSave } = plugin.serialize ?? {};
+
+		if (!method || withSave == null || withSave === true) {
+			return;
+		}
+
+		const serializableState = await method(pluginState);
+
+		const key = this.#getPluginStorageKey(pluginId);
+
+		await this.#persistenceAdapter.set(key, serialize(serializableState));
+	}
+
+	async #loadPluginDataFromStoragePartition(pluginId: string): Promise<void> {
+		const plugin = this.#assertPluginExists(pluginId);
+
+		const storageKey = this.#getPluginStorageKey(pluginId);
+		const stringifiedData = await this.#persistenceAdapter.get(storageKey);
+
+		if (!stringifiedData) return;
+
+		const { data, version }: SugarboxPluginSaveStructure = deserialize(
+			stringifiedData,
+		) as unknown as SugarboxPluginSaveStructure;
+
+		await plugin.onDeserialize?.({
+			data,
+			state: this.#pluginState[pluginId],
+			version,
+		});
+	}
+
 	/** TODO: make this cleaner.
-	 * Using the plugin ids, attmepts to load all plugin data from their persistent partitions
+	 * Using the plugin ids, attempts to load all plugin data from their persistent partitions
 	 *
 	 * NOTE: `this.#plugins` must be populated before hand
 	 */
 	async #loadPluginSaveDataFromStorageArea() {
-		const plugins = this.#plugins;
 		const promises: Promise<void>[] = [];
 
-		for (const pluginId in plugins) {
-			promises.push(
-				(async () => {
-					const plugin = plugins[pluginId]!;
-
-					const storageKey = this.#getStorageKey("plugin", pluginId);
-					const stringifiedData =
-						await this.#persistenceAdapter.get(storageKey);
-
-					if (!stringifiedData) return;
-
-					const { data, version }: SugarboxPluginSaveStructure =
-						JSON.parse(stringifiedData);
-
-					//@ts-expect-error Inference Limitation
-					plugin.onDeserialize?.({
-						data,
-						state: this.#pluginState[pluginId]!,
-						version,
-					});
-				})(),
-			);
+		for (const pluginId in this.#plugins) {
+			promises.push(this.#loadPluginDataFromStoragePartition(pluginId));
 		}
 
 		await Promise.all(promises);
@@ -1595,102 +1681,55 @@ class SugarboxEngine<
 		};
 	}
 
-	/** Takes a plugin param and runs it's callback against the engine.
-	/** Registers and initializes a plugin, adding its functionality to the engine's `$` namespace.
-	 *
-	 * The return type tracks plugin mounting behavior at compile time:
-	 *
-	 * - **New namespace**: Plugin always mounts, returns engine with new plugin type
-	 * - **Existing namespace + "ignore"**: Plugin is NOT mounted, returns `this` (unchanged engine type)
-	 * - **Existing namespace + "override"**: Plugin replaces existing, returns engine with new plugin type
-	 * - **Existing namespace + "err"**: Runtime throws error, but compile-time shows success type
-	 *
-	 * @example
-	 * ```ts
-	 * const plugin = definePlugin({
-	 *   name: "math",
-	 *   onOverride: "err",
-	 *   init(engine, config: { multiplier: number }) {
-	 *     return { multiply: (x: number) => x * config.multiplier };
-	 *   }
-	 * });
-	 *
-	 * const enhanced = await engine.usePlugin(plugin, { multiplier: 2 });
-	 * enhanced.$.math.multiply(5); // 10 - fully typed!
-	 * ```
-	 *
-	 * @returns the engine after the plugin has been mounted (or unchanged if ignored)
-	 */
-	async usePlugin<const TPlugin extends SugarboxPlugin<any>>(
-		pluginToUse: TPlugin,
-		config: TPlugin extends SugarboxPlugin<infer TPluginGenerics>
-			? TPluginGenerics["config"]
-			: never,
-	): Promise<
-		// Extract plugin generics for use in return type
-		TPlugin extends SugarboxPlugin<infer TPluginGenerics>
-			? TPlugin["name"] extends keyof TEngineGenerics["plugins"]
-				? // Namespace already exists - check onOverride behavior
-					TPlugin["onOverride"] extends "ignore"
-					? // "ignore" mode: don't mount, return unchanged engine
-						this
-					: TPlugin["onOverride"] extends "override"
-						? // "override" mode: replace existing plugin with new mutations
-							SugarboxEngine<
-								TEngineGenerics & {
-									plugins: TEngineGenerics["plugins"] & {
-										[K in TPlugin["name"]]: TPluginGenerics["mutations"];
-									};
-								}
-							>
-						: // "err" mode: will throw at runtime, but type shows success
-							SugarboxEngine<
-								TEngineGenerics & {
-									plugins: TEngineGenerics["plugins"] & {
-										[K in TPlugin["name"]]: TPluginGenerics["mutations"];
-									};
-								}
-							>
-				: // Namespace is new - always mount the plugin
-					SugarboxEngine<
-						TEngineGenerics & {
-							plugins: TEngineGenerics["plugins"] & {
-								[K in TPlugin["name"]]: TPluginGenerics["mutations"];
-							};
-						}
-					>
-			: never
-	> {
+	/** Mounts and initializes a plugin */
+	async #usePlugin(
+		pluginToUse: SugarboxPlugin,
+		config?: GenericObject,
+	): Promise<void> {
 		const {
-			init,
-			name,
+			id,
+			initApi,
+			initState,
 			onOverride,
 			dependencies = [],
-		} = pluginToUse as SugarboxPlugin;
+		} = pluginToUse;
 
-		const activePluginUsingNameSpace = this.$[name];
+		const activePluginUsingNameSpace: SugarboxPlugin | undefined =
+			//@ts-expect-error Inference Limitation
+			this.$[id];
 
 		const isNamespaceUsed = !!activePluginUsingNameSpace;
 
 		const applyPlugin = async () => {
-			let engine = this;
+			const engine = this;
 
-			for (const [dependencyPlugin, dependencyConfig] of dependencies) {
+			engine.#plugins[id] = pluginToUse;
+
+			for (const { config: depConfig, plugin: depPlugin } of dependencies) {
 				try {
-					//@ts-expect-error Type schenanigans
-					engine = await engine.usePlugin(dependencyPlugin, dependencyConfig);
-				} catch (e) {
+					await engine.#usePlugin(depPlugin, depConfig);
+				} catch {
 					console.warn(
-						`Plugin ${dependencyPlugin.name} could not be mounted, perhaps it was already mounted?`,
+						`Plugin ${depPlugin.id} could not be mounted, perhaps it was already mounted?`,
 					);
 				}
 			}
 
-			//@ts-expect-error Type schenanigans
-			const mutations = await init(engine, config);
+			const intialPluginState = (await initState?.()) ?? {};
+			this.#pluginState[id] = intialPluginState;
+
+			const mutations =
+				(await initApi?.({
+					config,
+					engine,
+					state: intialPluginState,
+					async triggerSave() {
+						await engine.#savePluginDataToStoragePartition(id);
+					},
+				})) ?? {};
 
 			//@ts-expect-error Type schenanigans
-			engine.$[name] = mutations;
+			engine.$[id] = mutations;
 
 			return engine;
 		};
@@ -1699,24 +1738,27 @@ class SugarboxEngine<
 			case "err":
 				if (isNamespaceUsed)
 					throw Error(
-						`Plugin namespace '${name}' is already used by ${JSON.stringify(activePluginUsingNameSpace)}. Cannot mount plugin ${JSON.stringify(pluginToUse)}`,
+						`Plugin namespace '${id}' is already used by ${JSON.stringify(activePluginUsingNameSpace)}. Cannot mount plugin ${JSON.stringify(pluginToUse)}`,
 					);
-				else return applyPlugin() as any;
+				else await applyPlugin();
+				break;
 			case "ignore":
 				if (isNamespaceUsed) {
 					console.warn(
-						`Plugin ${JSON.stringify(activePluginUsingNameSpace)} tried to override plugin ${JSON.stringify(pluginToUse)} on namespace ${name}, but it was ignored.`,
+						`Plugin ${JSON.stringify(activePluginUsingNameSpace)} tried to override plugin ${JSON.stringify(pluginToUse)} on namespace ${id}, but it was ignored.`,
 					);
 					//@ts-expect-error Type narrowing for this in conditional return type
 					return this;
-				} else return applyPlugin() as any;
+				} else await applyPlugin();
+				break;
 			case "override": {
 				if (isNamespaceUsed) {
 					console.warn(
-						`Plugin ${JSON.stringify(activePluginUsingNameSpace)} has overriden plugin ${JSON.stringify(pluginToUse)} on namespace ${name}`,
+						`Plugin ${JSON.stringify(activePluginUsingNameSpace)} has overriden plugin ${JSON.stringify(pluginToUse)} on namespace ${id}`,
 					);
 				}
-				return applyPlugin() as any;
+				await applyPlugin();
+				break;
 			}
 
 			default:
