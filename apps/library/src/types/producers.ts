@@ -1,8 +1,9 @@
+import type { TypedEventEmitter } from "@packages/event-emitter";
 import type { TransformableOrJsonSerializableType } from "@packages/serializer";
 import type { ReadonlyDeep } from "type-fest";
 
 /** Generic type helper for creating producers */
-export type Producer<TData> = (state: TData) => void | TData | Promise<TData>;
+export type Producer<TData> = (state: TData) => void | TData;
 
 /** Generic type helper for creating state setters which take in a producer, run it, and store the state changes, alongside optionally emitting an event.
  *
@@ -14,8 +15,6 @@ export type StateSetter<
 > = (arg: {
 	/** Producer to update the data */
 	producer: Producer<TData>;
-	/** For updating the outer scope reference of the pssed in value */
-	updater: (updatedVal: TData) => void;
 	/** Event-related config */
 	event?:
 		| {
@@ -24,15 +23,12 @@ export type StateSetter<
 				/** Name of the event */
 				name: TEventName;
 				/** Event dispatcher and listener */
-				target: EventTarget;
+				emitter: TypedEventEmitter<{
+					[K in TEventName]: { new: TData; old: TData };
+				}>;
 		  }
 		| {
 				/** Do not emit the event (default) */
 				emit?: false;
 		  };
-	/** Extra stuff to run after the producer has been called  */
-	onEnd?: (
-		oldData: ReadonlyDeep<TData>,
-		newData: ReadonlyDeep<TData>,
-	) => Promise<void>;
-}) => Promise<void>;
+}) => [oldData: ReadonlyDeep<TData>, newData: ReadonlyDeep<TData>];

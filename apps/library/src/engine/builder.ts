@@ -1,5 +1,4 @@
 import type { SugarboxPlugin } from "../plugins/plugin";
-import type { GenericObject } from "../types/shared";
 import type {
 	SugarBoxEngineArguments,
 	SugarBoxEngineGenerics,
@@ -11,7 +10,7 @@ type SugarBoxEngineArgumentKeys = keyof SugarBoxEngineArguments;
 
 type BuilderMethods = Record<
 	`with${Capitalize<SugarBoxEngineArgumentKeys>}`,
-	(...args: any) => SugarboxEngineBuilder<SugarBoxEngineGenerics>
+	(...args: any) => SugarboxEngineBuilder<any>
 >;
 
 const {
@@ -23,6 +22,7 @@ const {
 	passages: sbPassages,
 	settings: sbSettings,
 	vars: sbVars,
+	plugins: sbPlugins,
 } = {
 	achievements: "achievements",
 	classes: "classes",
@@ -30,6 +30,7 @@ const {
 	migrations: "migrations",
 	name: "name",
 	passages: "passages",
+	plugins: "plugins",
 	settings: "settings",
 	vars: "vars",
 } as const satisfies { [K in SugarBoxEngineArgumentKeys]: K };
@@ -44,7 +45,6 @@ export class SugarboxEngineBuilder<
 > implements BuilderMethods
 {
 	#args: Partial<TArgs> = {};
-	#pluginsAndConfig: [SugarboxPlugin, GenericObject][] = [];
 
 	#forceAddProp(prop: SugarBoxEngineArgumentKeys, val: unknown) {
 		//@ts-expect-error tired of figthing ts
@@ -145,34 +145,27 @@ export class SugarboxEngineBuilder<
 	 * Call this method multiple times to register multiple plugins.
 	 * Each plugin's mutations will be properly typed and accumulated.
 	 */
-	withPlugin<
-		const TPlugin extends SugarboxPlugin<any>,
-		TPluginGenerics extends TPlugin extends SugarboxPlugin<infer G> ? G : never,
-		TExistingPlugins extends TGenerics extends { plugins: infer P } ? P : {},
-	>(
+	withPlugins<const TPlugin extends SugarboxPlugin>(
 		plugin: TPlugin,
-		config: TPluginGenerics["config"],
+		config: TPlugin extends SugarboxPlugin<infer RGenerics>
+			? RGenerics["config"]
+			: never,
 	): SugarboxEngineBuilder<
-		Omit<TGenerics, "plugins"> & {
-			plugins: TExistingPlugins & {
-				[K in TPluginGenerics["namespace"]]: TPluginGenerics["mutations"];
-			};
-		}
+		TGenerics & { plugins: [...TGenerics["plugins"], TPlugin] }
 	> {
-		this.#pluginsAndConfig.push([plugin, config]);
+		const pluginsAndConfigs: TArgs["plugins"] = this.#args.plugins ?? [];
+
+		pluginsAndConfigs.push({ config, plugin });
+
+		this.#forceAddProp(sbPlugins, pluginsAndConfigs);
 
 		return this.#returnThis();
 	}
 
 	/** Use the given configuration to create a new typesafe engine for use */
 	async build(): Promise<SugarboxEngine<TGenerics>> {
-		let engine = await SugarboxEngine.init(this.#args);
+		const engine = await SugarboxEngine.init(this.#args);
 
-		for (const [plugin, config] of this.#pluginsAndConfig) {
-			engine = await engine.usePlugin(plugin, config);
-		}
-
-		//@ts-expect-error Yeah, yeah, `#args` as a partial works here unless I do something stupid in `init` but that's what tests are for :D
 		return engine;
 	}
 }

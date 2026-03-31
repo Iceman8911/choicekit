@@ -4,40 +4,43 @@ import type { GenericSerializableObject } from "../../types/shared";
 import { makeReadonly } from "./type-cast";
 
 export function createStateSetter<
+	TPropName extends string,
 	TData extends GenericSerializableObject,
 	TEventName extends string,
->(internalStateToUpdate: TData): StateSetter<TData, TEventName> {
-	return async ({ producer, updater, event, onEnd }) => {
+>(
+	objectWithPropToMutate: { [K in TPropName]: TData },
+	propName: TPropName,
+): StateSetter<TData, TEventName> {
+	let internalStateToUpdate: TData = objectWithPropToMutate[propName];
+
+	return ({ producer, event }) => {
 		const oldInternalState = clone(internalStateToUpdate);
 
 		try {
 			/** Run the producer on the internal state. If a non-void result is returned, use that to additionally overwrite the state */
-			const producerResult = await producer(internalStateToUpdate);
+			const producerResult = producer(internalStateToUpdate);
 
 			if (producerResult !== undefined) {
-				// BUG: this breaks references and won't propagate changes to the source object :p
 				internalStateToUpdate = producerResult;
 			}
 
-			updater(internalStateToUpdate);
+			objectWithPropToMutate[propName] = internalStateToUpdate;
 		} catch (e) {
 			// Rollback changes and rethrow
-			updater(oldInternalState);
+			objectWithPropToMutate[propName] = oldInternalState;
 
 			throw e;
 		}
 
+		const clonedNewState = clone(internalStateToUpdate);
+
 		if (event?.emit) {
-			event.target.dispatchEvent(
-				new CustomEvent(event.name, {
-					detail: { new: internalStateToUpdate, old: oldInternalState },
-				}),
-			);
+			event.emitter.emit(event.name, {
+				new: clonedNewState,
+				old: oldInternalState,
+			});
 		}
 
-		await onEnd?.(
-			makeReadonly(oldInternalState),
-			makeReadonly(internalStateToUpdate),
-		);
+		return [makeReadonly(oldInternalState), makeReadonly(clonedNewState)];
 	};
 }

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "bun:test";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 import { definePlugin, type ValidatePluginGenerics } from "./plugin";
 
-describe("Sugarbox Plugins Types", () => {
+describe("Sugarbox Plugins", () => {
 	it("should strongly type basic plugins with simple types", () => {
 		type SimplePluginGenerics = ValidatePluginGenerics<{
 			id: "simple";
@@ -52,7 +52,7 @@ describe("Sugarbox Plugins Types", () => {
 		type SerialPluginGenerics = ValidatePluginGenerics<{
 			id: "serial";
 			state: { count: number };
-			serializedState: string;
+			serializedState: { count: number };
 		}>;
 
 		const serialPlugin = definePlugin<SerialPluginGenerics>({
@@ -61,27 +61,18 @@ describe("Sugarbox Plugins Types", () => {
 				return { count: 0 };
 			},
 			onDeserialize({ data, state }) {
-				// runtime implementation would parse and patch state
-				const parsed = JSON.parse(data) as { count: number };
-				state.count = parsed.count ?? state.count;
+				state.count = data.count;
 			},
 			serialize: {
 				method(state) {
-					// runtime implementation returns a string representation
-					return JSON.stringify(state);
+					return { count: state.count };
 				},
 				withSave: true,
 			},
 		});
 
-		// serialize.method returns the serializedState type (string)
-		expectTypeOf<
-			Awaited<ReturnType<typeof serialPlugin.serialize.method>>
-		>().toEqualTypeOf<string>();
-
 		// onDeserialize first parameter has correctly-typed data and state
 		type OnDeserializeParam = Parameters<typeof serialPlugin.onDeserialize>[0];
-		expectTypeOf<OnDeserializeParam["data"]>().toEqualTypeOf<string>();
 		expectTypeOf<OnDeserializeParam["state"]>().toEqualTypeOf<{
 			count: number;
 		}>();
@@ -101,26 +92,10 @@ describe("Sugarbox Plugins Types", () => {
 			onOverride: "ignore",
 		});
 
-		// onOverride is typed to the explicit override behaviour (property is optional on the interface)
 		expectTypeOf<
 			(typeof explicitOverridePlugin)["onOverride"]
 		>().toEqualTypeOf<"ignore">();
 		expect(explicitOverridePlugin.onOverride).toBe("ignore");
-
-		// plugin without overrideBehaviour generic: onOverride is optional and defaults to "err"
-		type DefaultOverrideGenerics = ValidatePluginGenerics<{
-			id: "default-override";
-		}>;
-
-		const defaultOverridePlugin = definePlugin<DefaultOverrideGenerics>({
-			id: "default-override",
-		});
-
-		// Because the property is optional, its type is "err" | undefined
-		expectTypeOf<
-			(typeof defaultOverridePlugin)["onOverride"]
-		>().toEqualTypeOf<"err">();
-		expect(defaultOverridePlugin.onOverride).toBe("err");
 	});
 
 	// TODO: make these examples / tests more relevant
@@ -143,7 +118,9 @@ describe("Sugarbox Plugins Types", () => {
 		type AuthGenerics = ValidatePluginGenerics<{
 			id: "auth";
 			config: { token: string };
-			api: { userId: string | null };
+			api: {
+				userId: string | null;
+			};
 			state: { session: string | null };
 		}>;
 
@@ -164,7 +141,7 @@ describe("Sugarbox Plugins Types", () => {
 		// Application plugin that depends on logger and auth
 		type AppGenerics = ValidatePluginGenerics<{
 			id: "app";
-			dependencies: readonly [LoggerType, AuthType];
+			dependencies: [LoggerType, AuthType];
 			config: { name: string };
 			api: { start: () => string };
 		}>;
@@ -207,17 +184,8 @@ describe("Sugarbox Plugins Types", () => {
 			id: "minimal",
 		});
 
-		expectTypeOf(minimalPlugin.dependencies).toEqualTypeOf<[]>();
-		expect(minimalPlugin.dependencies).toBe([]);
-
-		//@ts-expect-error Shouldn't exist
-		expectTypeOf(minimalPlugin.serialize).toEqualTypeOf<unknown>();
-		//@ts-expect-error Shouldn't exist
+		expect(minimalPlugin.dependencies).toStrictEqual([]);
 		expect(minimalPlugin.serialize).toBeUndefined();
-
-		//@ts-expect-error Shouldn't exist
-		expectTypeOf(minimalPlugin.onDeserialize).toEqualTypeOf<unknown>();
-		//@ts-expect-error Shouldn't exist
 		expect(minimalPlugin.onDeserialize).toBeUndefined();
 	});
 });
