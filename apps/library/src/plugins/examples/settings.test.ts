@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import { SugarboxEngineBuilder } from "../../engine/builder";
 import type { ExpandType } from "../../types/shared";
-import { createSettingsPlugin } from "./settings";
+import createSettingsPlugin from "./settings";
 
 function createSimpleSettings() {
 	return {

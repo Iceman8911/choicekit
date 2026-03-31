@@ -51,9 +51,9 @@ type SettingsPluginGenerics<TData extends GenericSerializableObject> =
 		dependencies: [];
 	}>;
 
-export const createSettingsPlugin = <TData extends GenericSerializableObject>(
-	data: TData,
-): SugarboxPlugin<SettingsPluginGenerics<ExpandType<TData>>> => {
+export default function createSettingsPlugin<
+	TData extends GenericSerializableObject,
+>(data: TData): SugarboxPlugin<SettingsPluginGenerics<ExpandType<TData>>> {
 	return definePlugin({
 		id: "settings",
 		initApi({ config, state, triggerSave }) {
@@ -108,4 +108,4 @@ export const createSettingsPlugin = <TData extends GenericSerializableObject>(
 			withSave: false,
 		},
 	});
-};
+}

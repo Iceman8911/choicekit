@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import { SugarboxEngineBuilder } from "../../engine/builder";
 import type { ExpandType } from "../../types/shared";
-import { createAchievementsPlugin } from "./achievements";
+import createAchievementsPlugin from "./achievements";
 
 function createSimpleAchievements() {
 	return {
