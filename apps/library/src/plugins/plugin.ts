@@ -193,7 +193,7 @@ type ConditionalStatePluginExtension<
 		 *
 		 * NOTE: This function must be PURE and must return a deep-copy (i.e. if this is called a 100 times, none of the results (or any of their descendant props) must be referentially equivalent).
 		 */
-		readonly initState: () => Promisable<NormalizeState<TGenerics["state"]>>;
+		initState(): Promisable<NormalizeState<TGenerics["state"]>>;
 	}
 >;
 
@@ -208,7 +208,7 @@ type ConditionalApiPluginExtension<
 		 *
 		 * All dependencies will be loaded into the engine before this will ever be called.
 		 */
-		readonly initApi: (
+		initApi(
 			arg: {
 				/** Sugarbox Engine for you to do all you need */
 				engine: AddDependenciesToEngine<
@@ -220,7 +220,7 @@ type ConditionalApiPluginExtension<
 				 *
 				 * Only useful if the plugin's save data isn't bounded to the actual story data, i.e `serialize.withSave` is `false`
 				 */
-				triggerSave: () => Promise<void>;
+				triggerSave(): Promise<void>;
 			} & (undefined extends TGenerics["config"]
 				? {
 						/** No config provided */
@@ -242,7 +242,7 @@ type ConditionalApiPluginExtension<
 							 */
 							state: TGenerics["state"];
 						}),
-		) => Promisable<NormalizeApi<TGenerics["api"]>>;
+		): Promisable<NormalizeApi<TGenerics["api"]>>;
 	}
 >;
 
@@ -267,7 +267,7 @@ type ConditionalSerializedStatePluginExtension<
 		 * @param data
 		 * @param version
 		 */
-		readonly onDeserialize: (
+		onDeserialize(
 			arg: {
 				/** The result of `serialize?.method()` */
 				data: NormalizeSerializedState<TGenerics["serializedState"]>;
@@ -289,7 +289,7 @@ type ConditionalSerializedStatePluginExtension<
 						 */
 						state: TGenerics["state"];
 					}),
-		) => Promisable<void>;
+		): Promisable<void>;
 	}
 >;
 

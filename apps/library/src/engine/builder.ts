@@ -172,3 +172,4 @@ export class SugarboxEngineBuilder<
 		return engine;
 	}
 }
+// todo, make ts infer a method as `never` if it's been called.
