@@ -194,6 +194,7 @@ class SugarboxEngine<
 			snapshot: SnapshotWithMetadata<TEngineGenerics["vars"]>;
 		};
 		saveData: SugarBoxSaveData<TEngineGenerics["vars"]>;
+		exportData: SugarBoxExportData<TEngineGenerics["vars"]>;
 		adapter: {
 			cache: SugarBoxCacheAdapter<TEngineGenerics["vars"]>;
 		};
@@ -604,10 +605,7 @@ class SugarboxEngine<
 				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
 				//@ts-expect-error Inference Limitation
-				const {
-					saveData,
-					plugins,
-				}: SugarBoxExportData<TEngineGenerics["vars"]> =
+				const { saveData, plugins }: typeof this._type.exportData =
 					deserialize(jsonString);
 
 				await this.#loadPluginSaveDataFromRecord(plugins);
@@ -942,7 +940,7 @@ class SugarboxEngine<
 			async () => {
 				const { compress } = this.#config;
 
-				const exportData: SugarBoxExportData<TEngineGenerics["vars"]> = {
+				const exportData: typeof this._type.exportData = {
 					plugins: await this.#getPluginSaveData(false),
 					saveData: await this.#getSaveData(),
 				};
