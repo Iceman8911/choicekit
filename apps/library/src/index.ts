@@ -19,17 +19,17 @@ import { LocalStoragePersistenceAdapter } from "./utils/persistence-adapters/loc
 import { SessionStoragePersistenceAdapter } from "./utils/persistence-adapters/session-storage";
 
 export {
-	SugarboxEngineBuilder,
-	type SugarBoxConfig,
-	type SugarBoxClassConstructor,
-	type SugarBoxClassInstance,
-	type SugarBoxAnyKey,
-	type SugarBoxPersistenceAdapter,
-	type SugarBoxCacheAdapter,
-	type SugarBoxExportData,
-	type SugarBoxSaveData,
+	IndexedDbPersistenceAdapter,
 	InMemoryPersistenceAdapter,
 	LocalStoragePersistenceAdapter,
 	SessionStoragePersistenceAdapter,
-	IndexedDbPersistenceAdapter,
+	type SugarBoxAnyKey,
+	type SugarBoxCacheAdapter,
+	type SugarBoxClassConstructor,
+	type SugarBoxClassInstance,
+	type SugarBoxConfig,
+	type SugarBoxExportData,
+	type SugarBoxPersistenceAdapter,
+	type SugarBoxSaveData,
+	SugarboxEngineBuilder,
 };

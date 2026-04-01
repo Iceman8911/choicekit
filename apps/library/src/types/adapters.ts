@@ -34,6 +34,6 @@ type SugarBoxPersistenceAdapter = PersistenceAdapter<SugarBoxAnyKey, string>;
 export type {
 	CacheAdapter as GenericCacheAdapter,
 	PersistenceAdapter as GenericPersistenceAdapter,
-	SugarBoxPersistenceAdapter,
 	SugarBoxCacheAdapter,
+	SugarBoxPersistenceAdapter,
 };

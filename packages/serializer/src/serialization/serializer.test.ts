@@ -1,8 +1,8 @@
+import { describe, expect, test } from "bun:test";
 import type {
 	SugarBoxClassConstructor,
 	SugarBoxClassInstance,
 } from "@packages/engine-class";
-import { describe, expect, test } from "vitest";
 import {
 	deserialize,
 	registerClass,

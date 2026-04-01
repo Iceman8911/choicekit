@@ -57,7 +57,7 @@ const isSaveCompatibleWithEngine = (
 };
 
 export {
-	type SemanticVersionTuple as SugarBoxSemanticVersionTuple,
-	type SemanticVersionString as SugarBoxSemanticVersionString,
 	isSaveCompatibleWithEngine,
+	type SemanticVersionString as SugarBoxSemanticVersionString,
+	type SemanticVersionTuple as SugarBoxSemanticVersionTuple,
 };

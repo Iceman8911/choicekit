@@ -4,7 +4,8 @@
 // - The state is the combination of the initial state and all partial updates (up to a specified index).
 // - A partial update only contains changes to the state, not the entire state.
 // - The current state snapshot is the last state in the list, which is mutable.
- 
+
+import { PRNG } from "@iceman8911/tiny-prng";
 import {
 	clone,
 	deserialize,
@@ -44,7 +45,6 @@ import type {
 	SugarBoxSaveMigration,
 	SugarBoxSaveMigrationMap,
 } from "./_shared";
-import { PRNG } from "@iceman8911/tiny-prng";
 
 const DEFAULT_CONFIG = {
 	autoSave: false,

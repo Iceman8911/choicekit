@@ -246,16 +246,16 @@ type SugarBoxStorylet<TEngine extends SugarboxEngine> = {
 };
 
 export type {
-	SugarBoxConfig,
-	SugarBoxSnapshotMetadata,
-	SugarBoxNormalSaveKey,
 	SugarBoxAnyKey,
-	SugarBoxSaveKey,
+	SugarBoxAutoSaveKey,
+	SugarBoxConfig,
+	SugarBoxExportData,
+	SugarBoxNormalSaveKey,
+	SugarBoxPassage,
 	SugarBoxPluginSaveKey,
 	SugarBoxSaveData,
-	SugarBoxExportData,
-	SugarBoxPassage,
-	SugarBoxAutoSaveKey,
+	SugarBoxSaveKey,
 	SugarBoxSaveVersionCompatiblityMode,
+	SugarBoxSnapshotMetadata,
 	SugarBoxStorylet,
 };
