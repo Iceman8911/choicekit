@@ -112,9 +112,11 @@ type SugarBoxConfig<
 	/** Number of individual states that will be merged into one when the state fills up */
 	stateMergeCount: number;
 
-	/** Maximum amount of saves at any given time.
+	/** Maximum amount of manual saves at any given time.
 	 *
-	 * Must not be less than 1
+	 * Must not be less than 1.
+	 *
+	 * Does not count the autosave slot.
 	 *
 	 * @default 20
 	 */
