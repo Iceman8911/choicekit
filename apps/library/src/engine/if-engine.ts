@@ -24,7 +24,6 @@ import type {
 } from "../plugins/plugin";
 import type { SugarBoxCacheAdapter } from "../types/adapters";
 import type {
-	SugarBoxAnyKey,
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
 	SugarBoxExportData,
@@ -462,7 +461,10 @@ class SugarboxEngine<
 		this.#emitCustomEvent(":deleteStart", { slot });
 
 		try {
-			const saveSlotKey = this.#getStorageKey(saveSlot);
+			const saveSlotKey =
+				typeof saveSlot === "number"
+					? this.#getSaveSlotStorageKey(saveSlot)
+					: this.#getAutoSaveStorageKey();
 
 			const deleted = await this.#persistenceAdapter.delete(saveSlotKey);
 
@@ -515,7 +517,7 @@ class SugarboxEngine<
 				await decompressPossiblyCompressedJsonString(serializedSaveData),
 			) as typeof this._type.saveData;
 
-			if (key === this.#getStorageKey()) {
+			if (key === this.#getAutoSaveStorageKey()) {
 				yield { data: saveData, type: "autosave" };
 			} else {
 				const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
@@ -627,7 +629,10 @@ class SugarboxEngine<
 			"load",
 			saveSlot,
 			async () => {
-				const saveSlotKey = this.#getStorageKey(saveSlot);
+				const saveSlotKey =
+					typeof saveSlot === "number"
+						? this.#getSaveSlotStorageKey(saveSlot)
+						: this.#getAutoSaveStorageKey();
 
 				const serializedSaveData =
 					await this.#persistenceAdapter.get(saveSlotKey);
@@ -968,7 +973,10 @@ class SugarboxEngine<
 			async () => {
 				const { persistence, compress: shouldCompressSave } = this.#config;
 
-				const saveKey = this.#getStorageKey(saveSlot);
+				const saveKey =
+					typeof saveSlot === "number"
+						? this.#getSaveSlotStorageKey(saveSlot)
+						: this.#getAutoSaveStorageKey();
 
 				const saveData = await this.#getSaveData();
 
@@ -1059,39 +1067,12 @@ class SugarboxEngine<
 		return `sugarbox-${this.name}-slot${saveSlot}` as const;
 	}
 
-	/** Depending on the parameter, returns a key used for indexing specific data stored in the provided persistence.
-	 *
-	 * `undefined` results in the autosave.
-	 *
-	 * TODO: Maybe I should make it more explict????
-	 */
-	#getStorageKey(type?: "autosave"): SugarBoxAutoSaveKey;
-	#getStorageKey(type: "plugin", pluginId: string): SugarBoxPluginSaveKey;
-	#getStorageKey(type: number): SugarBoxNormalSaveKey;
-	#getStorageKey(type: number | undefined): SugarBoxSaveKey;
-	#getStorageKey(
-		keyType?: "autosave" | "plugin" | number,
-		possiblePluginId?: string,
-	): SugarBoxAnyKey {
-		if (typeof keyType === "undefined" || keyType === "autosave")
-			return this.#getAutoSaveStorageKey();
-
-		if (typeof keyType === "number") {
-			return this.#getSaveSlotStorageKey(keyType);
-		}
-
-		switch (keyType) {
-			case "plugin":
-				return this.#getPluginStorageKey(possiblePluginId!);
-		}
-	}
-
 	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarBoxSaveKey> {
 		const persistence = this.#persistenceAdapter;
 
 		const keys = await persistence.keys?.();
 
-		const autosaveKey = this.#getStorageKey();
+		const autosaveKey = this.#getAutoSaveStorageKey();
 
 		const saveSlotKeyPrefix = `sugarbox-${this.name}-slot` as const;
 
@@ -1110,7 +1091,7 @@ class SugarboxEngine<
 			}
 
 			for (let i = 0; i < this.#config.saveSlots; i++) {
-				const key = this.#getStorageKey(i);
+				const key = this.#getSaveSlotStorageKey(i);
 
 				if (await persistence.get(key)) {
 					yield key;
