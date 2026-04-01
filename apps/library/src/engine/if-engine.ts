@@ -24,7 +24,6 @@ import type {
 } from "../plugins/plugin";
 import type { SugarBoxCacheAdapter } from "../types/adapters";
 import type {
-	SugarBoxAchievementsKey,
 	SugarBoxAnyKey,
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
@@ -33,7 +32,6 @@ import type {
 	SugarBoxPluginSaveKey,
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
-	SugarBoxSettingsKey,
 	SugarBoxSnapshotMetadata,
 } from "../types/if-engine";
 import type { GenericObject, GenericSerializableObject } from "../types/shared";
@@ -104,37 +102,15 @@ type DeleteEndEvent =
 	| { type: "error"; error: Error; slot: "autosave" | number };
 
 /** Events fired from a `SugarBoxEngine` instance */
-type SugarBoxEvents<TPassageData, TStateVariables, TAchievements, TSettings> = {
+type SugarBoxEvents<TPassageData, TStateVariables> = {
 	":passageChange": Readonly<{
-		/** The previous passage before the transition */
 		oldPassage: TPassageData | null;
-
-		/** The new passage after the transition */
 		newPassage: TPassageData | null;
 	}>;
 
 	":stateChange": Readonly<{
-		/** The previous state of all variables before the change */
 		oldState: TStateVariables;
-
-		/** The current state of all variables after the change */
 		newState: TStateVariables;
-	}>;
-
-	":achievementChange": Readonly<{
-		/** The previous state of all achievements before the change */
-		old: TAchievements;
-
-		/** The current state of all achievements after the change */
-		new: TAchievements;
-	}>;
-
-	":settingChange": Readonly<{
-		/** The previous state of all settings before the change */
-		old: TSettings;
-
-		/** The current state of all settings after the change */
-		new: TSettings;
 	}>;
 
 	// ":init": null;
@@ -224,15 +200,9 @@ class SugarboxEngine<
 		};
 		events: SugarBoxEvents<
 			TEngineGenerics["passages"],
-			TEngineGenerics["vars"],
-			TEngineGenerics["achievements"],
-			TEngineGenerics["settings"]
+			TEngineGenerics["vars"]
 		>;
 	};
-
-	/** Achievements meant to be persisted across saves
-	 */
-	#achievements!: TEngineGenerics["achievements"];
 
 	#config!: typeof this._type.config;
 
@@ -266,10 +236,6 @@ class SugarboxEngine<
 	// biome-ignore lint/suspicious/noExplicitAny: <It'll not be worth defining the types for these>
 	#saveMigrationMap: SugarBoxSaveMigrationMap<any, any> = new Map();
 
-	/** Settings data that is not tied to save data, like audio volume, font size, etc
-	 */
-	#settings!: TEngineGenerics["settings"];
-
 	/** Since recalculating the current state can be expensive */
 	#stateCache?: typeof this._type.adapter.cache;
 
@@ -299,8 +265,6 @@ class SugarboxEngine<
 			classes = [],
 			migrations = [],
 			vars = {},
-			achievements = {},
-			settings = {},
 		} = args;
 
 		// Merge config up-front so the constructor receives a fully-merged configuration
@@ -320,8 +284,6 @@ class SugarboxEngine<
 		// This keeps the private constructor dumb and centralizes setup here.
 		engine.#stateSnapshots = [{}];
 		engine.#index = 0;
-		engine.#achievements = achievements;
-		engine.#settings = settings;
 
 		if (saveSlots && saveSlots < MINIMUM_SAVE_SLOTS)
 			throw Error(`Invalid number of save slots: ${saveSlots}`);
@@ -366,12 +328,8 @@ class SugarboxEngine<
 
 		const { loadOnStart } = config;
 
-		// If there's any stored achievements or settings, load them in place of the data provided
-		// If the user want to empty the acheivements or settings, they can explicitly do so with the `set***()` methods
 		// Also load the most recent save if `loadOnStart` is true
 		await Promise.allSettled([
-			engine.#loadAchievements(),
-			engine.#loadSettings(),
 			engine.#loadPluginSaveDataFromStorageArea(),
 			loadOnStart ? engine.loadRecentSave() : "",
 		]);
@@ -644,21 +602,16 @@ class SugarboxEngine<
 				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
 				//@ts-expect-error Inference Limitation
-				const { achievements, saveData, settings, plugins } = deserialize(
-					jsonString,
-				) as SugarBoxExportData<
-					TEngineGenerics["vars"],
-					TEngineGenerics["settings"],
-					TEngineGenerics["achievements"]
-				>;
+				const {
+					saveData,
+					plugins,
+				}: SugarBoxExportData<TEngineGenerics["vars"]> =
+					deserialize(jsonString);
 
 				await this.#loadPluginSaveDataFromRecord(plugins);
 
 				// Replace the current state
 				await this.loadSaveFromData(saveData);
-
-				this.#achievements = achievements;
-				this.#settings = settings;
 			},
 		);
 	}
@@ -984,15 +937,9 @@ class SugarboxEngine<
 			async () => {
 				const { compress } = this.#config;
 
-				const exportData: SugarBoxExportData<
-					TEngineGenerics["vars"],
-					TEngineGenerics["settings"],
-					TEngineGenerics["achievements"]
-				> = {
-					achievements: this.#achievements,
+				const exportData: SugarBoxExportData<TEngineGenerics["vars"]> = {
 					plugins: await this.#getPluginSaveData(false),
 					saveData: await this.#getSaveData(),
-					settings: this.#settings,
 				};
 
 				//@ts-expect-error Inference Limitation
@@ -1040,71 +987,6 @@ class SugarboxEngine<
 
 	// Public getters (main API, read-only views)
 
-	get achievements(): Readonly<TEngineGenerics["achievements"]> {
-		return this.#achievements;
-	}
-
-	// Public methods (main API of the class)
-
-	/** Immer-style producer for setting achievements
-	 *
-	 * If you need to replace the entire achievement object, *return a new object*
-	 *
-	 * @param [emitEvent=true] If true, an ":achievementChange" event will be emitted. Set this to false if you use this within an `:achievementChange` listener
-	 */
-	async setAchievements(
-		producer:
-			| ((state: TEngineGenerics["achievements"]) => void)
-			| ((
-					state: TEngineGenerics["achievements"],
-			  ) => TEngineGenerics["achievements"]),
-		emitEvent = true,
-	): Promise<void> {
-		const old = clone(this.#achievements);
-
-		const result = producer(this.#achievements);
-
-		if (result) {
-			this.#achievements = result;
-		}
-
-		if (emitEvent) {
-			this.#emitCustomEvent(":achievementChange", {
-				new: this.#achievements,
-				old,
-			});
-		}
-
-		await this.#saveAchievements();
-	}
-
-	/** Immer-style producer for setting settings
-	 *
-	 * If you need to replace the entire settings object, *return a new object*
-	 *
-	 * @param [emitEvent=true] If true, a ":settingChange" event will be emitted. Set this to false if you use this within an `:settingChange` listener
-	 */
-	async setSettings(
-		producer:
-			| ((state: TEngineGenerics["settings"]) => void)
-			| ((state: TEngineGenerics["settings"]) => TEngineGenerics["settings"]),
-		emitEvent = true,
-	): Promise<void> {
-		const old = clone(this.#settings);
-
-		const result = producer(this.#settings);
-
-		if (result) {
-			this.#settings = result;
-		}
-
-		if (emitEvent) {
-			this.#emitCustomEvent(":settingChange", { new: this.#settings, old });
-		}
-
-		await this.#saveSettings();
-	}
-
 	/** The current position in the state history that the engine is playing.
 	 *
 	 * This is used to determine the current state of the engine.
@@ -1146,10 +1028,6 @@ class SugarboxEngine<
 		return randomNumber;
 	}
 
-	get settings(): Readonly<TEngineGenerics["settings"]> {
-		return this.#settings;
-	}
-
 	/** Returns a readonly copy of the current state of stored variables.
 	 *
 	 * May be expensive to calculate depending on the history of the story. */
@@ -1172,14 +1050,6 @@ class SugarboxEngine<
 		return `sugarbox-${this.name}-autosave`;
 	}
 
-	#getAchievementsStorageKey(): SugarBoxAchievementsKey {
-		return `sugarbox-${this.name}-achievements`;
-	}
-
-	#getSettingsStorageKey(): SugarBoxSettingsKey {
-		return `sugarbox-${this.name}-settings`;
-	}
-
 	#getPluginStorageKey(pluginId: string): SugarBoxPluginSaveKey {
 		return `sugarbox-${this.name}-plugin-${pluginId}` as const;
 	}
@@ -1196,13 +1066,11 @@ class SugarboxEngine<
 	 * TODO: Maybe I should make it more explict????
 	 */
 	#getStorageKey(type?: "autosave"): SugarBoxAutoSaveKey;
-	#getStorageKey(type: "achievements"): SugarBoxAchievementsKey;
-	#getStorageKey(type: "settings"): SugarBoxSettingsKey;
 	#getStorageKey(type: "plugin", pluginId: string): SugarBoxPluginSaveKey;
 	#getStorageKey(type: number): SugarBoxNormalSaveKey;
 	#getStorageKey(type: number | undefined): SugarBoxSaveKey;
 	#getStorageKey(
-		keyType?: "autosave" | "achievements" | "settings" | "plugin" | number,
+		keyType?: "autosave" | "plugin" | number,
 		possiblePluginId?: string,
 	): SugarBoxAnyKey {
 		if (typeof keyType === "undefined" || keyType === "autosave")
@@ -1213,10 +1081,6 @@ class SugarboxEngine<
 		}
 
 		switch (keyType) {
-			case "achievements":
-				return this.#getAchievementsStorageKey();
-			case "settings":
-				return this.#getSettingsStorageKey();
 			case "plugin":
 				return this.#getPluginStorageKey(possiblePluginId!);
 		}
@@ -1512,54 +1376,6 @@ class SugarboxEngine<
 			});
 
 			throw e;
-		}
-	}
-
-	async #saveAchievements(): Promise<void> {
-		const dataToStore = await compressStringIfApplicable(
-			JSON.stringify(this.#achievements),
-			this.#config.compress,
-		);
-
-		await this.#persistenceAdapter.set(
-			this.#getStorageKey("achievements"),
-			dataToStore,
-		);
-	}
-
-	async #loadAchievements(): Promise<void> {
-		const serializedAchievements = await this.#persistenceAdapter.get(
-			this.#getStorageKey("achievements"),
-		);
-
-		if (serializedAchievements) {
-			this.#achievements = JSON.parse(
-				await decompressPossiblyCompressedJsonString(serializedAchievements),
-			);
-		}
-	}
-
-	async #saveSettings(): Promise<void> {
-		const dataToStore = await compressStringIfApplicable(
-			JSON.stringify(this.#settings),
-			this.#config.compress,
-		);
-
-		await this.#persistenceAdapter.set(
-			this.#getStorageKey("settings"),
-			dataToStore,
-		);
-	}
-
-	async #loadSettings(): Promise<void> {
-		const serializedSettings = await this.#persistenceAdapter.get(
-			this.#getStorageKey("settings"),
-		);
-
-		if (serializedSettings) {
-			this.#settings = JSON.parse(
-				await decompressPossiblyCompressedJsonString(serializedSettings),
-			);
 		}
 	}
 

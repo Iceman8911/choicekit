@@ -39,19 +39,11 @@ type SugarBoxNormalSaveKey = `sugarbox-${string}-slot${number}`;
 
 type SugarBoxAutoSaveKey = `sugarbox-${string}-autosave`;
 
-type SugarBoxAchievementsKey = `sugarbox-${string}-achievements`;
-
-type SugarBoxSettingsKey = `sugarbox-${string}-settings`;
-
 type SugarBoxPluginSaveKey = `sugarbox-${string}-plugin-${string}`;
 
 type SugarBoxSaveKey = SugarBoxAutoSaveKey | SugarBoxNormalSaveKey;
 
-type SugarBoxAnyKey =
-	| SugarBoxSaveKey
-	| SugarBoxAchievementsKey
-	| SugarBoxSettingsKey
-	| SugarBoxPluginSaveKey;
+type SugarBoxAnyKey = SugarBoxSaveKey | SugarBoxPluginSaveKey;
 
 /** Data structure used for saving the state of the engine
  *
@@ -91,23 +83,12 @@ type SugarBoxSaveData<
 
 /** Export data structure used for saving the state of the engine to disk.
  *
- * Contains save data, settings, and achievements
+ * Contains save data and plugin data in a serialized package
  */
 type SugarBoxExportData<
 	TSaveData extends GenericSerializableObject = GenericSerializableObject,
-	TSettingsData extends GenericSerializableObject = GenericSerializableObject,
-	TAchievementData extends GenericSerializableObject = Record<string, boolean>,
 > = {
 	saveData: SugarBoxSaveData<TSaveData>;
-
-	/** Story specific settings that shouldn't be tied to save data like audio volume, font size, etc */
-	settings: TSettingsData;
-
-	/** Achievements data that is not tied to save data.
-	 *
-	 * So it can persist across saves and be used to track achievements.
-	 */
-	achievements: TAchievementData;
 
 	/** Plugin data that should be unaltered when the user saves or loads save-data
 	 *
@@ -170,7 +151,7 @@ type SugarBoxConfig<
 	 */
 	loadOnStart: boolean;
 
-	/** Determines whether or not save/achievement/settings data will be compressed.
+	/** Determines whether or not saved data will be compressed.
 	 *
 	 * Note that even when this is enabled, compression will not occur unless the stringified data is long enough (> 1KB)
 	 *
@@ -271,8 +252,6 @@ export type {
 	SugarBoxPluginSaveKey,
 	SugarBoxSaveData,
 	SugarBoxExportData,
-	SugarBoxAchievementsKey,
-	SugarBoxSettingsKey,
 	SugarBoxPassage,
 	SugarBoxAutoSaveKey,
 	SugarBoxSaveVersionCompatiblityMode,
