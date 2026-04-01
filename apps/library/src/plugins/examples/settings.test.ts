@@ -1,4 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
+import { deserialize } from "@packages/serializer";
+import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import { SugarboxEngineBuilder } from "../../engine/builder";
 import type { ExpandType } from "../../types/shared";
 import createSettingsPlugin from "./settings";
@@ -261,5 +263,58 @@ describe("Settings Plugin", () => {
 		});
 
 		expect(engine.$.settings.get()).toEqual(createSimpleSettings());
+	});
+
+	it("should properly persist data when the save is exported from the engine", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("engine-settings-persistence")
+			.withPlugin(simpleSettingsPlugin, {
+				default: createSimpleSettings(),
+			})
+			.build();
+
+		engine.$.settings.set((state) => {
+			state.musicEnabled = false;
+			state.notifications.show = false;
+			state.notifications.type = "mentions";
+			state.volume = 0.9;
+		});
+
+		await engine.$.settings.save();
+
+		const exportedStr = await engine.saveToExport();
+
+		expect(
+			(
+				deserialize(
+					await decompressPossiblyCompressedJsonString(exportedStr),
+				) as any
+			)["plugins"]["settings"]["data"]["settings"],
+		).toEqual({
+			musicEnabled: false,
+			notifications: {
+				show: false,
+				type: "mentions",
+			},
+			volume: 0.9,
+		});
+
+		const newEngine = await new SugarboxEngineBuilder()
+			.withName("engine-settings-persistence-2")
+			.withPlugin(simpleSettingsPlugin, {
+				default: createSimpleSettings(),
+			})
+			.build();
+
+		await newEngine.loadFromExport(exportedStr);
+
+		expect(newEngine.$.settings.get()).toStrictEqual({
+			musicEnabled: false,
+			notifications: {
+				show: false,
+				type: "mentions",
+			},
+			volume: 0.9,
+		});
 	});
 });

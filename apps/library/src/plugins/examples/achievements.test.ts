@@ -1,4 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
+import { deserialize } from "@packages/serializer";
+import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import { SugarboxEngineBuilder } from "../../engine/builder";
 import type { ExpandType } from "../../types/shared";
 import createAchievementsPlugin from "./achievements";
@@ -264,5 +266,55 @@ describe("Achievements Plugin", () => {
 		});
 
 		expect(engine.$.achievements.get()).toEqual(createSimpleAchievements());
+	});
+
+	it("should properly persist data when the save is exported from the engine", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("engine-if-style")
+			.withPlugin(simpleAchievementsplugin, {
+				default: createSimpleAchievements(),
+			})
+			.build();
+
+		engine.$.achievements.set((state) => {
+			state.foundKey = true;
+			state.heroArc.beatDemonLord = true;
+			state.heroArc.foundSecrets = 99;
+		});
+
+		await engine.$.achievements.save();
+
+		const exportedStr = await engine.saveToExport();
+
+		expect(
+			(
+				deserialize(
+					await decompressPossiblyCompressedJsonString(exportedStr),
+				) as any
+			)["plugins"]["achievements"]["data"]["achievements"],
+		).toEqual({
+			foundKey: true,
+			heroArc: {
+				beatDemonLord: true,
+				foundSecrets: 99,
+			},
+		});
+
+		const newEngine = await new SugarboxEngineBuilder()
+			.withName("engine-if-style2")
+			.withPlugin(simpleAchievementsplugin, {
+				default: createSimpleAchievements(),
+			})
+			.build();
+
+		await newEngine.loadFromExport(exportedStr);
+
+		expect(newEngine.$.achievements.get()).toStrictEqual({
+			foundKey: true,
+			heroArc: {
+				beatDemonLord: true,
+				foundSecrets: 99,
+			},
+		});
 	});
 });
