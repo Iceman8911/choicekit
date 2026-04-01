@@ -1,6 +1,6 @@
 {
 	"dependencies": {
-		"@iceman8911/tiny-prng": "^0.1.2",
+		"@iceman8911/tiny-prng": "^0.2.0",
 		"@packages/event-emitter": "workspace:*",
 		"@packages/polyfills": "workspace:*",
 		"@packages/serializer": "workspace:*",
@@ -8,20 +8,20 @@
 	},
 	"description": "A TypeScript library for creating interactive fiction with state management, save/load functionality, and deterministic random number generation",
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.4",
-		"@commitlint/cli": "^20.4.2",
-		"@commitlint/config-conventional": "^20.4.2",
+		"@biomejs/biome": "^2.4.10",
+		"@commitlint/cli": "^20.5.0",
+		"@commitlint/config-conventional": "^20.5.0",
 		"@packages/engine-class": "workspace:*",
 		"@stardazed/streams-polyfill": "^2.4.0",
-		"@types/bun": "^1.3.9",
-		"bumpp": "^10.4.1",
+		"@types/bun": "^1.3.11",
+		"bumpp": "^11.0.1",
 		"bunup": "^0.16.31",
 		"husky": "^9.1.7",
 		"quick-lru": "^7.3.0",
-		"turbo": "^2.8.12",
-		"type-fest": "^5.4.4",
-		"typedoc": "^0.28.17",
-		"typescript": "^5.9.3"
+		"turbo": "^2.9.3",
+		"type-fest": "^5.5.0",
+		"typedoc": "^0.28.18",
+		"typescript": "^6.0.2"
 	},
 	"exports": {
 		".": {

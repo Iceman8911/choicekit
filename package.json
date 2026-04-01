@@ -3,12 +3,12 @@
 		"url": "https://github.com/Iceman8911/sugarbox/issues"
 	},
 	"dependencies": {
-		"lint-staged": "^16.2.7"
+		"lint-staged": "^16.4.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.5",
-		"turbo": "^2.7.5",
-		"typescript": "^5.9.3"
+		"@biomejs/biome": "^2.4.10",
+		"turbo": "^2.9.3",
+		"typescript": "^6.0.2"
 	},
 	"homepage": "https://github.com/Iceman8911/sugarbox#readme",
 	"lint-staged": {
