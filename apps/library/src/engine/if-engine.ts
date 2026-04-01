@@ -809,7 +809,7 @@ class SugarboxEngine<
 			loadingPromises.push(
 				mountedPlugin.onDeserialize?.({
 					data,
-					state: this.#pluginState,
+					state: this.#pluginState[pluginId]!,
 					version,
 				}),
 			);
