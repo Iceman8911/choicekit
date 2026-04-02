@@ -87,6 +87,24 @@ const MINIMUM_SAVE_SLOTS = 1;
 
 const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
 
+const LEGACY_EVENT_NAME_TO_CANONICAL_NAME = {
+	":deleteEnd": "deleteEnd",
+	":deleteStart": "deleteStart",
+	":loadEnd": "loadEnd",
+	":loadStart": "loadStart",
+	":migrationEnd": "migrationEnd",
+	":migrationStart": "migrationStart",
+	":passageChange": "passageChange",
+	":saveEnd": "saveEnd",
+	":saveStart": "saveStart",
+	":stateChange": "stateChange",
+} as const;
+
+type LegacySugarBoxEventName = keyof typeof LEGACY_EVENT_NAME_TO_CANONICAL_NAME;
+
+type CanonicalSugarBoxEventName =
+	(typeof LEGACY_EVENT_NAME_TO_CANONICAL_NAME)[LegacySugarBoxEventName];
+
 type StateWithMetadata<TVariables extends GenericSerializableObject> =
 	TVariables & SugarBoxSnapshotMetadata;
 
@@ -109,39 +127,36 @@ type DeleteEndEvent =
 	| { type: "success"; slot: "autosave" | number }
 	| { type: "error"; error: Error; slot: "autosave" | number };
 
-// TODO: remove the ":" and ensure to replace all the times they were used
 /** Events fired from a `SugarBoxEngine` instance */
-type SugarBoxEvents<TPassageData, TStateVariables> = {
-	":passageChange": Readonly<{
+type SugarBoxEventPayloads<TPassageData, TStateVariables> = {
+	passageChange: Readonly<{
 		oldPassage: TPassageData | null;
 		newPassage: TPassageData | null;
 	}>;
 
-	":stateChange": Readonly<{
+	stateChange: Readonly<{
 		oldState: TStateVariables;
 		newState: TStateVariables;
 	}>;
 
-	// ":init": null;
+	saveStart: SaveStartEvent;
 
-	":saveStart": SaveStartEvent;
+	saveEnd: SaveEndEvent;
 
-	":saveEnd": SaveEndEvent;
+	loadStart: SaveStartEvent;
 
-	":loadStart": SaveStartEvent;
+	loadEnd: SaveEndEvent;
 
-	":loadEnd": SaveEndEvent;
+	deleteStart: DeleteStartEvent;
 
-	":deleteStart": DeleteStartEvent;
+	deleteEnd: DeleteEndEvent;
 
-	":deleteEnd": DeleteEndEvent;
-
-	":migrationStart": Readonly<{
+	migrationStart: Readonly<{
 		fromVersion: SugarBoxSemanticVersionString;
 		toVersion: SugarBoxSemanticVersionString;
 	}>;
 
-	":migrationEnd": Readonly<
+	migrationEnd: Readonly<
 		| {
 				type: "success";
 				fromVersion: SugarBoxSemanticVersionString;
@@ -154,6 +169,16 @@ type SugarBoxEvents<TPassageData, TStateVariables> = {
 				error: Error;
 		  }
 	>;
+};
+
+type SugarBoxEvents<TPassageData, TStateVariables> = SugarBoxEventPayloads<
+	TPassageData,
+	TStateVariables
+> & {
+	[KLegacyName in LegacySugarBoxEventName]: SugarBoxEventPayloads<
+		TPassageData,
+		TStateVariables
+	>[(typeof LEGACY_EVENT_NAME_TO_CANONICAL_NAME)[KLegacyName]];
 };
 
 type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
@@ -343,7 +368,7 @@ class SugarboxEngine<
 	 *
 	 * **If you need to replace the entire state, *return a new object* instead of directly *assigning the value***
 	 *
-	 * @param [emitEvent=true] If true, a ":stateChange" event will be emitted. Set this to false if you use it within a `:stateChange` listener
+	 * @param [emitEvent=true] If true, a "stateChange" event will be emitted. Set this to false if you use it within a `stateChange` listener
 	 */
 	setVars(
 		producer:
@@ -396,7 +421,7 @@ class SugarboxEngine<
 		const newState = self.#getStateAtIndex(self.#index);
 
 		if (emitEvent) {
-			self.#emitCustomEvent(":stateChange", {
+			self.#emitCustomEvent("stateChange", {
 				newState,
 				oldState,
 			});
@@ -457,7 +482,7 @@ class SugarboxEngine<
 	async deleteSaveSlot(saveSlot?: number): Promise<unknown> {
 		const slot = saveSlot ?? "autosave";
 
-		this.#emitCustomEvent(":deleteStart", { slot });
+		this.#emitCustomEvent("deleteStart", { slot });
 
 		try {
 			const saveSlotKey =
@@ -467,13 +492,13 @@ class SugarboxEngine<
 
 			const deleted = await this.#persistenceAdapter.delete(saveSlotKey);
 
-			this.#emitCustomEvent(":deleteEnd", { slot, type: "success" });
+			this.#emitCustomEvent("deleteEnd", { slot, type: "success" });
 
 			return deleted;
 		} catch (e) {
 			const sanitizedError = sanitiseError(e);
 
-			this.#emitCustomEvent(":deleteEnd", {
+			this.#emitCustomEvent("deleteEnd", {
 				error: sanitizedError,
 				slot,
 				type: "error",
@@ -724,7 +749,7 @@ class SugarboxEngine<
 
 						const { migrater, to } = migratorData;
 
-						this.#emitCustomEvent(":migrationStart", {
+						this.#emitCustomEvent("migrationStart", {
 							fromVersion: currentSaveVersion,
 							toVersion: to,
 						});
@@ -733,13 +758,13 @@ class SugarboxEngine<
 							const currentStateToMigrate = migratedState ?? this.vars;
 							migratedState = migrater(currentStateToMigrate);
 
-							this.#emitCustomEvent(":migrationEnd", {
+							this.#emitCustomEvent("migrationEnd", {
 								fromVersion: currentSaveVersion,
 								toVersion: to,
 								type: "success",
 							});
 						} catch (error) {
-							this.#emitCustomEvent(":migrationEnd", {
+							this.#emitCustomEvent("migrationEnd", {
 								error: sanitiseError(error),
 								fromVersion: currentSaveVersion,
 								toVersion: to,
@@ -781,8 +806,8 @@ class SugarboxEngine<
 		// Clear the state cache since the state has changed
 		this.#stateCache?.clear();
 
-		this.#emitCustomEvent(":stateChange", { newState: this.vars, oldState });
-		this.#emitCustomEvent(":passageChange", {
+		this.#emitCustomEvent("stateChange", { newState: this.vars, oldState });
+		this.#emitCustomEvent("passageChange", {
 			newPassage: this.passage,
 			oldPassage,
 		});
@@ -1129,12 +1154,12 @@ class SugarboxEngine<
 
 		this.#index = val;
 
-		this.#emitCustomEvent(":passageChange", {
+		this.#emitCustomEvent("passageChange", {
 			newPassage: this.passage,
 			oldPassage,
 		});
 
-		this.#emitCustomEvent(":stateChange", {
+		this.#emitCustomEvent("stateChange", {
 			newState: this.#getStateAtIndex(this.#index),
 			oldState,
 		});
@@ -1295,25 +1320,49 @@ class SugarboxEngine<
 		return this.#eventTarget.dispatchEvent(event);
 	}
 
+	#toCanonicalEventName<TEventType extends keyof typeof this._type.events>(
+		eventName: TEventType,
+	): CanonicalSugarBoxEventName {
+		const mappedName = (
+			LEGACY_EVENT_NAME_TO_CANONICAL_NAME as Record<
+				string,
+				CanonicalSugarBoxEventName | undefined
+			>
+		)[eventName as string];
+
+		return mappedName ?? (eventName as CanonicalSugarBoxEventName);
+	}
+
+	#toLegacyEventName(
+		eventName: CanonicalSugarBoxEventName,
+	): LegacySugarBoxEventName {
+		return `:${eventName}` as LegacySugarBoxEventName;
+	}
+
 	#emitCustomEvent<TEventType extends keyof typeof this._type.events>(
 		name: TEventType,
 		data: (typeof this._type.events)[TEventType],
 	): boolean {
+		const canonicalEventName = this.#toCanonicalEventName(name);
+
 		const dispatchResult = this.#dispatchCustomEvent(
-			this.#createCustomEvent(name, data),
+			this.#createCustomEvent(canonicalEventName, data),
 		);
+
+		const legacyEventName = this.#toLegacyEventName(canonicalEventName);
+		this.#dispatchCustomEvent(this.#createCustomEvent(legacyEventName, data));
 
 		const { autoSave } = this.#config;
 
-		switch (name) {
-			case ":passageChange": {
+		switch (canonicalEventName) {
+			case "passageChange": {
 				if (autoSave === "passage") {
 					this.saveToSaveSlot();
 				}
 				break;
 			}
 
-			case ":stateChange": {
+			case "stateChange": {
 				if (autoSave === "state") {
 					this.saveToSaveSlot();
 				}
@@ -1332,11 +1381,11 @@ class SugarboxEngine<
 	): Promise<TCallBackReturnValue> {
 		const slot = saveSlot ?? "autosave";
 
-		this.#emitCustomEvent(operation === "save" ? ":saveStart" : ":loadStart", {
+		this.#emitCustomEvent(operation === "save" ? "saveStart" : "loadStart", {
 			slot,
 		});
 
-		const endEvent = operation === "save" ? ":saveEnd" : ":loadEnd";
+		const endEvent = operation === "save" ? "saveEnd" : "loadEnd";
 
 		try {
 			const result = await callback();
@@ -1429,19 +1478,16 @@ class SugarboxEngine<
 		});
 	}
 
-	/** TODO: make this cleaner.
-	 * Using the plugin ids, attempts to load all plugin data from their persistent partitions
+	/** Using the plugin ids, attempts to load all plugin data from their persistent partitions
 	 *
 	 * NOTE: `this.#plugins` must be populated before hand
 	 */
 	async #loadPluginSaveDataFromStorageArea() {
-		const promises: Promise<void>[] = [];
-
-		for (const pluginId in this.#plugins) {
-			promises.push(this.#loadPluginDataFromStoragePartition(pluginId));
-		}
-
-		await Promise.all(promises);
+		await Promise.all(
+			Object.keys(this.#plugins).map((pluginId) =>
+				this.#loadPluginDataFromStoragePartition(pluginId),
+			),
+		);
 	}
 
 	get #currentStatePrngSeed(): number {
