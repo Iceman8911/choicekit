@@ -6,6 +6,7 @@
 // - The current state snapshot is the last state in the list, which is mutable.
 
 import PRNG from "@iceman8911/tiny-prng/prng";
+import { TypedEventEmitter } from "@packages/event-emitter";
 import {
 	clone,
 	deserialize,
@@ -198,7 +199,10 @@ class SugarboxEngine<
 
 	#config!: typeof this._type.config;
 
-	#eventTarget = new EventTarget();
+	#events = new TypedEventEmitter<{
+		[KEventName in keyof typeof this._type.events]: (typeof this._type.events)[KEventName];
+	}>();
+	#eventWrappers = new Map<string, Map<Function, Function>>();
 
 	/** The current position in the state history that the engine is playing.
 	 *
@@ -858,8 +862,19 @@ class SugarboxEngine<
 		) => void,
 		options?: boolean | AddEventListenerOptions,
 	): () => void {
-		//@ts-expect-error TS doesn't know that the custom event will exist at runtime
-		this.#eventTarget.addEventListener(type, listener, options);
+		const wrappedListener = (
+			payload: (typeof this._type.events)[TEventType],
+		) => {
+			listener(new CustomEvent(type, { detail: payload }));
+		};
+
+		const listenersForType =
+			this.#eventWrappers.get(type as string) ?? new Map();
+
+		listenersForType.set(listener, wrappedListener);
+		this.#eventWrappers.set(type as string, listenersForType);
+
+		this.#events.on(type, wrappedListener);
 
 		return () => {
 			this.off(type, listener, options);
@@ -874,8 +889,20 @@ class SugarboxEngine<
 			| null,
 		options?: boolean | AddEventListenerOptions,
 	): void {
-		//@ts-expect-error TS doesn't know that the custom event will exist at runtime
-		this.#eventTarget.removeEventListener(type, listener, options);
+		if (!listener) return;
+
+		const listenersForType = this.#eventWrappers.get(type as string);
+		const wrappedListener = listenersForType?.get(listener);
+
+		if (!wrappedListener) return;
+
+		this.#events.off(type, wrappedListener as never);
+		listenersForType?.delete(listener);
+		if (listenersForType?.size === 0) {
+			this.#eventWrappers.delete(type as string);
+		}
+
+		void options;
 	}
 
 	/** Any custom classes stored in the story's state must be registered with this */
