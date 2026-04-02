@@ -1,7 +1,7 @@
 import type { SugarBoxPersistenceAdapter } from "../../_internal/models/adapters";
 import { _getKeysFromWebStorage } from "./shared";
 
-export const SessionStoragePersistenceAdapter = {
+const SessionStoragePersistenceAdapter = {
 	async delete(key) {
 		sessionStorage.removeItem(key);
 	},
@@ -15,3 +15,5 @@ export const SessionStoragePersistenceAdapter = {
 		sessionStorage.setItem(key, data);
 	},
 } as const satisfies SugarBoxPersistenceAdapter;
+
+export default SessionStoragePersistenceAdapter;

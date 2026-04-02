@@ -43,7 +43,7 @@ import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
 } from "../../_internal/utils/version";
-import { InMemoryPersistenceAdapter } from "../../adapters/persistence/in-memory";
+import InMemoryPersistenceAdapter from "../../adapters/persistence/in-memory";
 import type {
 	SugarboxPlugin,
 	SugarboxPluginSaveStructure,

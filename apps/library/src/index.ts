@@ -12,10 +12,10 @@ import type {
 	SugarBoxExportData,
 	SugarBoxSaveData,
 } from "./_internal/models/if-engine";
-import { InMemoryPersistenceAdapter } from "./adapters/persistence/in-memory";
-import { IndexedDbPersistenceAdapter } from "./adapters/persistence/indexed-db";
-import { LocalStoragePersistenceAdapter } from "./adapters/persistence/local-storage";
-import { SessionStoragePersistenceAdapter } from "./adapters/persistence/session-storage";
+import InMemoryPersistenceAdapter from "./adapters/persistence/in-memory";
+import IndexedDbPersistenceAdapter from "./adapters/persistence/indexed-db";
+import LocalStoragePersistenceAdapter from "./adapters/persistence/local-storage";
+import SessionStoragePersistenceAdapter from "./adapters/persistence/session-storage";
 import { SugarboxEngineBuilder } from "./engine/builder";
 
 export {
