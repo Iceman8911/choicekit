@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
-import type { SugarBoxSemanticVersionString } from "../utils/version";
+import type { SugarBoxSemanticVersionString } from "../_internal/utils/version";
 import { definePlugin, type ValidatePluginGenerics } from "./plugin";
 
 describe("Sugarbox Plugins", () => {

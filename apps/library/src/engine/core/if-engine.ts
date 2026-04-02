@@ -19,7 +19,7 @@ import {
 } from "@packages/string-compression";
 import type { Promisable } from "type-fest";
 import * as v from "valibot";
-import type { SugarBoxCacheAdapter } from "../models/adapters";
+import type { SugarBoxCacheAdapter } from "../../_internal/models/adapters";
 import type {
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
@@ -29,25 +29,25 @@ import type {
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
 	SugarBoxSnapshotMetadata,
-} from "../models/if-engine";
+} from "../../_internal/models/if-engine";
 import {
 	SugarboxExportDataSchema,
 	SugarboxPluginSaveStructureSchema,
 	SugarboxSaveDataSchema,
-} from "../models/if-engine.schemas";
+} from "../../_internal/models/if-engine.schemas";
 import type {
 	GenericObject,
 	GenericSerializableObject,
-} from "../models/shared";
-import type {
-	SugarboxPlugin,
-	SugarboxPluginSaveStructure,
-} from "../plugins/plugin";
-import { InMemoryPersistenceAdapter } from "../utils/persistence-adapters/in-memory";
+} from "../../_internal/models/shared";
 import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
-} from "../utils/version";
+} from "../../_internal/utils/version";
+import { InMemoryPersistenceAdapter } from "../../adapters/persistence/in-memory";
+import type {
+	SugarboxPlugin,
+	SugarboxPluginSaveStructure,
+} from "../../plugins/plugin";
 import type {
 	SugarBoxEngineArguments,
 	SugarBoxEngineGenerics,

@@ -1,11 +1,14 @@
 import type { SugarboxClassConstructorWithValidSerialization } from "@packages/serializer";
-import type { SugarBoxConfig, SugarBoxPassage } from "../models/if-engine";
+import type {
+	SugarBoxConfig,
+	SugarBoxPassage,
+} from "../../_internal/models/if-engine";
 import type {
 	GenericObject,
 	GenericSerializableObject,
-} from "../models/shared";
-import type { SugarboxPlugin } from "../plugins/plugin";
-import type { SugarBoxSemanticVersionString } from "../utils/version";
+} from "../../_internal/models/shared";
+import type { SugarBoxSemanticVersionString } from "../../_internal/utils/version";
+import type { SugarboxPlugin } from "../../plugins/plugin";
 
 export type SugarBoxSaveMigration<
 	TOldSaveStructure,

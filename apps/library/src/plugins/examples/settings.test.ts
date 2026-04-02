@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import { deserialize } from "@packages/serializer";
 import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
+import type { ExpandType } from "../../_internal/models/shared";
 import { SugarboxEngineBuilder } from "../../engine/builder";
-import type { ExpandType } from "../../models/shared";
 import createSettingsPlugin from "./settings";
 
 function createSimpleSettings() {

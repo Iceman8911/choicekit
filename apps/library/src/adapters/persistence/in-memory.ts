@@ -1,5 +1,5 @@
-import type { SugarBoxPersistenceAdapter } from "../../models/adapters";
-import type { SugarBoxAnyKey } from "../../models/if-engine";
+import type { SugarBoxPersistenceAdapter } from "../../_internal/models/adapters";
+import type { SugarBoxAnyKey } from "../../_internal/models/if-engine";
 
 const inMemoryMap = new Map<SugarBoxAnyKey, string>();
 

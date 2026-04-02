@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "bun:test";
-import { definePlugin } from "../plugins/plugin";
-import { SugarboxEngineBuilder } from "./builder";
+import { definePlugin } from "../../plugins/plugin";
+import { SugarboxEngineBuilder } from "../builder";
 import { SugarboxEngine } from "./if-engine";
 
 describe(SugarboxEngine.name, () => {

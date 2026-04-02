@@ -1,6 +1,6 @@
 import { clone } from "@packages/serializer";
-import type { StateSetter } from "../../models/producers";
-import type { GenericSerializableObject } from "../../models/shared";
+import type { StateSetter } from "../models/producers";
+import type { GenericSerializableObject } from "../models/shared";
 import { makeReadonly } from "./type-cast";
 
 export function createStateSetter<

@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import type { SugarBoxSemanticVersionString } from "./version";
+import type { SugarBoxSemanticVersionString } from "../utils/version";
 
 const SEMANTIC_VERSION_STRING_REGEX = /^\d+\.\d+\.\d+$/;
 

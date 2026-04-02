@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "bun:test";
-import { SugarboxEngineBuilder } from "../../src/engine/builder";
 import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
+import { SugarboxEngineBuilder } from "./builder";
 
 type MathPluginGenerics = ValidatePluginGenerics<{
 	id: "math";

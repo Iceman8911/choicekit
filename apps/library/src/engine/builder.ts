@@ -3,8 +3,8 @@ import type {
 	SugarBoxEngineArguments,
 	SugarBoxEngineGenerics,
 	SugarBoxEngineVariableInitData,
-} from "./_shared";
-import { SugarboxEngine } from "./if-engine";
+} from "./core/_shared";
+import { SugarboxEngine } from "./core/if-engine";
 
 type SugarBoxEngineArgumentKeys = keyof SugarBoxEngineArguments;
 

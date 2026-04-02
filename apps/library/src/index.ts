@@ -2,21 +2,21 @@ import type {
 	SugarBoxClassConstructor,
 	SugarBoxClassInstance,
 } from "@packages/engine-class";
-import { SugarboxEngineBuilder } from "./engine/builder";
 import type {
 	SugarBoxCacheAdapter,
 	SugarBoxPersistenceAdapter,
-} from "./models/adapters";
+} from "./_internal/models/adapters";
 import type {
 	SugarBoxAnyKey,
 	SugarBoxConfig,
 	SugarBoxExportData,
 	SugarBoxSaveData,
-} from "./models/if-engine";
-import { InMemoryPersistenceAdapter } from "./utils/persistence-adapters/in-memory";
-import { IndexedDbPersistenceAdapter } from "./utils/persistence-adapters/indexed-db";
-import { LocalStoragePersistenceAdapter } from "./utils/persistence-adapters/local-storage";
-import { SessionStoragePersistenceAdapter } from "./utils/persistence-adapters/session-storage";
+} from "./_internal/models/if-engine";
+import { InMemoryPersistenceAdapter } from "./adapters/persistence/in-memory";
+import { IndexedDbPersistenceAdapter } from "./adapters/persistence/indexed-db";
+import { LocalStoragePersistenceAdapter } from "./adapters/persistence/local-storage";
+import { SessionStoragePersistenceAdapter } from "./adapters/persistence/session-storage";
+import { SugarboxEngineBuilder } from "./engine/builder";
 
 export {
 	IndexedDbPersistenceAdapter,

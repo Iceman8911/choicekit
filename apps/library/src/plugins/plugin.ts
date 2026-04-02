@@ -3,12 +3,12 @@ import {
 	type TransformableOrJsonSerializableType,
 } from "@packages/serializer";
 import type { Promisable } from "type-fest";
-import type { SugarboxEngine } from "../engine/if-engine";
 import type {
 	GenericObject,
 	GenericSerializableObject,
-} from "../models/shared";
-import type { SugarBoxSemanticVersionString } from "../utils/version";
+} from "../_internal/models/shared";
+import type { SugarBoxSemanticVersionString } from "../_internal/utils/version";
+import type { SugarboxEngine } from "../engine/core/if-engine";
 
 type SugarboxPluginBehaviourOnOverride = "err" | "ignore" | "override";
 

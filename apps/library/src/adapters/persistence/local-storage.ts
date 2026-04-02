@@ -1,4 +1,4 @@
-import type { SugarBoxPersistenceAdapter } from "../../models/adapters";
+import type { SugarBoxPersistenceAdapter } from "../../_internal/models/adapters";
 import { _getKeysFromWebStorage } from "./shared";
 
 export const LocalStoragePersistenceAdapter = {

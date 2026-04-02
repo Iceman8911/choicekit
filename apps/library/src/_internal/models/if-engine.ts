@@ -1,8 +1,8 @@
-import type { SugarboxEngine } from "../engine/if-engine";
+import type { SugarboxEngine } from "../../engine/core/if-engine";
 import type {
 	SugarboxPlugin,
 	SugarboxPluginSaveStructure,
-} from "../plugins/plugin";
+} from "../../plugins/plugin";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 import type {
 	SugarBoxCacheAdapter,
