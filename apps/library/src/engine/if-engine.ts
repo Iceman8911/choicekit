@@ -18,11 +18,7 @@ import {
 	decompressPossiblyCompressedJsonString,
 } from "@packages/string-compression";
 import type { Promisable } from "type-fest";
-import type {
-	SugarboxPlugin,
-	SugarboxPluginSaveStructure,
-} from "../plugins/plugin";
-import type { SugarBoxCacheAdapter } from "../types/adapters";
+import type { SugarBoxCacheAdapter } from "../models/adapters";
 import type {
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
@@ -32,8 +28,15 @@ import type {
 	SugarBoxSaveData,
 	SugarBoxSaveKey,
 	SugarBoxSnapshotMetadata,
-} from "../types/if-engine";
-import type { GenericObject, GenericSerializableObject } from "../types/shared";
+} from "../models/if-engine";
+import type {
+	GenericObject,
+	GenericSerializableObject,
+} from "../models/shared";
+import type {
+	SugarboxPlugin,
+	SugarboxPluginSaveStructure,
+} from "../plugins/plugin";
 import { InMemoryPersistenceAdapter } from "../utils/persistence-adapters/in-memory";
 import {
 	isSaveCompatibleWithEngine,

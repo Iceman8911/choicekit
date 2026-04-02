@@ -1,9 +1,12 @@
 import { TypedEventEmitter } from "@packages/event-emitter";
 import { clone } from "@packages/serializer";
 import type { ReadonlyDeep } from "type-fest";
+import type { Producer } from "../../models/producers";
+import type {
+	ExpandType,
+	GenericSerializableObject,
+} from "../../models/shared";
 import { createStateSetter } from "../../shared/utils/producers";
-import type { Producer } from "../../types/producers";
-import type { ExpandType, GenericSerializableObject } from "../../types/shared";
 import {
 	definePlugin,
 	type SugarboxPlugin,

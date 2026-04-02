@@ -9,8 +9,8 @@ import { SugarboxEngine } from "../../src";
 import type {
 	SugarBoxPassage,
 	SugarBoxSaveData,
-} from "../../src/types/if-engine";
-import type { GenericSerializableObject } from "../../src/types/shared";
+} from "../../src/models/if-engine";
+import type { GenericSerializableObject } from "../../src/models/shared";
 import { createPersistenceAdapter } from "../mocks/persistence";
 
 type StateWithMetadata<TVariables extends GenericSerializableObject> = Readonly<

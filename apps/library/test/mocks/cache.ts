@@ -1,6 +1,6 @@
 import { mock } from "bun:test";
 import QuickLru from "quick-lru";
-import type { SugarBoxCacheAdapter } from "../../src/types/adapters";
+import type { SugarBoxCacheAdapter } from "../../src/models/adapters";
 
 const createCacheAdapter: () => SugarBoxCacheAdapter<{}> = mock(() => {
 	const store = new QuickLru<string, string>({ maxSize: 10 });

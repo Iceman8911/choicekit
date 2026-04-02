@@ -1,4 +1,4 @@
-import type { SugarBoxSaveVersionCompatiblityMode } from "../types/if-engine";
+import type { SugarBoxSaveVersionCompatiblityMode } from "../models/if-engine";
 
 type SemanticVersionTuple = readonly [
 	major: number,

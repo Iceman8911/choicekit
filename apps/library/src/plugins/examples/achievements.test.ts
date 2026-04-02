@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "bun:test";
 import { deserialize } from "@packages/serializer";
 import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import { SugarboxEngineBuilder } from "../../engine/builder";
-import type { ExpandType } from "../../types/shared";
+import type { ExpandType } from "../../models/shared";
 import createAchievementsPlugin from "./achievements";
 
 function createSimpleAchievements() {

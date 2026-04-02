@@ -6,13 +6,13 @@ import { SugarboxEngineBuilder } from "./engine/builder";
 import type {
 	SugarBoxCacheAdapter,
 	SugarBoxPersistenceAdapter,
-} from "./types/adapters";
+} from "./models/adapters";
 import type {
 	SugarBoxAnyKey,
 	SugarBoxConfig,
 	SugarBoxExportData,
 	SugarBoxSaveData,
-} from "./types/if-engine";
+} from "./models/if-engine";
 import { InMemoryPersistenceAdapter } from "./utils/persistence-adapters/in-memory";
 import { IndexedDbPersistenceAdapter } from "./utils/persistence-adapters/indexed-db";
 import { LocalStoragePersistenceAdapter } from "./utils/persistence-adapters/local-storage";

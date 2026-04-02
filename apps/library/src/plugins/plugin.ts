@@ -4,7 +4,10 @@ import {
 } from "@packages/serializer";
 import type { Promisable } from "type-fest";
 import type { SugarboxEngine } from "../engine/if-engine";
-import type { GenericObject, GenericSerializableObject } from "../types/shared";
+import type {
+	GenericObject,
+	GenericSerializableObject,
+} from "../models/shared";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
 
 type SugarboxPluginBehaviourOnOverride = "err" | "ignore" | "override";

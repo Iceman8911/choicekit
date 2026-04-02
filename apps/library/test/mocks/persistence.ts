@@ -1,6 +1,6 @@
 import { mock } from "bun:test";
-import type { GenericPersistenceAdapter } from "../../src/types/adapters";
-import type { SugarBoxAnyKey } from "../../src/types/if-engine";
+import type { GenericPersistenceAdapter } from "../../src/models/adapters";
+import type { SugarBoxAnyKey } from "../../src/models/if-engine";
 
 const createPersistenceAdapter: () => GenericPersistenceAdapter<
 	SugarBoxAnyKey,
