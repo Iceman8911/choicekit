@@ -87,24 +87,6 @@ const MINIMUM_SAVE_SLOTS = 1;
 
 const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
 
-const LEGACY_EVENT_NAME_TO_CANONICAL_NAME = {
-	":deleteEnd": "deleteEnd",
-	":deleteStart": "deleteStart",
-	":loadEnd": "loadEnd",
-	":loadStart": "loadStart",
-	":migrationEnd": "migrationEnd",
-	":migrationStart": "migrationStart",
-	":passageChange": "passageChange",
-	":saveEnd": "saveEnd",
-	":saveStart": "saveStart",
-	":stateChange": "stateChange",
-} as const;
-
-type LegacySugarBoxEventName = keyof typeof LEGACY_EVENT_NAME_TO_CANONICAL_NAME;
-
-type CanonicalSugarBoxEventName =
-	(typeof LEGACY_EVENT_NAME_TO_CANONICAL_NAME)[LegacySugarBoxEventName];
-
 type StateWithMetadata<TVariables extends GenericSerializableObject> =
 	TVariables & SugarBoxSnapshotMetadata;
 
@@ -128,7 +110,7 @@ type DeleteEndEvent =
 	| { type: "error"; error: Error; slot: "autosave" | number };
 
 /** Events fired from a `SugarBoxEngine` instance */
-type SugarBoxEventPayloads<TPassageData, TStateVariables> = {
+type SugarBoxEvents<TPassageData, TStateVariables> = {
 	passageChange: Readonly<{
 		oldPassage: TPassageData | null;
 		newPassage: TPassageData | null;
@@ -169,16 +151,6 @@ type SugarBoxEventPayloads<TPassageData, TStateVariables> = {
 				error: Error;
 		  }
 	>;
-};
-
-type SugarBoxEvents<TPassageData, TStateVariables> = SugarBoxEventPayloads<
-	TPassageData,
-	TStateVariables
-> & {
-	[KLegacyName in LegacySugarBoxEventName]: SugarBoxEventPayloads<
-		TPassageData,
-		TStateVariables
-	>[(typeof LEGACY_EVENT_NAME_TO_CANONICAL_NAME)[KLegacyName]];
 };
 
 type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
@@ -1320,41 +1292,17 @@ class SugarboxEngine<
 		return this.#eventTarget.dispatchEvent(event);
 	}
 
-	#toCanonicalEventName<TEventType extends keyof typeof this._type.events>(
-		eventName: TEventType,
-	): CanonicalSugarBoxEventName {
-		const mappedName = (
-			LEGACY_EVENT_NAME_TO_CANONICAL_NAME as Record<
-				string,
-				CanonicalSugarBoxEventName | undefined
-			>
-		)[eventName as string];
-
-		return mappedName ?? (eventName as CanonicalSugarBoxEventName);
-	}
-
-	#toLegacyEventName(
-		eventName: CanonicalSugarBoxEventName,
-	): LegacySugarBoxEventName {
-		return `:${eventName}` as LegacySugarBoxEventName;
-	}
-
 	#emitCustomEvent<TEventType extends keyof typeof this._type.events>(
 		name: TEventType,
 		data: (typeof this._type.events)[TEventType],
 	): boolean {
-		const canonicalEventName = this.#toCanonicalEventName(name);
-
 		const dispatchResult = this.#dispatchCustomEvent(
-			this.#createCustomEvent(canonicalEventName, data),
+			this.#createCustomEvent(name, data),
 		);
-
-		const legacyEventName = this.#toLegacyEventName(canonicalEventName);
-		this.#dispatchCustomEvent(this.#createCustomEvent(legacyEventName, data));
 
 		const { autoSave } = this.#config;
 
-		switch (canonicalEventName) {
+		switch (name) {
 			case "passageChange": {
 				if (autoSave === "passage") {
 					this.saveToSaveSlot();

@@ -325,7 +325,7 @@ describe(SugarboxEngine.name, () => {
 			oldValue: NaN,
 		};
 
-		engine.on(":stateChange", (event) => {
+		engine.on("stateChange", (event) => {
 			eventData = {
 				newValue: event.detail.newState.value,
 				oldValue: event.detail.oldState.value,
@@ -354,7 +354,7 @@ describe(SugarboxEngine.name, () => {
 
 		let eventFired = false;
 
-		engine.on(":stateChange", () => {
+		engine.on("stateChange", () => {
 			eventFired = true;
 		});
 
@@ -426,7 +426,7 @@ describe(SugarboxEngine.name, () => {
 			oldId: null,
 		};
 
-		engine.on(":passageChange", (event) => {
+		engine.on("passageChange", (event) => {
 			changeData = {
 				newId: event.detail.newPassage?.name ?? null,
 				oldId: event.detail.oldPassage?.name ?? null,
@@ -556,13 +556,13 @@ describe(SugarboxEngine.name, () => {
 			callCount++;
 		};
 
-		engine.on(":stateChange", listener);
+		engine.on("stateChange", listener);
 		engine.setVars(() => {
 			// dummy
 		});
 		expect(callCount).toBe(1);
 
-		engine.off(":stateChange", listener);
+		engine.off("stateChange", listener);
 		engine.setVars(() => {
 			// dummy
 		});
@@ -582,7 +582,7 @@ describe(SugarboxEngine.name, () => {
 
 		let callCount = 0;
 
-		const unsubscribe = engine.on(":stateChange", () => {
+		const unsubscribe = engine.on("stateChange", () => {
 			callCount++;
 		});
 
@@ -623,9 +623,9 @@ describe(SugarboxEngine.name, () => {
 		expect(callCount).toBe(1);
 	});
 
-	it("should keep legacy event names working alongside canonical names", async () => {
+	it("should not emit legacy prefixed event names", async () => {
 		const engine = await new SugarboxEngineBuilder()
-			.withName("LegacyAndCanonicalEvents")
+			.withName("NoLegacyPrefixedEvents")
 			.withVars({ value: 0 })
 			.withPassages({
 				data: "test",
@@ -641,7 +641,7 @@ describe(SugarboxEngine.name, () => {
 			canonicalCalls++;
 		});
 
-		engine.on(":stateChange", () => {
+		engine.on(":stateChange" as any, () => {
 			legacyCalls++;
 		});
 
@@ -650,7 +650,7 @@ describe(SugarboxEngine.name, () => {
 		});
 
 		expect(canonicalCalls).toBe(1);
-		expect(legacyCalls).toBe(1);
+		expect(legacyCalls).toBe(0);
 	});
 
 	// ==================== Reset & Persistent State ====================
@@ -814,7 +814,7 @@ describe(SugarboxEngine.name, () => {
 			.build();
 
 		const autosaved = new Promise<void>((resolve) => {
-			const unsubscribe = engine.on(":saveEnd", (event) => {
+			const unsubscribe = engine.on("saveEnd", (event) => {
 				if (
 					event.detail.slot === "autosave" &&
 					event.detail.type === "success"
@@ -1123,7 +1123,7 @@ describe(SugarboxEngine.name, () => {
 			.build();
 
 		const autosaved = new Promise<void>((resolve) => {
-			const unsubscribe = engine.on(":saveEnd", (event) => {
+			const unsubscribe = engine.on("saveEnd", (event) => {
 				if (
 					event.detail.slot === "autosave" &&
 					event.detail.type === "success"
@@ -1193,7 +1193,7 @@ describe(SugarboxEngine.name, () => {
 			.build();
 
 		const autosaved = new Promise<void>((resolve) => {
-			const unsubscribe = engine.on(":saveEnd", (event) => {
+			const unsubscribe = engine.on("saveEnd", (event) => {
 				if (
 					event.detail.slot === "autosave" &&
 					event.detail.type === "success"
@@ -1369,27 +1369,27 @@ describe(SugarboxEngine.name, () => {
 
 		const seen: string[] = [];
 
-		engine.on(":saveStart", (event) => {
+		engine.on("saveStart", (event) => {
 			seen.push(`saveStart:${String(event.detail.slot)}`);
 		});
 
-		engine.on(":saveEnd", (event) => {
+		engine.on("saveEnd", (event) => {
 			seen.push(`saveEnd:${event.detail.type}:${String(event.detail.slot)}`);
 		});
 
-		engine.on(":loadStart", (event) => {
+		engine.on("loadStart", (event) => {
 			seen.push(`loadStart:${String(event.detail.slot)}`);
 		});
 
-		engine.on(":loadEnd", (event) => {
+		engine.on("loadEnd", (event) => {
 			seen.push(`loadEnd:${event.detail.type}:${String(event.detail.slot)}`);
 		});
 
-		engine.on(":deleteStart", (event) => {
+		engine.on("deleteStart", (event) => {
 			seen.push(`deleteStart:${String(event.detail.slot)}`);
 		});
 
-		engine.on(":deleteEnd", (event) => {
+		engine.on("deleteEnd", (event) => {
 			seen.push(`deleteEnd:${event.detail.type}:${String(event.detail.slot)}`);
 		});
 
