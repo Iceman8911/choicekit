@@ -13,6 +13,7 @@ type JsonSerializableType =
 	| {
 			[key: string]: JsonSerializableType;
 	  }
+	| JsonSerializableType[]
 	| TransformedDataType;
 
 export interface SugarboxClassConstructorWithValidSerialization
@@ -405,4 +406,4 @@ const serialize = (obj: TransformableOrJsonSerializableType): string =>
 const deserialize = (str: string): TransformableOrJsonSerializableType =>
 	transformFromSerialization(JSON.parse(str));
 
-export { serialize, deserialize };
+export { deserialize, serialize };
