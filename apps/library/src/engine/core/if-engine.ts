@@ -42,6 +42,7 @@ import type {
 import type {
 	SugarBoxEngineArguments,
 	SugarBoxEngineGenerics,
+	SugarBoxEngineVariableInitData,
 	SugarBoxSaveMigration,
 	SugarBoxSaveMigrationMap,
 } from "./_shared";
@@ -244,14 +245,61 @@ class SugarboxEngine<
 	#plugins: Record<string, SugarboxPlugin> = {};
 	#pluginState: Record<string, GenericObject> = {};
 
-	private constructor(
-		/** Must be unique to prevent conflicts */
-		name: string,
-	) {
+	private constructor(args: {
+		classes: SugarboxClassConstructorWithValidSerialization[];
+		config: SugarBoxConfig<TEngineGenerics["vars"], TEngineGenerics["plugins"]>;
+		migrations: {
+			from: SugarBoxSemanticVersionString;
+			data: SugarBoxSaveMigration<never, unknown>;
+		}[];
+		name: TEngineGenerics["name"];
+		passages: [TEngineGenerics["passages"], ...TEngineGenerics["passages"][]];
+		vars:
+			| TEngineGenerics["vars"]
+			| ((init: SugarBoxEngineVariableInitData) => TEngineGenerics["vars"]);
+	}) {
+		const { classes, config, migrations, name, passages, vars } = args;
+		const initialSeed = config.initialSeed ?? getRandomInteger();
+		config.initialSeed = initialSeed;
+
 		this.name = name;
+		this.#config = config;
+		this.#stateSnapshots = [
+			{
+				$$id: passages[0].name,
+				$$seed: initialSeed,
+			},
+		];
+		this.#passages = new Map(
+			passages.map((passage) => [passage.name, passage]),
+		);
+
+		if (config.cache) {
+			this.#stateCache = config.cache;
+		}
+
+		const isInitialStateCallback = vars instanceof Function;
+
+		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
+		this.#initialState = {
+			...(isInitialStateCallback ? ({} as TEngineGenerics["vars"]) : vars),
+			$$id: passages[0].name,
+			$$seed: initialSeed,
+		} as Readonly<StateWithMetadata<TEngineGenerics["vars"]>>;
+
+		if (isInitialStateCallback) {
+			// `vars` is typed as possibly a callback; call it with the engine instance
+			this.#initialState = {
+				...vars({ prng: this.random }),
+				$$id: passages[0].name,
+				$$seed: initialSeed,
+			} as Readonly<StateWithMetadata<TEngineGenerics["vars"]>>;
+		}
+
+		this.registerClasses(...classes);
+		this.registerMigrators(...migrations);
 	}
 
-	// TODO: Only do async work here and move all purely synchronous work into the private constructor
 	static async init<const TGenerics extends SugarBoxEngineGenerics>(
 		args: Partial<SugarBoxEngineArguments<TGenerics>>,
 	): Promise<SugarboxEngine<TGenerics>> {
@@ -272,50 +320,22 @@ class SugarboxEngine<
 
 		mergedConfig.initialSeed ??= getRandomInteger();
 
-		const { cache, saveSlots, initialSeed } = mergedConfig;
-
-		const engine = new SugarboxEngine(name);
-		engine.#config = mergedConfig;
-
-		engine.#stateSnapshots = [
-			{
-				$$id: passages[0].name,
-				$$seed: initialSeed,
-			},
-		];
+		const { saveSlots } = mergedConfig;
 
 		if (saveSlots && saveSlots < MINIMUM_SAVE_SLOTS)
 			throw Error(`Invalid number of save slots: ${saveSlots}`);
 
-		// Add passages and set cache if provided
-		engine.addPassages(...passages);
-
-		if (cache) {
-			engine.#stateCache = cache;
-		}
-
-		const isInitialStateCallback = vars instanceof Function;
-
-		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
-		engine.#initialState = {
-			...(isInitialStateCallback ? ({} as TGenerics["vars"]) : vars),
-			$$id: passages[0].name,
-			$$seed: initialSeed,
-		} as Readonly<StateWithMetadata<TGenerics["vars"]>>;
-
-		// If the initial state is a function, call it with the engine instance
-		if (isInitialStateCallback) {
-			// `vars` is typed as possibly a callback; call it with the engine instance
-			engine.#initialState = {
-				...vars({ prng: engine.random }),
-				$$id: passages[0].name,
-				$$seed: initialSeed,
-			} as Readonly<StateWithMetadata<TGenerics["vars"]>>;
-		}
-
-		engine.registerClasses(...(classes ?? []));
-
-		engine.registerMigrators(...(migrations ?? []));
+		const engine = new SugarboxEngine<TGenerics>({
+			classes,
+			config: mergedConfig as SugarBoxConfig<
+				TGenerics["vars"],
+				TGenerics["plugins"]
+			>,
+			migrations,
+			name,
+			passages,
+			vars,
+		});
 
 		// Mount plugins that were provided during initialization (if any).
 		const initPlugins = args.plugins ?? [];
@@ -1316,7 +1336,12 @@ class SugarboxEngine<
 	}
 
 	#dispatchCustomEvent(event: CustomEvent): boolean {
-		return this.#eventTarget.dispatchEvent(event);
+		this.#events.emit(
+			event.type as keyof typeof this._type.events,
+			event.detail,
+		);
+
+		return true;
 	}
 
 	#emitCustomEvent<TEventType extends keyof typeof this._type.events>(
