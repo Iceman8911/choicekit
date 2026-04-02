@@ -1,4 +1,4 @@
-import { describe, expectTypeOf, it } from "bun:test";
+import { describe, expect, expectTypeOf, it } from "bun:test";
 import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
 import { SugarboxEngineBuilder } from "./builder";
 
@@ -240,5 +240,26 @@ describe("SugarboxEngineBuilder - Plugin Type Accumulation", () => {
 
 		expectTypeOf(engine.$).toHaveProperty("solo");
 		expectTypeOf(engine.$.solo.getValue).toBeFunction();
+	});
+
+	it("should reject invalid save slot configuration at build time", async () => {
+		await expect(
+			new SugarboxEngineBuilder()
+				.withName("invalid-config")
+				.withVars({ x: 1 })
+				.withPassages({ data: "test", name: "start", tags: [] })
+				.withConfig({
+					autoSave: false,
+					compress: false,
+					loadOnStart: false,
+					maxStates: 10,
+					regenSeed: false,
+					saveCompat: "strict",
+					saveSlots: -1,
+					saveVersion: "1.0.0",
+					stateMergeCount: 5,
+				})
+				.build(),
+		).rejects.toThrow();
 	});
 });

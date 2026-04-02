@@ -38,7 +38,7 @@ const {
 	vars: "vars",
 } as const satisfies { [K in SugarBoxEngineArgumentKeys]: K };
 
-/** To enforce type saftey and work around typescript limitations with advanced generics, a builder for the engine is more convenient.
+/** To enforce type safety and work around typescript limitations with advanced generics, a builder for the engine is more convenient.
  *
  * If you need a reset builder, simply instantiate a new instance.
  */
@@ -135,7 +135,7 @@ export class SugarboxEngineBuilder<
 	}
 
 	/** Add save migrations for to update older saves */
-	withMigrations(
+	withMigrators(
 		migrations: TArgs["migrations"],
 	): SugarboxEngineBuilder<TGenerics> {
 		this.#forceAddProp(sbMigrations, migrations);

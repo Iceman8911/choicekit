@@ -109,6 +109,7 @@ type DeleteEndEvent =
 	| { type: "success"; slot: "autosave" | number }
 	| { type: "error"; error: Error; slot: "autosave" | number };
 
+// TODO: remove the ":" and ensure to replace all the times they were used
 /** Events fired from a `SugarBoxEngine` instance */
 type SugarBoxEvents<TPassageData, TStateVariables> = {
 	":passageChange": Readonly<{
@@ -155,22 +156,6 @@ type SugarBoxEvents<TPassageData, TStateVariables> = {
 	>;
 };
 
-// type ApplyPluginsToEngineType<
-// 	TEngine extends SugarboxEngine,
-// 	TPlugins extends SugarBoxEngineGenerics["plugins"],
-// > =
-// 	TEngine extends SugarboxEngine<infer REngineGenerics>
-// 		? SugarboxEngine<
-// 				REngineGenerics & {
-// 					plugins: REngineGenerics["plugins"] & {
-// 						[KPlugin in TPlugins[number] as KPlugin extends AnySugarboxPlugin
-// 							? KPlugin["id"]
-// 							: never]: KPlugin;
-// 					};
-// 				}
-// 			>
-// 		: never;
-
 type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
 	[KPlugin in TPlugins[number] as KPlugin extends SugarboxPlugin
 		? KPlugin["id"]
@@ -181,6 +166,7 @@ type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
 		: never;
 };
 
+// TODO: Use TypedEventEmitter for the on / off stuff.
 /** The main engine for Sugarbox that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
@@ -221,7 +207,7 @@ class SugarboxEngine<
 	 *
 	 * This is used to determine the current state of the engine.
 	 */
-	#index!: number;
+	#index: number = 0;
 
 	/**  Contains the structure of stateful variables in the engine.
 	 *
@@ -252,7 +238,7 @@ class SugarboxEngine<
 	 *
 	 * This is also the "state history"
 	 */
-	#stateSnapshots!: Array<typeof this._type.state.snapshot>;
+	#stateSnapshots: Array<typeof this._type.state.snapshot> = [];
 
 	#plugins: Record<string, SugarboxPlugin> = {};
 	#pluginState: Record<string, GenericObject> = {};
@@ -264,6 +250,7 @@ class SugarboxEngine<
 		this.name = name;
 	}
 
+	// TODO: Only do async work here and move all purely synchronous work into the private constructor
 	static async init<const TGenerics extends SugarBoxEngineGenerics>(
 		args: Partial<SugarBoxEngineArguments<TGenerics>>,
 	): Promise<SugarboxEngine<TGenerics>> {
@@ -289,10 +276,12 @@ class SugarboxEngine<
 		const engine = new SugarboxEngine(name);
 		engine.#config = mergedConfig;
 
-		// Perform the initialization that used to live in the constructor.
-		// This keeps the private constructor dumb and centralizes setup here.
-		engine.#stateSnapshots = [{}];
-		engine.#index = 0;
+		engine.#stateSnapshots = [
+			{
+				$$id: passages[0].name,
+				$$seed: initialSeed,
+			},
+		];
 
 		if (saveSlots && saveSlots < MINIMUM_SAVE_SLOTS)
 			throw Error(`Invalid number of save slots: ${saveSlots}`);
