@@ -18,6 +18,7 @@ import {
 	decompressPossiblyCompressedJsonString,
 } from "@packages/string-compression";
 import type { Promisable } from "type-fest";
+import * as v from "valibot";
 import type { SugarBoxCacheAdapter } from "../models/adapters";
 import type {
 	SugarBoxAutoSaveKey,
@@ -29,6 +30,11 @@ import type {
 	SugarBoxSaveKey,
 	SugarBoxSnapshotMetadata,
 } from "../models/if-engine";
+import {
+	SugarboxExportDataSchema,
+	SugarboxPluginSaveStructureSchema,
+	SugarboxSaveDataSchema,
+} from "../models/if-engine.schemas";
 import type {
 	GenericObject,
 	GenericSerializableObject,
@@ -516,10 +522,12 @@ class SugarboxEngine<
 
 			if (!serializedSaveData) continue;
 
-			//@ts-expect-error Inference Limitation
-			const saveData: typeof this._type.saveData = deserialize(
-				await decompressPossiblyCompressedJsonString(serializedSaveData),
-			) as typeof this._type.saveData;
+			const saveData: typeof this._type.saveData = v.parse(
+				SugarboxSaveDataSchema,
+				deserialize(
+					await decompressPossiblyCompressedJsonString(serializedSaveData),
+				),
+			);
 
 			if (key === this.#getAutoSaveStorageKey()) {
 				yield { data: saveData, type: "autosave" };
@@ -607,9 +615,10 @@ class SugarboxEngine<
 			async () => {
 				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
-				//@ts-expect-error Inference Limitation
-				const { saveData, plugins }: typeof this._type.exportData =
-					deserialize(jsonString);
+				const { saveData, plugins }: typeof this._type.exportData = v.parse(
+					SugarboxExportDataSchema,
+					deserialize(jsonString),
+				);
 
 				await this.#loadPluginSaveDataFromRecord(plugins);
 
@@ -646,8 +655,7 @@ class SugarboxEngine<
 					await decompressPossiblyCompressedJsonString(serializedSaveData);
 
 				await this.loadSaveFromData(
-					//@ts-expect-error Inference Limitation
-					deserialize(jsonString) as typeof this._type.saveData,
+					v.parse(SugarboxSaveDataSchema, deserialize(jsonString)),
 				);
 			},
 		);
@@ -1420,9 +1428,10 @@ class SugarboxEngine<
 
 		if (!stringifiedData) return;
 
-		const { data, version }: SugarboxPluginSaveStructure = deserialize(
-			stringifiedData,
-		) as unknown as SugarboxPluginSaveStructure;
+		const { data, version }: SugarboxPluginSaveStructure = v.parse(
+			SugarboxPluginSaveStructureSchema,
+			deserialize(stringifiedData),
+		);
 
 		await plugin.onDeserialize?.({
 			data,

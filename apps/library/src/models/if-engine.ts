@@ -72,6 +72,7 @@ type SugarBoxSaveData<
 	/** Total play time in seconds. TODO */
 	// playtimeInSeconds: number;
 
+	// TODO: rename to `version`
 	/** The version of the story associated with this save */
 	saveVersion: SugarBoxSemanticVersionString;
 
