@@ -693,7 +693,7 @@ class SugarboxEngine<
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
 	async loadSaveFromData(save: typeof this._type.saveData): Promise<void> {
-		const { intialState, snapshots, storyIndex, saveVersion, plugins } = save;
+		const { intialState, snapshots, storyIndex, version, plugins } = save;
 
 		await this.#loadPluginSaveDataFromRecord(plugins);
 
@@ -705,7 +705,7 @@ class SugarboxEngine<
 			this.#config;
 
 		const saveCompatibility = isSaveCompatibleWithEngine(
-			saveVersion,
+			version,
 			engineVersion,
 			saveCompatibilityMode,
 		);
@@ -733,7 +733,7 @@ class SugarboxEngine<
 				try {
 					let migratedState: typeof this._type.state.complete | null = null;
 
-					let currentSaveVersion = saveVersion;
+					let currentSaveVersion = version;
 
 					while (currentSaveVersion !== engineVersion) {
 						const migratorData = this.#saveMigrationMap.get(currentSaveVersion);
@@ -794,7 +794,7 @@ class SugarboxEngine<
 			}
 			case "new": {
 				throw Error(
-					`Save with version ${saveVersion} is too new for the engine with version ${engineVersion}`,
+					`Save with version ${version} is too new for the engine with version ${engineVersion}`,
 				);
 			}
 		}
@@ -1517,9 +1517,9 @@ class SugarboxEngine<
 			lastPassageId: this.passageId,
 			plugins: await this.#getPluginSaveData(true),
 			savedOn: new Date(),
-			saveVersion: this.#config.saveVersion,
 			snapshots: this.#stateSnapshots,
 			storyIndex: this.#index,
+			version: this.#config.saveVersion,
 		};
 	}
 

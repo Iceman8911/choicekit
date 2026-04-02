@@ -1349,7 +1349,7 @@ describe(SugarboxEngine.name, () => {
 
 		await engine.loadSaveFromData({
 			...saveData,
-			saveVersion: "1.0.0",
+			version: "1.0.0",
 		});
 
 		expect(engine.vars.hp).toBe(17);

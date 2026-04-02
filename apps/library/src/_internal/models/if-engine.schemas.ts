@@ -33,9 +33,9 @@ export const SugarboxSaveDataSchema: v.GenericSchema<SugarBoxSaveData> = v.pipe(
 		lastPassageId: v.string(),
 		plugins: PluginSaveDataSchema,
 		savedOn: v.date(),
-		saveVersion: SemanticVersionStringSchema,
 		snapshots: v.array(StateSnapshotMetadataSchema),
 		storyIndex: v.number(),
+		version: SemanticVersionStringSchema,
 	}),
 	v.readonly(),
 );

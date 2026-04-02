@@ -70,9 +70,8 @@ type SugarBoxSaveData<
 	/** Total play time in seconds. TODO */
 	// playtimeInSeconds: number;
 
-	// TODO: rename to `version`
 	/** The version of the story associated with this save */
-	saveVersion: SugarBoxSemanticVersionString;
+	version: SugarBoxSemanticVersionString;
 
 	/** Plugin data that should be altered / sync up when the user saves or loads save-data
 	 *
