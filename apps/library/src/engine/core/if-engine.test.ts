@@ -599,6 +599,60 @@ describe(SugarboxEngine.name, () => {
 		expect(callCount).toBe(1);
 	});
 
+	it("should support canonical event names without legacy prefix", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("CanonicalEventNames")
+			.withVars({ value: 0 })
+			.withPassages({
+				data: "test",
+				name: "main",
+				tags: [],
+			})
+			.build();
+
+		let callCount = 0;
+
+		engine.on("stateChange", () => {
+			callCount++;
+		});
+
+		engine.setVars((vars) => {
+			vars.value = 1;
+		});
+
+		expect(callCount).toBe(1);
+	});
+
+	it("should keep legacy event names working alongside canonical names", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("LegacyAndCanonicalEvents")
+			.withVars({ value: 0 })
+			.withPassages({
+				data: "test",
+				name: "main",
+				tags: [],
+			})
+			.build();
+
+		let canonicalCalls = 0;
+		let legacyCalls = 0;
+
+		engine.on("stateChange", () => {
+			canonicalCalls++;
+		});
+
+		engine.on(":stateChange", () => {
+			legacyCalls++;
+		});
+
+		engine.setVars((vars) => {
+			vars.value = 1;
+		});
+
+		expect(canonicalCalls).toBe(1);
+		expect(legacyCalls).toBe(1);
+	});
+
 	// ==================== Reset & Persistent State ====================
 
 	it("should reset engine to initial state", async () => {
