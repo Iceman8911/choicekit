@@ -1,8 +1,5 @@
 import type { SugarboxClassConstructorWithValidSerialization } from "@packages/serializer";
-import type {
-	SugarBoxConfig,
-	SugarBoxPassage,
-} from "../../_internal/models/if-engine";
+import type { SugarBoxConfig, SugarBoxPassage } from "./if-engine.types";
 import type {
 	GenericObject,
 	GenericSerializableObject,

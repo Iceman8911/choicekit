@@ -1,4 +1,4 @@
-import type { SugarBoxSnapshotMetadata } from "../../_internal/models/if-engine";
+import type { SugarBoxSnapshotMetadata } from "../../engine/core/if-engine.types";
 import type { GenericSerializableObject } from "../../_internal/models/shared";
 
 /** Interface that any cache infrastructure must abide to */

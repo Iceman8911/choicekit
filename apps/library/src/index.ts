@@ -7,15 +7,13 @@ import type {
 	SugarBoxConfig,
 	SugarBoxExportData,
 	SugarBoxSaveData,
-} from "./_internal/models/if-engine";
-import { SugarboxEngineBuilder } from "./engine/builder";
+} from "./engine/core/if-engine.types";
 
-export {
-	type SugarBoxAnyKey,
-	type SugarBoxClassConstructor,
-	type SugarBoxClassInstance,
-	type SugarBoxConfig,
-	type SugarBoxExportData,
-	type SugarBoxSaveData,
-	SugarboxEngineBuilder,
+export type {
+	SugarBoxAnyKey,
+	SugarBoxClassConstructor,
+	SugarBoxClassInstance,
+	SugarBoxConfig,
+	SugarBoxExportData,
+	SugarBoxSaveData,
 };

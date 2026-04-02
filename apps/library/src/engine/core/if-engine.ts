@@ -19,16 +19,6 @@ import {
 } from "@packages/string-compression";
 import type { Promisable } from "type-fest";
 import * as v from "valibot";
-import type {
-	SugarBoxAutoSaveKey,
-	SugarBoxConfig,
-	SugarBoxExportData,
-	SugarBoxNormalSaveKey,
-	SugarBoxPluginSaveKey,
-	SugarBoxSaveData,
-	SugarBoxSaveKey,
-	SugarBoxSnapshotMetadata,
-} from "../../_internal/models/if-engine";
 import {
 	SugarboxExportDataSchema,
 	SugarboxPluginSaveStructureSchema,
@@ -54,6 +44,16 @@ import type {
 	SugarBoxSaveMigration,
 	SugarBoxSaveMigrationMap,
 } from "./_shared";
+import type {
+	SugarBoxAutoSaveKey,
+	SugarBoxConfig,
+	SugarBoxExportData,
+	SugarBoxNormalSaveKey,
+	SugarBoxPluginSaveKey,
+	SugarBoxSaveData,
+	SugarBoxSaveKey,
+	SugarBoxSnapshotMetadata,
+} from "./if-engine.types";
 
 const DEFAULT_CONFIG = {
 	autoSave: false,

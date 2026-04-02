@@ -1,4 +1,4 @@
-import type { SugarBoxAnyKey } from "../../_internal/models/if-engine";
+import type { SugarBoxAnyKey } from "../../engine/core/if-engine.types";
 
 /** Interface that any persistence infrastructure must abide to */
 type PersistenceAdapter<TKey, TData> = {

@@ -1,8 +1,11 @@
 import { TransformableOrJsonSerializableSchema } from "@packages/serializer";
 import * as v from "valibot";
+import type {
+	SugarBoxExportData,
+	SugarBoxSaveData,
+} from "../../engine/core/if-engine.types";
 import type { SugarboxPluginSaveStructure } from "../../plugins/plugin";
 import { SemanticVersionStringSchema } from "../schemas/version.schemas";
-import type { SugarBoxExportData, SugarBoxSaveData } from "./if-engine";
 
 const StateSnapshotMetadataSchema: v.GenericSchema<
 	SugarBoxSaveData["intialState"]

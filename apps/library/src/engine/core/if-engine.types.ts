@@ -1,12 +1,12 @@
+import type { GenericSerializableObject } from "../../_internal/models/shared";
+import type { SugarBoxSemanticVersionString } from "../../_internal/utils/version";
 import type { SugarBoxCacheAdapter } from "../../adapters/cache/types";
 import type { SugarBoxPersistenceAdapter } from "../../adapters/persistence/types";
-import type { SugarboxEngine } from "../../engine/core/if-engine";
 import type {
 	SugarboxPlugin,
 	SugarboxPluginSaveStructure,
 } from "../../plugins/plugin";
-import type { SugarBoxSemanticVersionString } from "../utils/version";
-import type { GenericSerializableObject } from "./shared";
+import type { SugarboxEngine } from "./if-engine";
 
 /** Special information attached to every state snapshot */
 type SugarBoxSnapshotMetadata = {
