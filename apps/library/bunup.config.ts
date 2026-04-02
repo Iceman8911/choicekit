@@ -1,9 +1,10 @@
 import { defineConfig } from "bunup";
 
 const ENTRY_GLOBS = [
-	"src/*.ts",
-	"src/plugins/**/*.ts",
-	"!src/plugins/**/*.test.ts",
+	"src/**/*.ts",
+	"!src/**/*.test.ts",
+	"!src/_*/**/*.ts",
+	"!src/**/_*.ts",
 ];
 
 const config = defineConfig([

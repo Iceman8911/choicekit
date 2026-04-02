@@ -19,7 +19,6 @@ import {
 } from "@packages/string-compression";
 import type { Promisable } from "type-fest";
 import * as v from "valibot";
-import type { SugarBoxCacheAdapter } from "../../_internal/models/adapters";
 import type {
 	SugarBoxAutoSaveKey,
 	SugarBoxConfig,
@@ -43,6 +42,7 @@ import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
 } from "../../_internal/utils/version";
+import type { SugarBoxCacheAdapter } from "../../adapters/cache/types";
 import InMemoryPersistenceAdapter from "../../adapters/persistence/in-memory";
 import type {
 	SugarboxPlugin,

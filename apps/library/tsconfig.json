@@ -8,7 +8,7 @@
 		"skipLibCheck": true,
 		"strict": true
 	},
-	"exclude": ["node_modules", "dist", "bunup.config.ts"],
+	"exclude": ["node_modules", "dist", "bunup.config.ts", "src/**/*.test.ts"],
 	"extends": "../../tsconfig.json",
 	"include": ["src/**/*"],
 	"paths": {

@@ -1,5 +1,5 @@
-import type { SugarBoxPersistenceAdapter } from "../../_internal/models/adapters";
 import type { SugarBoxAnyKey } from "../../_internal/models/if-engine";
+import type { SugarBoxPersistenceAdapter } from "./types";
 
 const INDEXED_DB_NAME = "sugarbox";
 const INDEXED_DB_VERSION = 1;
@@ -21,7 +21,7 @@ const openIndexedDb = async (): Promise<IDBDatabase> => {
 	});
 };
 
-const IndexedDbPersistenceAdapter = {
+const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
 	async delete(key) {
 		const db = await openIndexedDb();
 		try {
@@ -106,6 +106,6 @@ const IndexedDbPersistenceAdapter = {
 			db.close();
 		}
 	},
-} as const satisfies SugarBoxPersistenceAdapter;
+};
 
 export default IndexedDbPersistenceAdapter;

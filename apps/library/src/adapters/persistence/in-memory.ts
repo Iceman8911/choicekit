@@ -1,10 +1,10 @@
-import type { SugarBoxPersistenceAdapter } from "../../_internal/models/adapters";
 import type { SugarBoxAnyKey } from "../../_internal/models/if-engine";
+import type { SugarBoxPersistenceAdapter } from "./types";
 
 const inMemoryMap = new Map<SugarBoxAnyKey, string>();
 
 /** Based off an in-memory map so changes are lost on program shutdown */
-const InMemoryPersistenceAdapter = {
+const InMemoryPersistenceAdapter: SugarBoxPersistenceAdapter = {
 	async delete(key) {
 		return inMemoryMap.delete(key);
 	},
@@ -17,6 +17,6 @@ const InMemoryPersistenceAdapter = {
 	async set(key, data) {
 		inMemoryMap.set(key, data);
 	},
-} as const satisfies SugarBoxPersistenceAdapter;
+};
 
 export default InMemoryPersistenceAdapter;

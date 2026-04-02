@@ -1,13 +1,11 @@
+import type { SugarBoxCacheAdapter } from "../../adapters/cache/types";
+import type { SugarBoxPersistenceAdapter } from "../../adapters/persistence/types";
 import type { SugarboxEngine } from "../../engine/core/if-engine";
 import type {
 	SugarboxPlugin,
 	SugarboxPluginSaveStructure,
 } from "../../plugins/plugin";
 import type { SugarBoxSemanticVersionString } from "../utils/version";
-import type {
-	SugarBoxCacheAdapter,
-	SugarBoxPersistenceAdapter,
-} from "./adapters";
 import type { GenericSerializableObject } from "./shared";
 
 /** Special information attached to every state snapshot */
