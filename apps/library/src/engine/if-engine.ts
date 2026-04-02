@@ -5,7 +5,7 @@
 // - A partial update only contains changes to the state, not the entire state.
 // - The current state snapshot is the last state in the list, which is mutable.
 
-import { PRNG } from "@iceman8911/tiny-prng";
+import PRNG from "@iceman8911/tiny-prng/prng";
 import {
 	clone,
 	deserialize,
@@ -1034,7 +1034,7 @@ class SugarboxEngine<
 		const prng = this.#currentStatePrng;
 
 		// This will alter `prng.seed`
-		const randomNumber = prng.nextFloat();
+		const randomNumber = prng.nextBoundedInt(0, 1);
 
 		if (regenSeed === "eachCall") {
 			// Add the new seed to the snapshot on each call
