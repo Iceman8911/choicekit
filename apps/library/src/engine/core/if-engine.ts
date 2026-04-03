@@ -159,7 +159,8 @@ type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
 	[KPlugin in TPlugins[number] as KPlugin extends SugarboxPlugin
 		? KPlugin["id"]
 		: never]: "initApi" extends keyof KPlugin
-		? KPlugin["initApi"] extends (...args: any) => any
+		? // biome-ignore lint/suspicious/noExplicitAny: <For ease of use in generics>
+			KPlugin["initApi"] extends (...args: any) => any
 			? Awaited<ReturnType<KPlugin["initApi"]>>
 			: never
 		: never;
@@ -822,12 +823,13 @@ class SugarboxEngine<
 
 			if (!mountedPlugin) continue;
 
+			// biome-ignore lint/style/noNonNullAssertion: <It's in a loop so it cannot be undefined>
 			const { data, version } = pluginSaveData[pluginId]!;
 
 			loadingPromises.push(
 				mountedPlugin.onDeserialize?.({
 					data,
-					state: this.#pluginState[pluginId]!,
+					state: this.#pluginState[pluginId],
 					version,
 				}),
 			);
@@ -886,7 +888,7 @@ class SugarboxEngine<
 		eventName: TEventName,
 		listener: (payload: (typeof this._type.events)[TEventName]) => void,
 	): void {
-		return this.#eventEmitter.off(eventName, listener);
+		this.#eventEmitter.off(eventName, listener);
 	}
 
 	/** Any custom classes stored in the story's state must be registered with this */
@@ -1562,6 +1564,7 @@ class SugarboxEngine<
 		const pendingPromises: Promise<void>[] = [];
 
 		for (const pluginId in this.#plugins) {
+			// biome-ignore lint/style/noNonNullAssertion: <it's in a loop so it cannot be undefined>
 			const { serialize, version } = this.#plugins[pluginId]!;
 
 			if (!serialize) continue;
@@ -1580,8 +1583,8 @@ class SugarboxEngine<
 			pendingPromises.push(
 				(async () => {
 					saveData[pluginId] = {
-						data: await method(this.#pluginState[pluginId]!),
-						version: version!,
+						data: await method((await this.#getPluginState(pluginId)) ?? {}),
+						version,
 					};
 				})(),
 			);

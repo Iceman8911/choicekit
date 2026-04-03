@@ -3,6 +3,7 @@ import { deserialize } from "@packages/serializer";
 import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import type { ExpandType } from "../../_internal/models/shared";
 import { SugarboxEngineBuilder } from "../../engine/builder";
+import type { SugarBoxExportData } from "../../engine/core/if-engine.types";
 import createSettingsPlugin from "./settings";
 
 function createSimpleSettings() {
@@ -284,13 +285,17 @@ describe("Settings Plugin", () => {
 
 		const exportedStr = await engine.saveToExport();
 
-		expect(
-			(
-				deserialize(
-					await decompressPossiblyCompressedJsonString(exportedStr),
-				) as any
-			)["plugins"]["settings"]["data"]["settings"],
-		).toEqual({
+		const exportedData = deserialize(
+			await decompressPossiblyCompressedJsonString(exportedStr),
+		) as unknown as SugarBoxExportData;
+
+		const persistedSettings = (
+			exportedData.plugins?.settings?.data as
+				| { settings?: WidenedSimpleSettings }
+				| undefined
+		)?.settings;
+
+		expect(persistedSettings).toEqual({
 			musicEnabled: false,
 			notifications: {
 				show: false,
