@@ -32,7 +32,7 @@ type SettingsPluginGenerics<TData extends GenericSerializableObject> =
 			 *
 			 * Changes are persisted asynchronously without waiting, use `save()` if you need to wait for the save to complete
 			 */
-			set: (producer: Producer<TData>) => void;
+			set: (producer: Producer<TData>, emitEvent?: boolean) => void;
 
 			/** Forces a save of the current settings state */
 			save(): Promise<void>;
@@ -83,9 +83,13 @@ export default function createSettingsPlugin<
 					return state.eventEmitter.on(eventName, listener);
 				},
 				save: triggerSave,
-				set(producer) {
+				set(producer, emitEvent = true) {
 					stateSetter({
-						event: { emit: true, emitter: state.eventEmitter, name: "change" },
+						event: {
+							emit: emitEvent,
+							emitter: state.eventEmitter,
+							name: "change",
+						},
 						producer,
 					});
 

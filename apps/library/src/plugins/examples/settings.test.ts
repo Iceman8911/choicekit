@@ -317,4 +317,29 @@ describe("Settings Plugin", () => {
 			volume: 0.9,
 		});
 	});
+
+	it("should not emit change events when the state is updated but emitEvent is set to false", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("engine-no-event")
+			.withPlugin(simpleSettingsPlugin, {
+				default: createSimpleSettings(),
+			})
+			.build();
+
+		let changeEventCalled = false;
+
+		engine.$.settings.on("change", () => {
+			changeEventCalled = true;
+		});
+
+		engine.$.settings.set(
+			(state) => {
+				state.musicEnabled = true;
+			},
+			false, // emitEvent set to false
+		);
+
+		expect(changeEventCalled).toEqual(false);
+		expect(engine.$.settings.get().musicEnabled).toEqual(true);
+	});
 });

@@ -317,4 +317,29 @@ describe("Achievements Plugin", () => {
 			},
 		});
 	});
+
+	it("should not emit change events when the state is updated but emitEvent is set to false", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("engine-no-event")
+			.withPlugin(simpleAchievementsplugin, {
+				default: createSimpleAchievements(),
+			})
+			.build();
+
+		let changeEventCalled = false;
+
+		engine.$.achievements.on("change", () => {
+			changeEventCalled = true;
+		});
+
+		engine.$.achievements.set(
+			(state) => {
+				state.foundKey = true;
+			},
+			false, // emitEvent set to false
+		);
+
+		expect(changeEventCalled).toEqual(false);
+		expect(engine.$.achievements.get().foundKey).toEqual(true);
+	});
 });
