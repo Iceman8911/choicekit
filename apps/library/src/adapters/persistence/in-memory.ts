@@ -4,7 +4,7 @@ import type { SugarBoxPersistenceAdapter } from "./types";
 const inMemoryMap = new Map<SugarBoxAnyKey, string>();
 
 /** Based off an in-memory map so changes are lost on program shutdown */
-const InMemoryPersistenceAdapter: SugarBoxPersistenceAdapter = {
+export const InMemoryPersistenceAdapter: SugarBoxPersistenceAdapter = {
 	async delete(key) {
 		return inMemoryMap.delete(key);
 	},
@@ -18,5 +18,3 @@ const InMemoryPersistenceAdapter: SugarBoxPersistenceAdapter = {
 		inMemoryMap.set(key, data);
 	},
 };
-
-export default InMemoryPersistenceAdapter;

@@ -21,7 +21,7 @@ const openIndexedDb = async (): Promise<IDBDatabase> => {
 	});
 };
 
-const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
+export const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
 	async delete(key) {
 		const db = await openIndexedDb();
 		try {
@@ -107,5 +107,3 @@ const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
 		}
 	},
 };
-
-export default IndexedDbPersistenceAdapter;

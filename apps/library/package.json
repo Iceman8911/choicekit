@@ -35,115 +35,75 @@
 				"types": "./dist/index.d.cts"
 			}
 		},
-		"./adapters/cache/types": {
+		"./adapters": {
 			"import": {
-				"default": "./dist/adapters/cache/types.d.js",
-				"types": "./dist/adapters/cache/types.d.d.ts"
+				"default": "./dist/adapters/index.js",
+				"types": "./dist/adapters/index.d.ts"
 			},
 			"require": {
-				"default": "./dist/adapters/cache/types.d.cjs",
-				"types": "./dist/adapters/cache/types.d.d.cts"
+				"default": "./dist/adapters/index.cjs",
+				"types": "./dist/adapters/index.d.cts"
+			}
+		},
+		"./adapters/cache": {
+			"import": {
+				"default": "./dist/adapters/cache/index.js",
+				"types": "./dist/adapters/cache/index.d.ts"
+			},
+			"require": {
+				"default": "./dist/adapters/cache/index.cjs",
+				"types": "./dist/adapters/cache/index.d.cts"
 			}
 		},
 		"./adapters/persistence": {
 			"import": {
-				"default": "./dist/adapters/persistence/indexed-db.js",
-				"types": "./dist/adapters/persistence/indexed-db.d.ts"
+				"default": "./dist/adapters/persistence/index.js",
+				"types": "./dist/adapters/persistence/index.d.ts"
 			},
 			"require": {
-				"default": "./dist/adapters/persistence/indexed-db.cjs",
-				"types": "./dist/adapters/persistence/indexed-db.d.cts"
+				"default": "./dist/adapters/persistence/index.cjs",
+				"types": "./dist/adapters/persistence/index.d.cts"
 			}
 		},
-		"./adapters/persistence/in-memory": {
+		"./engine": {
 			"import": {
-				"default": "./dist/adapters/persistence/in-memory.js",
-				"types": "./dist/adapters/persistence/in-memory.d.ts"
+				"default": "./dist/engine/index.js",
+				"types": "./dist/engine/index.d.ts"
 			},
 			"require": {
-				"default": "./dist/adapters/persistence/in-memory.cjs",
-				"types": "./dist/adapters/persistence/in-memory.d.cts"
+				"default": "./dist/engine/index.cjs",
+				"types": "./dist/engine/index.d.cts"
 			}
 		},
-		"./adapters/persistence/local-storage": {
+		"./engine/core": {
 			"import": {
-				"default": "./dist/adapters/persistence/local-storage.js",
-				"types": "./dist/adapters/persistence/local-storage.d.ts"
+				"default": "./dist/engine/core/index.js",
+				"types": "./dist/engine/core/index.d.ts"
 			},
 			"require": {
-				"default": "./dist/adapters/persistence/local-storage.cjs",
-				"types": "./dist/adapters/persistence/local-storage.d.cts"
-			}
-		},
-		"./adapters/persistence/session-storage": {
-			"import": {
-				"default": "./dist/adapters/persistence/session-storage.js",
-				"types": "./dist/adapters/persistence/session-storage.d.ts"
-			},
-			"require": {
-				"default": "./dist/adapters/persistence/session-storage.cjs",
-				"types": "./dist/adapters/persistence/session-storage.d.cts"
-			}
-		},
-		"./adapters/persistence/types": {
-			"import": {
-				"default": "./dist/adapters/persistence/types.d.js",
-				"types": "./dist/adapters/persistence/types.d.d.ts"
-			},
-			"require": {
-				"default": "./dist/adapters/persistence/types.d.cjs",
-				"types": "./dist/adapters/persistence/types.d.d.cts"
-			}
-		},
-		"./engine/builder": {
-			"import": {
-				"default": "./dist/engine/builder.js",
-				"types": "./dist/engine/builder.d.ts"
-			},
-			"require": {
-				"default": "./dist/engine/builder.cjs",
-				"types": "./dist/engine/builder.d.cts"
-			}
-		},
-		"./engine/core/if-engine": {
-			"import": {
-				"default": "./dist/engine/core/if-engine.js",
-				"types": "./dist/engine/core/if-engine.d.ts"
-			},
-			"require": {
-				"default": "./dist/engine/core/if-engine.cjs",
-				"types": "./dist/engine/core/if-engine.d.cts"
+				"default": "./dist/engine/core/index.cjs",
+				"types": "./dist/engine/core/index.d.cts"
 			}
 		},
 		"./package.json": "./package.json",
-		"./plugins/examples/achievements": {
+		"./plugins": {
 			"import": {
-				"default": "./dist/plugins/examples/achievements.js",
-				"types": "./dist/plugins/examples/achievements.d.ts"
+				"default": "./dist/plugins/index.js",
+				"types": "./dist/plugins/index.d.ts"
 			},
 			"require": {
-				"default": "./dist/plugins/examples/achievements.cjs",
-				"types": "./dist/plugins/examples/achievements.d.cts"
+				"default": "./dist/plugins/index.cjs",
+				"types": "./dist/plugins/index.d.cts"
 			}
 		},
-		"./plugins/examples/settings": {
+		"./plugins/examples": {
 			"import": {
-				"default": "./dist/plugins/examples/settings.js",
-				"types": "./dist/plugins/examples/settings.d.ts"
+				"default": "./dist/plugins/examples/index.js",
+				"types": "./dist/plugins/examples/index.d.ts"
 			},
 			"require": {
-				"default": "./dist/plugins/examples/settings.cjs",
-				"types": "./dist/plugins/examples/settings.d.cts"
-			}
-		},
-		"./plugins/plugin": {
-			"import": {
-				"default": "./dist/plugins/plugin.js",
-				"types": "./dist/plugins/plugin.d.ts"
-			},
-			"require": {
-				"default": "./dist/plugins/plugin.cjs",
-				"types": "./dist/plugins/plugin.d.cts"
+				"default": "./dist/plugins/examples/index.cjs",
+				"types": "./dist/plugins/examples/index.d.cts"
 			}
 		}
 	},

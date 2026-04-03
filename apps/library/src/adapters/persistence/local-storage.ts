@@ -1,7 +1,7 @@
 import { _getKeysFromWebStorage } from "./_shared";
 import type { SugarBoxPersistenceAdapter } from "./types";
 
-const LocalStoragePersistenceAdapter: SugarBoxPersistenceAdapter = {
+export const LocalStoragePersistenceAdapter: SugarBoxPersistenceAdapter = {
 	async delete(key) {
 		localStorage.removeItem(key);
 	},
@@ -15,5 +15,3 @@ const LocalStoragePersistenceAdapter: SugarBoxPersistenceAdapter = {
 		localStorage.setItem(key, data);
 	},
 };
-
-export default LocalStoragePersistenceAdapter;

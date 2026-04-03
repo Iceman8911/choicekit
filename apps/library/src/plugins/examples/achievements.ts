@@ -54,7 +54,7 @@ type AchievementsPluginGenerics<TData extends GenericSerializableObject> =
 		dependencies: [];
 	}>;
 
-export default function createAchievementsPlugin<
+export function createAchievementsPlugin<
 	TData extends GenericSerializableObject,
 >(data: TData): SugarboxPlugin<AchievementsPluginGenerics<ExpandType<TData>>> {
 	return definePlugin({
@@ -117,3 +117,5 @@ export default function createAchievementsPlugin<
 		},
 	});
 }
+
+export default createAchievementsPlugin;
