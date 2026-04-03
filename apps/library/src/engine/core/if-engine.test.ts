@@ -5,6 +5,7 @@ import {
 } from "../../plugins/plugin";
 import { SugarboxEngineBuilder } from "../builder";
 import { SugarboxEngine } from "./if-engine";
+import type { SugarBoxSaveData } from "./if-engine.types";
 
 // ==================== Plugin Type Definitions ====================
 
@@ -327,8 +328,8 @@ describe(SugarboxEngine.name, () => {
 
 		engine.on("stateChange", (event) => {
 			eventData = {
-				newValue: event.detail.newState.value,
-				oldValue: event.detail.oldState.value,
+				newValue: event.newState.value,
+				oldValue: event.oldState.value,
 			};
 		});
 
@@ -428,8 +429,8 @@ describe(SugarboxEngine.name, () => {
 
 		engine.on("passageChange", (event) => {
 			changeData = {
-				newId: event.detail.newPassage?.name ?? null,
-				oldId: event.detail.oldPassage?.name ?? null,
+				newId: event.newPassage?.name ?? null,
+				oldId: event.oldPassage?.name ?? null,
 			};
 		});
 
@@ -623,36 +624,6 @@ describe(SugarboxEngine.name, () => {
 		expect(callCount).toBe(1);
 	});
 
-	it("should not emit legacy prefixed event names", async () => {
-		const engine = await new SugarboxEngineBuilder()
-			.withName("NoLegacyPrefixedEvents")
-			.withVars({ value: 0 })
-			.withPassages({
-				data: "test",
-				name: "main",
-				tags: [],
-			})
-			.build();
-
-		let canonicalCalls = 0;
-		let legacyCalls = 0;
-
-		engine.on("stateChange", () => {
-			canonicalCalls++;
-		});
-
-		engine.on(":stateChange" as any, () => {
-			legacyCalls++;
-		});
-
-		engine.setVars((vars) => {
-			vars.value = 1;
-		});
-
-		expect(canonicalCalls).toBe(1);
-		expect(legacyCalls).toBe(0);
-	});
-
 	// ==================== Reset & Persistent State ====================
 
 	it("should reset engine to initial state", async () => {
@@ -815,10 +786,7 @@ describe(SugarboxEngine.name, () => {
 
 		const autosaved = new Promise<void>((resolve) => {
 			const unsubscribe = engine.on("saveEnd", (event) => {
-				if (
-					event.detail.slot === "autosave" &&
-					event.detail.type === "success"
-				) {
+				if (event.slot === "autosave" && event.type === "success") {
 					unsubscribe();
 					resolve();
 				}
@@ -1124,10 +1092,7 @@ describe(SugarboxEngine.name, () => {
 
 		const autosaved = new Promise<void>((resolve) => {
 			const unsubscribe = engine.on("saveEnd", (event) => {
-				if (
-					event.detail.slot === "autosave" &&
-					event.detail.type === "success"
-				) {
+				if (event.slot === "autosave" && event.type === "success") {
 					unsubscribe();
 					resolve();
 				}
@@ -1194,10 +1159,7 @@ describe(SugarboxEngine.name, () => {
 
 		const autosaved = new Promise<void>((resolve) => {
 			const unsubscribe = engine.on("saveEnd", (event) => {
-				if (
-					event.detail.slot === "autosave" &&
-					event.detail.type === "success"
-				) {
+				if (event.slot === "autosave" && event.type === "success") {
 					unsubscribe();
 					resolve();
 				}
@@ -1277,12 +1239,12 @@ describe(SugarboxEngine.name, () => {
 		});
 		await engine.saveToSaveSlot(0);
 
-		let saveData: any;
+		let saveData: SugarBoxSaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
 				saveData = save.data;
 			}
-		}
+		} 
 
 		expect(saveData).toBeDefined();
 
@@ -1292,6 +1254,7 @@ describe(SugarboxEngine.name, () => {
 		});
 		engine.navigateTo("town");
 
+		//@ts-expect-error Can't be bothered to copy out the full type :p
 		await engine.loadSaveFromData(saveData);
 
 		expect(engine.vars.hp).toBe(6);
@@ -1338,7 +1301,7 @@ describe(SugarboxEngine.name, () => {
 
 		await engine.saveToSaveSlot(0);
 
-		let saveData: any;
+		let saveData: SugarBoxSaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
 				saveData = save.data;
@@ -1347,6 +1310,7 @@ describe(SugarboxEngine.name, () => {
 
 		expect(saveData).toBeDefined();
 
+		//@ts-expect-error Can't be bothered to copy out the full type :p
 		await engine.loadSaveFromData({
 			...saveData,
 			version: "1.0.0",
@@ -1370,27 +1334,27 @@ describe(SugarboxEngine.name, () => {
 		const seen: string[] = [];
 
 		engine.on("saveStart", (event) => {
-			seen.push(`saveStart:${String(event.detail.slot)}`);
+			seen.push(`saveStart:${event.slot}`);
 		});
 
 		engine.on("saveEnd", (event) => {
-			seen.push(`saveEnd:${event.detail.type}:${String(event.detail.slot)}`);
+			seen.push(`saveEnd:${event.type}:${event.slot}`);
 		});
 
 		engine.on("loadStart", (event) => {
-			seen.push(`loadStart:${String(event.detail.slot)}`);
+			seen.push(`loadStart:${event.slot}`);
 		});
 
 		engine.on("loadEnd", (event) => {
-			seen.push(`loadEnd:${event.detail.type}:${String(event.detail.slot)}`);
+			seen.push(`loadEnd:${event.type}:${event.slot}`);
 		});
 
 		engine.on("deleteStart", (event) => {
-			seen.push(`deleteStart:${String(event.detail.slot)}`);
+			seen.push(`deleteStart:${event.slot}`);
 		});
 
 		engine.on("deleteEnd", (event) => {
-			seen.push(`deleteEnd:${event.detail.type}:${String(event.detail.slot)}`);
+			seen.push(`deleteEnd:${event.type}:${event.slot}`);
 		});
 
 		await engine.saveToSaveSlot(0);

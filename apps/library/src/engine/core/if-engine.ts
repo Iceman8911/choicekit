@@ -200,10 +200,9 @@ class SugarboxEngine<
 
 	#config!: typeof this._type.config;
 
-	#events = new TypedEventEmitter<{
+	#eventEmitter = new TypedEventEmitter<{
 		[KEventName in keyof typeof this._type.events]: (typeof this._type.events)[KEventName];
 	}>();
-	#eventWrappers = new Map<string, Map<Function, Function>>();
 
 	/** The current position in the state history that the engine is playing.
 	 *
@@ -875,54 +874,19 @@ class SugarboxEngine<
 	 *
 	 * @returns a function that can be used to unsubscribe from the event.
 	 */
-	on<TEventType extends keyof typeof this._type.events>(
-		type: TEventType,
-		listener: (
-			event: CustomEvent<(typeof this._type.events)[TEventType]>,
-		) => void,
-		options?: boolean | AddEventListenerOptions,
+	on<TEventName extends keyof typeof this._type.events>(
+		eventName: TEventName,
+		listener: (payload: (typeof this._type.events)[TEventName]) => void,
 	): () => void {
-		const wrappedListener = (
-			payload: (typeof this._type.events)[TEventType],
-		) => {
-			listener(new CustomEvent(type, { detail: payload }));
-		};
-
-		const listenersForType =
-			this.#eventWrappers.get(type as string) ?? new Map();
-
-		listenersForType.set(listener, wrappedListener);
-		this.#eventWrappers.set(type as string, listenersForType);
-
-		this.#events.on(type, wrappedListener);
-
-		return () => {
-			this.off(type, listener, options);
-		};
+		return this.#eventEmitter.on(eventName, listener);
 	}
 
 	/** Unsubscribe from an event */
-	off<TEventType extends keyof typeof this._type.events>(
-		type: TEventType,
-		listener:
-			| ((event: CustomEvent<(typeof this._type.events)[TEventType]>) => void)
-			| null,
-		options?: boolean | AddEventListenerOptions,
+	off<TEventName extends keyof typeof this._type.events>(
+		eventName: TEventName,
+		listener: (payload: (typeof this._type.events)[TEventName]) => void,
 	): void {
-		if (!listener) return;
-
-		const listenersForType = this.#eventWrappers.get(type as string);
-		const wrappedListener = listenersForType?.get(listener);
-
-		if (!wrappedListener) return;
-
-		this.#events.off(type, wrappedListener as never);
-		listenersForType?.delete(listener);
-		if (listenersForType?.size === 0) {
-			this.#eventWrappers.delete(type as string);
-		}
-
-		void options;
+		return this.#eventEmitter.off(eventName, listener);
 	}
 
 	/** Any custom classes stored in the story's state must be registered with this */
@@ -1328,29 +1292,11 @@ class SugarboxEngine<
 		this.#stateCache?.clear();
 	}
 
-	#createCustomEvent<TEventType extends keyof typeof this._type.events>(
-		name: TEventType,
-		data: (typeof this._type.events)[TEventType],
-	): CustomEvent<(typeof this._type.events)[TEventType]> {
-		return new CustomEvent(name, { detail: data });
-	}
-
-	#dispatchCustomEvent(event: CustomEvent): boolean {
-		this.#events.emit(
-			event.type as keyof typeof this._type.events,
-			event.detail,
-		);
-
-		return true;
-	}
-
 	#emitCustomEvent<TEventType extends keyof typeof this._type.events>(
 		name: TEventType,
 		data: (typeof this._type.events)[TEventType],
-	): boolean {
-		const dispatchResult = this.#dispatchCustomEvent(
-			this.#createCustomEvent(name, data),
-		);
+	): void {
+		this.#eventEmitter.emit(name, data);
 
 		const { autoSave } = this.#config;
 
@@ -1368,8 +1314,6 @@ class SugarboxEngine<
 				}
 			}
 		}
-
-		return dispatchResult;
 	}
 
 	async #emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback<
