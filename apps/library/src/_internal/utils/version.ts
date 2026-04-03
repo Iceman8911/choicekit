@@ -1,4 +1,4 @@
-import type { SugarBoxSaveVersionCompatiblityMode } from "../../engine/core/if-engine.types";
+import type { SugarboxType } from "../../engine/types/sugarbox";
 
 type SemanticVersionTuple = readonly [
 	major: number,
@@ -18,7 +18,7 @@ const getMajorAndMinorAndPatchFromVersionString = (
 const isSaveCompatibleWithEngine = (
 	saveVersion: SemanticVersionString,
 	engineVersion: SemanticVersionString,
-	compatibilityMode: SugarBoxSaveVersionCompatiblityMode,
+	compatibilityMode: SugarboxType.SaveVersionCompatiblityMode,
 ): "compat" | "old" | "new" => {
 	const [svMajor, svMinor] =
 		getMajorAndMinorAndPatchFromVersionString(saveVersion);

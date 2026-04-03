@@ -3,7 +3,7 @@ import { deserialize } from "@packages/serializer";
 import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import type { ExpandType } from "../../_internal/models/shared";
 import { SugarboxEngineBuilder } from "../../engine/builder";
-import type { SugarBoxExportData } from "../../engine/core/if-engine.types";
+import type { SugarboxType } from "../../engine/types/sugarbox";
 import createSettingsPlugin from "./settings";
 
 function createSimpleSettings() {
@@ -287,7 +287,7 @@ describe("Settings Plugin", () => {
 
 		const exportedData = deserialize(
 			await decompressPossiblyCompressedJsonString(exportedStr),
-		) as unknown as SugarBoxExportData;
+		) as unknown as SugarboxType.ExportData;
 
 		const persistedSettings = (
 			exportedData.plugins?.settings?.data as

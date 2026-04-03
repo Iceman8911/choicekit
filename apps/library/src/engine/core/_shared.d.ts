@@ -1,5 +1,5 @@
 import type { SugarboxClassConstructorWithValidSerialization } from "@packages/serializer";
-import type { SugarBoxConfig, SugarBoxPassage } from "./if-engine.types";
+import type { SugarboxType } from "../types/sugarbox";
 import type {
 	GenericObject,
 	GenericSerializableObject,
@@ -33,7 +33,7 @@ export type SugarBoxSaveMigrationMap<
 >;
 
 export interface SugarBoxEngineGenerics {
-	passages: SugarBoxPassage<unknown, string, string>;
+	passages: SugarboxType.Passage<unknown, string, string>;
 	vars: GenericSerializableObject;
 	settings: GenericSerializableObject;
 	achievements: GenericSerializableObject;
@@ -76,7 +76,7 @@ export interface SugarBoxEngineArguments<
 	/** Settings data that is not tied to save data, like audio volume, font size, etc */
 	settings: TEngineGenerics["settings"];
 
-	config: Partial<SugarBoxConfig<TEngineGenerics["vars"]>>;
+	config: Partial<SugarboxType.Config<TEngineGenerics["vars"]>>;
 
 	/** If the engine had been intialised before with a lower version.
 	 *

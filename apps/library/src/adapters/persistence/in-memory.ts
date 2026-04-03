@@ -1,10 +1,9 @@
-import type { SugarBoxAnyKey } from "../../engine/core/if-engine.types";
-import type { SugarBoxPersistenceAdapter } from "./types";
+import type { SugarboxType } from "../../engine/types/sugarbox";
 
-const inMemoryMap = new Map<SugarBoxAnyKey, string>();
+const inMemoryMap = new Map<SugarboxType.AnyKey, string>();
 
 /** Based off an in-memory map so changes are lost on program shutdown */
-export const InMemoryPersistenceAdapter: SugarBoxPersistenceAdapter = {
+export const InMemoryPersistenceAdapter: SugarboxType.PersistenceAdapter = {
 	async delete(key) {
 		return inMemoryMap.delete(key);
 	},

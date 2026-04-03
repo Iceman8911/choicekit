@@ -1,5 +1,4 @@
-import type { SugarBoxAnyKey } from "../../engine/core/if-engine.types";
-import type { SugarBoxPersistenceAdapter } from "./types";
+import type { SugarboxType } from "../../engine/types/sugarbox";
 
 const INDEXED_DB_NAME = "sugarbox";
 const INDEXED_DB_VERSION = 1;
@@ -21,7 +20,7 @@ const openIndexedDb = async (): Promise<IDBDatabase> => {
 	});
 };
 
-export const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
+export const IndexedDbPersistenceAdapter: SugarboxType.PersistenceAdapter = {
 	async delete(key) {
 		const db = await openIndexedDb();
 		try {
@@ -62,9 +61,9 @@ export const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
 	async keys() {
 		const db = await openIndexedDb();
 		try {
-			return await new Promise<IterableIterator<SugarBoxAnyKey>>(
+			return await new Promise<IterableIterator<SugarboxType.AnyKey>>(
 				(resolve, reject) => {
-					const keys: SugarBoxAnyKey[] = [];
+					const keys: SugarboxType.AnyKey[] = [];
 					const tx = db.transaction(INDEXED_DB_STORE, "readonly");
 					const store = tx.objectStore(INDEXED_DB_STORE);
 					const req = store.openKeyCursor();
@@ -72,7 +71,7 @@ export const IndexedDbPersistenceAdapter: SugarBoxPersistenceAdapter = {
 					req.onsuccess = () => {
 						const cursor = req.result;
 						if (cursor) {
-							keys.push(cursor.key as SugarBoxAnyKey);
+							keys.push(cursor.key as SugarboxType.AnyKey);
 							cursor.continue();
 						} else {
 							resolve(keys[Symbol.iterator]());

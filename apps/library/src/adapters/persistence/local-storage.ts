@@ -1,7 +1,7 @@
+import type { SugarboxType } from "../../engine/types/sugarbox";
 import { _getKeysFromWebStorage } from "./_shared";
-import type { SugarBoxPersistenceAdapter } from "./types";
 
-export const LocalStoragePersistenceAdapter: SugarBoxPersistenceAdapter = {
+export const LocalStoragePersistenceAdapter: SugarboxType.PersistenceAdapter = {
 	async delete(key) {
 		localStorage.removeItem(key);
 	},

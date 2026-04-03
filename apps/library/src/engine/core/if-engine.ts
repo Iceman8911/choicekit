@@ -33,12 +33,12 @@ import {
 	isSaveCompatibleWithEngine,
 	type SugarBoxSemanticVersionString,
 } from "../../_internal/utils/version";
-import type { SugarBoxCacheAdapter } from "../../adapters/cache/types";
 import { InMemoryPersistenceAdapter } from "../../adapters/persistence/in-memory";
 import type {
 	SugarboxPlugin,
 	SugarboxPluginSaveStructure,
 } from "../../plugins/plugin";
+import type { SugarboxType } from "../types/sugarbox";
 import type {
 	SugarBoxEngineArguments,
 	SugarBoxEngineGenerics,
@@ -46,16 +46,6 @@ import type {
 	SugarBoxSaveMigration,
 	SugarBoxSaveMigrationMap,
 } from "./_shared";
-import type {
-	SugarBoxAutoSaveKey,
-	SugarBoxConfig,
-	SugarBoxExportData,
-	SugarBoxNormalSaveKey,
-	SugarBoxPluginSaveKey,
-	SugarBoxSaveData,
-	SugarBoxSaveKey,
-	SugarBoxSnapshotMetadata,
-} from "./if-engine.types";
 
 const DEFAULT_CONFIG = {
 	autoSave: false,
@@ -81,7 +71,7 @@ const DEFAULT_CONFIG = {
 	saveVersion: `0.0.1`,
 
 	stateMergeCount: 1,
-} as const satisfies SugarBoxConfig;
+} as const satisfies SugarboxType.Config;
 
 const MINIMUM_SAVE_SLOT_INDEX = 0;
 
@@ -90,10 +80,10 @@ const MINIMUM_SAVE_SLOTS = 1;
 const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
 
 type StateWithMetadata<TVariables extends GenericSerializableObject> =
-	TVariables & SugarBoxSnapshotMetadata;
+	TVariables & SugarboxType.SnapshotMetadata;
 
 type SnapshotWithMetadata<TVariables extends GenericSerializableObject> =
-	Partial<TVariables & SugarBoxSnapshotMetadata>;
+	Partial<TVariables & SugarboxType.SnapshotMetadata>;
 
 type SaveStartEvent = { slot: "autosave" | "export" | "recent" | number };
 
@@ -183,15 +173,18 @@ class SugarboxEngine<
 	private declare _type: {
 		engine: SugarboxEngine<TEngineGenerics>;
 		passage: TEngineGenerics["passages"];
-		config: SugarBoxConfig<TEngineGenerics["vars"], TEngineGenerics["plugins"]>;
+		config: SugarboxType.Config<
+			TEngineGenerics["vars"],
+			TEngineGenerics["plugins"]
+		>;
 		state: {
 			complete: StateWithMetadata<TEngineGenerics["vars"]>;
 			snapshot: SnapshotWithMetadata<TEngineGenerics["vars"]>;
 		};
-		saveData: SugarBoxSaveData<TEngineGenerics["vars"]>;
-		exportData: SugarBoxExportData<TEngineGenerics["vars"]>;
+		saveData: SugarboxType.SaveData<TEngineGenerics["vars"]>;
+		exportData: SugarboxType.ExportData<TEngineGenerics["vars"]>;
 		adapter: {
-			cache: SugarBoxCacheAdapter<TEngineGenerics["vars"]>;
+			cache: SugarboxType.CacheAdapter<TEngineGenerics["vars"]>;
 		};
 		events: SugarBoxEvents<
 			TEngineGenerics["passages"],
@@ -247,7 +240,10 @@ class SugarboxEngine<
 
 	private constructor(args: {
 		classes: SugarboxClassConstructorWithValidSerialization[];
-		config: SugarBoxConfig<TEngineGenerics["vars"], TEngineGenerics["plugins"]>;
+		config: SugarboxType.Config<
+			TEngineGenerics["vars"],
+			TEngineGenerics["plugins"]
+		>;
 		migrations: {
 			from: SugarBoxSemanticVersionString;
 			data: SugarBoxSaveMigration<never, unknown>;
@@ -316,7 +312,7 @@ class SugarboxEngine<
 		const mergedConfig = {
 			...DEFAULT_CONFIG,
 			...(config ?? {}),
-		} as SugarBoxConfig<TGenerics["vars"]>;
+		} as SugarboxType.Config<TGenerics["vars"]>;
 
 		mergedConfig.initialSeed ??= getRandomInteger();
 
@@ -327,7 +323,7 @@ class SugarboxEngine<
 
 		const engine = new SugarboxEngine<TGenerics>({
 			classes,
-			config: mergedConfig as SugarBoxConfig<
+			config: mergedConfig as SugarboxType.Config<
 				TGenerics["vars"],
 				TGenerics["plugins"]
 			>,
@@ -520,11 +516,11 @@ class SugarboxEngine<
 
 	/** Returns an object containing the data of all present saves */
 	async *getSaves(): AsyncGenerator<
-		| { type: "autosave"; data: SugarBoxSaveData<TEngineGenerics["vars"]> }
+		| { type: "autosave"; data: SugarboxType.SaveData<TEngineGenerics["vars"]> }
 		| {
 				type: "normal";
 				slot: number;
-				data: SugarBoxSaveData<TEngineGenerics["vars"]>;
+				data: SugarboxType.SaveData<TEngineGenerics["vars"]>;
 		  }
 	> {
 		for await (const key of this.#getKeysOfPresentSaves()) {
@@ -1062,20 +1058,20 @@ class SugarboxEngine<
 	}
 
 	// Some of these could be properties instead, but I like the consistency
-	#getAutoSaveStorageKey(): SugarBoxAutoSaveKey {
+	#getAutoSaveStorageKey(): SugarboxType.AutoSaveKey {
 		return `sugarbox-${this.name}-autosave`;
 	}
 
-	#getPluginStorageKey(pluginId: string): SugarBoxPluginSaveKey {
+	#getPluginStorageKey(pluginId: string): SugarboxType.PluginSaveKey {
 		return `sugarbox-${this.name}-plugin-${pluginId}` as const;
 	}
 
-	#getSaveSlotStorageKey(saveSlot: number): SugarBoxNormalSaveKey {
+	#getSaveSlotStorageKey(saveSlot: number): SugarboxType.NormalSaveKey {
 		this.#assertSaveSlotIsValid(saveSlot);
 		return `sugarbox-${this.name}-slot${saveSlot}` as const;
 	}
 
-	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarBoxSaveKey> {
+	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarboxType.SaveKey> {
 		const persistence = this.#persistenceAdapter;
 
 		const keys = await persistence.keys?.();
@@ -1088,7 +1084,7 @@ class SugarboxEngine<
 			// Filter out the keys that are not save slots
 			for (const key of keys) {
 				if (key.startsWith(saveSlotKeyPrefix) || key === autosaveKey) {
-					//@ts-expect-error TS doesn't know that the key is a SugarBoxSaveKey
+					//@ts-expect-error TS doesn't know that the key is a SugarboxType.SaveKey
 					yield key;
 				}
 			}

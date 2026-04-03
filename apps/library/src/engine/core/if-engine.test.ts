@@ -4,8 +4,8 @@ import {
 	type ValidatePluginGenerics,
 } from "../../plugins/plugin";
 import { SugarboxEngineBuilder } from "../builder";
+import type { SugarboxType } from "../types/sugarbox";
 import { SugarboxEngine } from "./if-engine";
-import type { SugarBoxSaveData } from "./if-engine.types";
 
 // ==================== Plugin Type Definitions ====================
 
@@ -1239,12 +1239,12 @@ describe(SugarboxEngine.name, () => {
 		});
 		await engine.saveToSaveSlot(0);
 
-		let saveData: SugarBoxSaveData | undefined;
+		let saveData: SugarboxType.SaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
 				saveData = save.data;
 			}
-		} 
+		}
 
 		expect(saveData).toBeDefined();
 
@@ -1301,7 +1301,7 @@ describe(SugarboxEngine.name, () => {
 
 		await engine.saveToSaveSlot(0);
 
-		let saveData: SugarBoxSaveData | undefined;
+		let saveData: SugarboxType.SaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
 				saveData = save.data;

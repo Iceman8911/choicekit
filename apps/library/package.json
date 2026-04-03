@@ -46,14 +46,8 @@
 			}
 		},
 		"./adapters/cache": {
-			"import": {
-				"default": "./dist/adapters/cache/index.js",
-				"types": "./dist/adapters/cache/index.d.ts"
-			},
-			"require": {
-				"default": "./dist/adapters/cache/index.cjs",
-				"types": "./dist/adapters/cache/index.d.cts"
-			}
+			"import": "./dist/adapters/cache/index.js",
+			"require": "./dist/adapters/cache/index.cjs"
 		},
 		"./adapters/persistence": {
 			"import": {
