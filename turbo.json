@@ -16,7 +16,7 @@
 			"dependsOn": ["^lint"]
 		},
 		"test": {
-			"dependsOn": ["^test", "lint", "format"]
+			"dependsOn": ["^test"]
 		}
 	},
 	"ui": "tui"
