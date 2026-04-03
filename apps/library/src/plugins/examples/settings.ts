@@ -37,6 +37,7 @@ type SettingsPluginGenerics<TData extends GenericSerializableObject> =
 			/** Forces a save of the current settings state */
 			save(): Promise<void>;
 			on: TypedEventEmitter<SettingsEvents<TData>>["on"];
+			once: TypedEventEmitter<SettingsEvents<TData>>["once"];
 			off: TypedEventEmitter<SettingsEvents<TData>>["off"];
 		};
 		id: "settings";
@@ -81,6 +82,9 @@ export function createSettingsPlugin<TData extends GenericSerializableObject>(
 				},
 				on(eventName, listener) {
 					return state.eventEmitter.on(eventName, listener);
+				},
+				once(eventName, listener) {
+					return state.eventEmitter.once(eventName, listener);
 				},
 				save: triggerSave,
 				set(producer, emitEvent = true) {

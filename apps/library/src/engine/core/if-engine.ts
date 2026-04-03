@@ -165,7 +165,6 @@ type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
 		: never;
 };
 
-// TODO: Use TypedEventEmitter for the on / off stuff.
 /** The main engine for Sugarbox that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
@@ -894,6 +893,13 @@ class SugarboxEngine<
 		listener: (payload: (typeof this._type.events)[TEventName]) => void,
 	): () => void {
 		return this.#eventEmitter.on(eventName, listener);
+	}
+
+	once<TEventName extends keyof typeof this._type.events>(
+		eventName: TEventName,
+		listener: (payload: (typeof this._type.events)[TEventName]) => void,
+	): () => void {
+		return this.#eventEmitter.once(eventName, listener);
 	}
 
 	/** Unsubscribe from an event */

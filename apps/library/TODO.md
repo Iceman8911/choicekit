@@ -28,3 +28,5 @@
 - [ ] Allow Sugarbox class instances to provide a `.clone()` method for more efficient cloning, in comparison to the more expensive way of serializing and de-serializing.
 - [ ] Make types better.
 - [ ] Use `const` over `function` for better minifcation.
+- [ ] Rename to "Choicekit" or smth 
+- [x] Add a `once` param to the `TypedEventEmitter` and ensure to do the same with any wrappers in the entire monorepo

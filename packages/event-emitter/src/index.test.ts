@@ -54,4 +54,17 @@ describe(TypedEventEmitter.name, () => {
 		emitter.emit("init", false);
 		expect(val).toBe(0);
 	});
+
+	it("should only run once listeners a single time", () => {
+		let callCount = 0;
+
+		emitter.once("final", (payload) => {
+			callCount += payload;
+		});
+
+		emitter.emit("final", 3);
+		emitter.emit("final", 4);
+
+		expect(callCount).toBe(3);
+	});
 });

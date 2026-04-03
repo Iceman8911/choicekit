@@ -37,6 +37,7 @@ type AchievementsPluginGenerics<TData extends GenericSerializableObject> =
 			/** Forces a save of the current achievements state */
 			save(): Promise<void>;
 			on: TypedEventEmitter<AchievementEvents<TData>>["on"];
+			once: TypedEventEmitter<AchievementEvents<TData>>["once"];
 			off: TypedEventEmitter<AchievementEvents<TData>>["off"];
 		};
 		id: "achievements";
@@ -81,6 +82,9 @@ export function createAchievementsPlugin<
 				},
 				on(eventName, listener) {
 					return state.eventEmitter.on(eventName, listener);
+				},
+				once(eventName, listener) {
+					return state.eventEmitter.once(eventName, listener);
 				},
 				save: triggerSave,
 				set(producer, emitEvent = true) {

@@ -131,6 +131,35 @@ describe("Settings Plugin", () => {
 		expect(changeEventCalled).not.toEqual(false);
 	});
 
+	it("should allow listeners for settings changes to fire once", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("engine-with-simple-settings")
+			.withPlugin(simpleSettingsPlugin, {
+				default: createSimpleSettings(),
+			})
+			.build();
+
+		const settingsApi = engine.$.settings;
+
+		let changeEventCallCount = 0;
+
+		settingsApi.once("change", ({ new: newState, old: oldState }) => {
+			expect(newState.musicEnabled).toEqual(false);
+			expect(oldState.musicEnabled).toEqual(true);
+			changeEventCallCount++;
+		});
+
+		engine.$.settings.set((state) => {
+			state.musicEnabled = false;
+		});
+
+		engine.$.settings.set((state) => {
+			state.musicEnabled = true;
+		});
+
+		expect(changeEventCallCount).toEqual(1);
+	});
+
 	it("should support deep updates to nested settings state", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("engine-deep-update")

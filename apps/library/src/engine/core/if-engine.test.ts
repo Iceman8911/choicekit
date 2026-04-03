@@ -601,6 +601,33 @@ describe(SugarboxEngine.name, () => {
 		expect(callCount).toBe(1); // Should not increment
 	});
 
+	it("should allow subscribing with once()", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("EventManagementOnce")
+			.withVars({})
+			.withPassages({
+				data: "test",
+				name: "main",
+				tags: [],
+			})
+			.build();
+
+		let callCount = 0;
+
+		engine.once("stateChange", () => {
+			callCount++;
+		});
+
+		engine.setVars(() => {
+			// dummy
+		});
+		engine.setVars(() => {
+			// dummy
+		});
+
+		expect(callCount).toBe(1);
+	});
+
 	it("should unsubscribe via returned function from on()", async () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("UnsubscribeFunc")
