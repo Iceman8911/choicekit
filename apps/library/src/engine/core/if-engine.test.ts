@@ -539,6 +539,37 @@ describe(SugarboxEngine.name, () => {
 		expect(engine.index).toBe(initialIndex);
 	});
 
+	it("should emit historyChange for navigation and load transitions", async () => {
+		const engine = await new SugarboxEngineBuilder()
+			.withName("HistoryChangeEvent")
+			.withVars({})
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ loadOnStart: false })
+			.build();
+
+		const seen: Array<{ oldIndex: number; newIndex: number }> = [];
+
+		engine.on("historyChange", (event) => {
+			seen.push({ newIndex: event.newIndex, oldIndex: event.oldIndex });
+		});
+
+		engine.navigateTo("b");
+		engine.backward();
+		engine.forward();
+
+		await engine.saveToSaveSlot(0);
+		engine.navigateTo("a");
+		await engine.loadFromSaveSlot(0);
+
+		expect(seen).toContainEqual({ newIndex: 1, oldIndex: 0 });
+		expect(seen).toContainEqual({ newIndex: 0, oldIndex: 1 });
+		expect(seen).toContainEqual({ newIndex: 1, oldIndex: 0 });
+		expect(seen[seen.length - 1]).toEqual({ newIndex: 1, oldIndex: 2 });
+	});
+
 	// ==================== Events ====================
 
 	it("should allow subscribing with on() and unsubscribing with off()", async () => {
@@ -636,6 +667,12 @@ describe(SugarboxEngine.name, () => {
 			)
 			.build();
 
+		let resetEvent: number | null = null;
+
+		engine.on("engineReset", (event) => {
+			resetEvent = event.newSeed;
+		});
+
 		engine.setVars((v) => {
 			v.counter = 100;
 		});
@@ -649,6 +686,7 @@ describe(SugarboxEngine.name, () => {
 		expect(engine.vars.counter).toBe(0);
 		expect(engine.passageId).toBe("start");
 		expect(engine.index).toBe(0);
+		expect(resetEvent).not.toBeNull();
 	});
 
 	it("should support randomness with seeded PRNG", async () => {
@@ -1323,15 +1361,23 @@ describe(SugarboxEngine.name, () => {
 		const engine = await new SugarboxEngineBuilder()
 			.withName("LifecycleEvents")
 			.withVars({ points: 1 })
-			.withPassages({
-				data: "main",
-				name: "main",
-				tags: [],
-			})
+			.withPassages(
+				{
+					data: "main",
+					name: "main",
+					tags: [],
+				},
+				{
+					data: "other",
+					name: "other",
+					tags: [],
+				},
+			)
 			.withConfig({ loadOnStart: false })
 			.build();
 
 		const seen: string[] = [];
+		let historyChangeSeen = false;
 
 		engine.on("saveStart", (event) => {
 			seen.push(`saveStart:${event.slot}`);
@@ -1357,7 +1403,14 @@ describe(SugarboxEngine.name, () => {
 			seen.push(`deleteEnd:${event.type}:${event.slot}`);
 		});
 
+		engine.on("historyChange", (event) => {
+			historyChangeSeen = event.oldIndex !== event.newIndex;
+		});
+
+		engine.navigateTo("other");
+
 		await engine.saveToSaveSlot(0);
+		engine.navigateTo("main");
 		await engine.loadFromSaveSlot(0);
 		await engine.deleteSaveSlot(0);
 
@@ -1367,6 +1420,7 @@ describe(SugarboxEngine.name, () => {
 		expect(seen).toContain("loadEnd:success:0");
 		expect(seen).toContain("deleteStart:0");
 		expect(seen).toContain("deleteEnd:success:0");
+		expect(historyChangeSeen).toBe(true);
 
 		await expect(engine.loadFromSaveSlot(9)).rejects.toThrow();
 		expect(seen).toContain("loadEnd:error:9");

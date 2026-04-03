@@ -103,6 +103,15 @@ type DeleteEndEvent =
 
 /** Events fired from a `SugarBoxEngine` instance */
 type SugarBoxEvents<TPassageData, TStateVariables> = {
+	engineReset: Readonly<{
+		newSeed: number;
+	}>;
+
+	historyChange: Readonly<{
+		oldIndex: number;
+		newIndex: number;
+	}>;
+
 	passageChange: Readonly<{
 		oldPassage: TPassageData | null;
 		newPassage: TPassageData | null;
@@ -693,6 +702,7 @@ class SugarboxEngine<
 
 		await this.#loadPluginSaveDataFromRecord(plugins);
 
+		const oldIndex = this.#index;
 		const oldPassage = this.passage;
 
 		const oldState = this.#shouldCloneOldState ? clone(this.vars) : this.vars;
@@ -797,6 +807,13 @@ class SugarboxEngine<
 
 		// Clear the state cache since the state has changed
 		this.#stateCache?.clear();
+
+		if (oldIndex !== this.#index) {
+			this.#emitCustomEvent("historyChange", {
+				newIndex: this.#index,
+				oldIndex,
+			});
+		}
 
 		this.#emitCustomEvent("stateChange", { newState: this.vars, oldState });
 		this.#emitCustomEvent("passageChange", {
@@ -936,6 +953,10 @@ class SugarboxEngine<
 		);
 
 		this.#setIndex(0);
+
+		this.#emitCustomEvent("engineReset", {
+			newSeed: this.vars.$$seed,
+		});
 	}
 
 	/** For saves the need to exported out of the browser */
@@ -1129,11 +1150,19 @@ class SugarboxEngine<
 			throw new RangeError("Index out of bounds");
 		}
 
+		const oldIndex = this.#index;
 		const oldPassage = this.passage;
 
 		const oldState = this.#shouldCloneOldState ? clone(this.vars) : this.vars;
 
 		this.#index = val;
+
+		if (oldIndex !== this.#index) {
+			this.#emitCustomEvent("historyChange", {
+				newIndex: this.#index,
+				oldIndex,
+			});
+		}
 
 		this.#emitCustomEvent("passageChange", {
 			newPassage: this.passage,
