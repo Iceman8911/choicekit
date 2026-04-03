@@ -60,6 +60,7 @@ Plugins can rely on external functionality enabled by other plugins by including
 - Plugins cannot be unmounted from an engine instance.
 - Plugins can only be mounted on engine startup.
   - During initialization, plugins are processed sequentially to prevent race conditions when more than one plugin has the same `id` but conflicting `onOverride` behavior. Otherwise, plugins are processed as soon as their dependencies are resolved.
+- For type safety when using `definePlugin`, the generic object parameter must be deifned upfront since typescript will be unable to infer it normally and will fall back to a widened catch-all. Use `ValidatePluginGenerics`.
 
 ## API Exposure
 
