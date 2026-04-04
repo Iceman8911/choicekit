@@ -20,3 +20,5 @@ yarn-error.log*
 .turbo
 **/generated/**
 .obsidian
+
+apps/docs/src/content/docs/reference/api/
