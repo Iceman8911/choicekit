@@ -1,0 +1,214 @@
+---
+title: Engine Configuration
+---
+
+Choicekit keeps most behavior behind a single `config` object you pass to `ChoicekitEngine.init()`. Every field is optional; the engine fills in defaults.
+
+This page is a reference for the config fields that exist in the library code in this repo.
+
+## Quick example
+
+```ts
+import { ChoicekitEngine } from "Choicekit";
+
+const engine = await ChoicekitEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: { gold: 10 },
+
+  config: {
+    saveSlots: 10,
+    saveVersion: "0.4.0",
+    saveCompat: "strict",
+
+    compress: true,
+
+    autoSave: "passage",
+    loadOnStart: true,
+
+    regenSeed: "passage",
+    initialSeed: 12345,
+
+    maxStates: 200,
+    stateMergeCount: 5,
+
+    persistence: myPersistenceAdapter,
+    cache: myCacheAdapter,
+  },
+});
+```
+
+## Defaults
+
+These are the defaults baked into the engine:
+
+```ts
+const defaultConfig = {
+  autoSave: false,
+  compress: true,
+  emitMode: "acc",
+  loadOnStart: true,
+  maxStates: 100,
+  regenSeed: "passage",
+  saveCompat: "strict",
+  saveSlots: 20,
+  saveVersion: "0.0.1",
+  stateMergeCount: 1,
+};
+```
+
+Some options (like `initialSeed`, `persistence`, and `cache`) default to “not set”.
+
+## Field reference
+
+### `autoSave`
+
+Type: `false | "passage" | "state"`
+Default: `false`
+
+Controls whether the engine automatically saves to the autosave slot:
+
+- `"passage"`: autosave on passage navigation
+- `"state"`: autosave on state changes (when `setVars()` is called)
+- `false`: never autosave
+
+This requires `config.persistence`. Without it, autosave will fail when the engine tries to write.
+
+### `compress`
+
+Type: `boolean`
+Default: `true`
+
+Controls whether save/achievement/settings/export data may be compressed before being stored or exported.
+
+Important detail: even when `compress: true`, the engine only compresses when the serialized string is large enough (currently **over 1KB**). Small saves will be left as plain JSON strings.
+
+### `emitMode`
+
+Type: `"acc" | "perf"`
+Default: `"acc"`
+
+Controls how the engine handles `:stateChange` event snapshots, trading off accuracy vs performance.
+
+- `"acc"`: deep clones old state before modifications so `oldState` and `newState` are fully isolated
+- `"perf"`: avoids deep cloning for better performance; in rare edge cases, `oldState` and `newState` may reference the same object
+
+### `loadOnStart`
+
+Type: `boolean`
+Default: `true`
+
+If `true`, the engine attempts to load the most recent save during `init()`.
+
+This is best-effort: if there is no save, init still succeeds. If you want this to actually load prior progress, you need `config.persistence`.
+
+### `maxStates`
+
+Type: `number`
+Default: `100`
+
+Maximum number of state snapshots kept before older ones are merged.
+
+### `stateMergeCount`
+
+Type: `number`
+Default: `1`
+
+Number of snapshots merged into one when the snapshot list fills up.
+
+### `saveSlots`
+
+Type: `number`
+Default: `20`
+
+Number of numbered save slots available. Slots are zero-based: `0..saveSlots - 1`.
+
+If set to less than 1, initialization will throw.
+
+### `saveVersion`
+
+Type: semantic version string (for example `"0.2.0"`)
+Default: `"0.0.1"`
+
+Version tag stored inside save data when you call `saveToSaveSlot()` or `saveToExport()`.
+
+This version is also used as the reference point when deciding whether an incoming save is compatible with the current engine version (see `saveCompat` below).
+
+### `saveCompat`
+
+Type: `"strict" | "liberal"`
+Default: `"strict"`
+
+Decides how save vs engine version compatibility is calculated when loading:
+
+- `"strict"`: saves must match the engine’s **major and minor** version.
+- `"liberal"`: saves must match the engine’s **major** version, and the save’s **minor** version must be less than or equal to the engine’s minor version.
+
+In both modes, a save with a higher major version than the engine is treated as “too new”.
+
+This setting only affects the *compatibility decision* (`compat` / `old` / `new`). If the save is considered `old`, the engine will attempt to run registered migrators to bring state up to the engine’s `saveVersion`.
+
+### `persistence`
+
+Type: persistence adapter (async key/value store)
+Default: `undefined`
+
+This is how Choicekit reads and writes save slots, achievements, and settings.
+
+Required methods:
+
+- `get(key) -> Promise<string | null | undefined>`
+- `set(key, value) -> Promise<unknown>`
+- `delete(key) -> Promise<unknown>`
+
+Optional:
+
+- `keys() -> Promise<Iterable<key>>` (if provided, listing saves is more efficient)
+
+### `cache`
+
+Type: cache adapter for caching computed state by story index
+Default: `undefined`
+
+If present, Choicekit caches the computed full state at an index so repeated reads can be faster.
+
+Implementation details (what the engine expects):
+
+- `get(index) -> state | undefined | null`
+- `set(index, state) -> unknown`
+- `delete(index) -> unknown`
+- `clear() -> unknown` (required by the adapter type)
+
+### `initialSeed`
+
+Type: `number` (`0..2^32 - 1`, inclusive)
+Default: random per engine init
+
+Sets the initial PRNG seed used by `engine.random`.
+
+### `regenSeed`
+
+Type: `"passage" | "eachCall" | false`
+Default: `"passage"`
+
+Controls when the PRNG seed is regenerated:
+
+- `"passage"`: seed regenerates on passage navigation
+- `"eachCall"`: seed regenerates on each `engine.random` call
+- `false`: seed is never regenerated automatically
+
+## Practical recommendations
+
+- If you care about not breaking saves: keep `saveCompat: "strict"`, bump `saveVersion` deliberately, and add migrators.
+- If exports are large: keep `compress: true` (and remember the 1KB threshold).
+- If your UI reads `engine.vars` frequently and your history is long: consider using a `cache` adapter.
+- If you want saving at all: you need a reliable `persistence` adapter.
+
+## Related pages
+
+- [Saving and Loading](../save)
+- [Save Migration](../migration)
+- [Adapters](../adapter)
+- [PRNG](../prng)
+- [Events](../event)

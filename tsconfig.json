@@ -15,7 +15,8 @@
 		"noUnusedParameters": true,
 		"skipLibCheck": true,
 		"strict": true,
-		"target": "es2020"
+		"target": "es2020",
+		"verbatimModuleSyntax": true
 	},
 	"exclude": ["node_modules", "dist"]
 }

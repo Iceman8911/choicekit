@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { compressString, decompressString } from "./compression";
 import "@stardazed/streams-polyfill";
 

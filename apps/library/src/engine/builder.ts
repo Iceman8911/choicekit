@@ -1,37 +1,19 @@
+import type { ChoicekitPlugin } from "../plugins/plugin";
 import type {
-	SugarBoxEngineArguments,
-	SugarBoxEngineGenerics,
-	SugarBoxEngineVariableInitData,
-} from "./_shared";
-import { SugarboxEngine } from "./if-engine";
+	ChoicekitEngineArguments,
+	ChoicekitEngineGenerics,
+	ChoicekitEngineVariableInitData,
+} from "./core/_shared";
+import { ChoicekitEngine } from "./core/if-engine";
 
-type DeepWiden<T> = T extends string
-	? string
-	: T extends number
-		? number
-		: T extends bigint
-			? bigint
-			: T extends boolean
-				? boolean
-				: T extends symbol
-					? symbol
-					: T extends Function
-						? T
-						: T extends Array<infer U>
-							? Array<DeepWiden<U>>
-							: T extends object
-								? { [K in keyof T]: DeepWiden<T[K]> }
-								: T extends Set<infer U>
-									? Set<DeepWiden<U>>
-									: T extends Map<infer K, infer V>
-										? Map<DeepWiden<K>, DeepWiden<V>>
-										: T;
-
-type SugarBoxEngineArgumentKeys = keyof SugarBoxEngineArguments;
+type ChoicekitEngineArgumentKeys = keyof ChoicekitEngineArguments;
 
 type BuilderMethods = Record<
-	`with${Capitalize<SugarBoxEngineArgumentKeys>}`,
-	(...args: any) => SugarboxEngineBuilder<SugarBoxEngineGenerics>
+	// For clarity sake
+	"withPlugins" extends `with${Capitalize<ChoicekitEngineArgumentKeys>}`
+		? "withPlugin"
+		: `with${Capitalize<ChoicekitEngineArgumentKeys>}`,
+	(...args: any) => ChoicekitEngineBuilder<any>
 >;
 
 const {
@@ -43,6 +25,7 @@ const {
 	passages: sbPassages,
 	settings: sbSettings,
 	vars: sbVars,
+	plugins: sbPlugins,
 } = {
 	achievements: "achievements",
 	classes: "classes",
@@ -50,22 +33,23 @@ const {
 	migrations: "migrations",
 	name: "name",
 	passages: "passages",
+	plugins: "plugins",
 	settings: "settings",
 	vars: "vars",
-} as const satisfies { [K in SugarBoxEngineArgumentKeys]: K };
+} as const satisfies { [K in ChoicekitEngineArgumentKeys]: K };
 
-/** To enforce type saftey and work around typescript limitations with advanced generics, a builder for the engine is more convenient.
+/** To enforce type safety and work around typescript limitations with advanced generics, a builder for the engine is more convenient.
  *
  * If you need a reset builder, simply instantiate a new instance.
  */
-export class SugarboxEngineBuilder<
-	TGenerics extends SugarBoxEngineGenerics,
-	TArgs extends SugarBoxEngineArguments = SugarBoxEngineArguments<TGenerics>,
+export class ChoicekitEngineBuilder<
+	TGenerics extends ChoicekitEngineGenerics,
+	TArgs extends ChoicekitEngineArguments = ChoicekitEngineArguments<TGenerics>,
 > implements BuilderMethods
 {
 	#args: Partial<TArgs> = {};
 
-	#forceAddProp(prop: SugarBoxEngineArgumentKeys, val: unknown) {
+	#forceAddProp(prop: ChoicekitEngineArgumentKeys, val: unknown) {
 		//@ts-expect-error tired of figthing ts
 		this.#args[prop] = val;
 	}
@@ -80,18 +64,16 @@ export class SugarboxEngineBuilder<
 	 */
 	withName<const TName extends TGenerics["name"]>(
 		name: TName,
-	): SugarboxEngineBuilder<TGenerics & { [sbName]: TName }> {
+	): ChoicekitEngineBuilder<TGenerics & { [sbName]: TName }> {
 		this.#forceAddProp(sbName, name);
 
 		return this.#returnThis();
 	}
 
 	/** Set an object containing the variables to be used in the story via the engine */
-	withVars<const TVars extends TGenerics["vars"]>(
-		vars:
-			| TVars
-			| ((init: SugarBoxEngineVariableInitData) => TVars | Promise<TVars>),
-	): SugarboxEngineBuilder<TGenerics & { [sbVars]: DeepWiden<TVars> }> {
+	withVars<TVars extends TGenerics["vars"]>(
+		vars: TVars | ((init: ChoicekitEngineVariableInitData) => TVars),
+	): ChoicekitEngineBuilder<TGenerics & { [sbVars]: TVars }> {
 		this.#forceAddProp(sbVars, vars);
 
 		return this.#returnThis();
@@ -103,12 +85,12 @@ export class SugarboxEngineBuilder<
 	 *
 	 * @example
 	 * ```ts
-	 * const engine = await new SugarboxEngineBuilder().withPassages({name: "Start Passage" as string, data: "Lorem Ipsum" as string, tags: ["Start" as string]})
+	 * const engine = await new ChoicekitEngineBuilder().withPassages({name: "Start Passage" as string, data: "Lorem Ipsum" as string, tags: ["Start" as string]})
 	 * ```
 	 */
 	withPassages<const TPassage extends TGenerics["passages"]>(
 		...passages: [TPassage, ...TPassage[]]
-	): SugarboxEngineBuilder<TGenerics & { [sbPassages]: TPassage }> {
+	): ChoicekitEngineBuilder<TGenerics & { [sbPassages]: TPassage }> {
 		this.#forceAddProp(sbPassages, passages);
 
 		return this.#returnThis();
@@ -118,11 +100,9 @@ export class SugarboxEngineBuilder<
 	 *
 	 * Unlike the story variables, this is persisted seperately from saved states.
 	 */
-	withAchievements<const TAchievements extends TGenerics["achievements"]>(
+	withAchievements<TAchievements extends TGenerics["achievements"]>(
 		achievements: TAchievements,
-	): SugarboxEngineBuilder<
-		TGenerics & { [sbAchievements]: DeepWiden<TAchievements> }
-	> {
+	): ChoicekitEngineBuilder<TGenerics & { [sbAchievements]: TAchievements }> {
 		this.#forceAddProp(sbAchievements, achievements);
 
 		return this.#returnThis();
@@ -132,40 +112,64 @@ export class SugarboxEngineBuilder<
 	 *
 	 * Unlike the story variables, this is persisted seperately from saved states.
 	 */
-	withSettings<const TSettings extends TGenerics["settings"]>(
+	withSettings<TSettings extends TGenerics["settings"]>(
 		settings: TSettings,
-	): SugarboxEngineBuilder<TGenerics & { [sbSettings]: DeepWiden<TSettings> }> {
+	): ChoicekitEngineBuilder<TGenerics & { [sbSettings]: TSettings }> {
 		this.#forceAddProp(sbSettings, settings);
 
 		return this.#returnThis();
 	}
 
 	/** A list of compatible class constructors to allow userland-classes to be cloned and persisted without issue */
-	withClasses(...classes: TArgs["classes"]): SugarboxEngineBuilder<TGenerics> {
+	withClasses(...classes: TArgs["classes"]): ChoicekitEngineBuilder<TGenerics> {
 		this.#forceAddProp(sbClasses, classes);
 
 		return this.#returnThis();
 	}
 
-	/** Special sugarbox configuration */
-	withConfig(config: TArgs["config"]): SugarboxEngineBuilder<TGenerics> {
+	/** Special Choicekit configuration */
+	withConfig(config: TArgs["config"]): ChoicekitEngineBuilder<TGenerics> {
 		this.#forceAddProp(sbConfig, config);
 
 		return this.#returnThis();
 	}
 
 	/** Add save migrations for to update older saves */
-	withMigrations(
+	withMigrators(
 		migrations: TArgs["migrations"],
-	): SugarboxEngineBuilder<TGenerics> {
+	): ChoicekitEngineBuilder<TGenerics> {
 		this.#forceAddProp(sbMigrations, migrations);
 
 		return this.#returnThis();
 	}
 
+	/** Register a plugin with its configuration.
+	 *
+	 * Call this method multiple times to register multiple plugins.
+	 * Each plugin's mutations will be properly typed and accumulated.
+	 */
+	withPlugin<const TPlugin extends ChoicekitPlugin>(
+		plugin: TPlugin,
+		config: TPlugin extends ChoicekitPlugin<infer RGenerics>
+			? RGenerics["config"]
+			: never,
+	): ChoicekitEngineBuilder<
+		TGenerics & { plugins: [...TGenerics["plugins"], TPlugin] }
+	> {
+		const pluginsAndConfigs: TArgs["plugins"] = this.#args.plugins ?? [];
+
+		pluginsAndConfigs.push({ config, plugin });
+
+		this.#forceAddProp(sbPlugins, pluginsAndConfigs);
+
+		return this.#returnThis();
+	}
+
 	/** Use the given configuration to create a new typesafe engine for use */
-	async build(): Promise<SugarboxEngine<TGenerics>> {
-		//@ts-expect-error Yeah, yeah, `#args` as a partial works here unless I do something stupid in `init` but that's what tests are for :D
-		return SugarboxEngine.init(this.#args);
+	async build(): Promise<ChoicekitEngine<TGenerics>> {
+		const engine = await ChoicekitEngine.init(this.#args);
+
+		return engine;
 	}
 }
+// todo, make ts infer a method as `never` if it's been called.

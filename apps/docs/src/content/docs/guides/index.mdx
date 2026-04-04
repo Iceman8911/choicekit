@@ -1,9 +1,9 @@
 ---
 title: Getting Started
-description: Introduction to SugarBox
+description: Introduction to Choicekit
 ---
 
-Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Sugarbox is a lightweight[^1], headless, framework-agnostic library for building web-based interactive fiction.
+Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Choicekit is a lightweight[^1], headless, framework-agnostic library for building web-based interactive fiction.
 
 ---
 
@@ -21,22 +21,22 @@ Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Sugarbox 
 
 # Installation
 
-This library is uploaded to npm at https://www.npmjs.com/package/sugarbox
+This library is uploaded to npm at https://www.npmjs.com/package/Choicekit
 
 import { Tabs, TabItem, Code } from "@astrojs/starlight/components"
 
 <Tabs syncKey="packageManager">
   <TabItem label="npm">
-    <Code code="npm install sugarbox" lang="bash" />
+    <Code code="npm install Choicekit" lang="bash" />
   </TabItem>
   <TabItem label="pnpm">
-    <Code code="pnpm install sugarbox" lang="bash"   />
+    <Code code="pnpm install Choicekit" lang="bash"   />
   </TabItem>
   <TabItem label="yarn">
-    <Code code="yarn install sugarbox" lang="bash"  />
+    <Code code="yarn install Choicekit" lang="bash"  />
   </TabItem>
   <TabItem label="bun">
-    <Code code="bun install sugarbox" lang="bash"  />
+    <Code code="bun install Choicekit" lang="bash"  />
   </TabItem>
 </Tabs>
 
@@ -48,7 +48,7 @@ Notes on the current API:
 - Passage content lives on `passage.data` (not `passage.passage`)
 
 ```typescript
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
 const startPassage = {
   name: "Start",
@@ -60,7 +60,7 @@ const otherPassages = [
   { name: "Hallway", data: "A long corridor stretches ahead." },
 ];
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "Test",
   vars: { playerName: "Dave", inventory: { gold: 123, gems: 12 } },
   startPassage,

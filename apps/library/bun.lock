@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "sugarbox",
+      "name": "Choicekit",
       "dependencies": {
         "@iceman8911/tiny-prng": "^0.1.2", 
       },

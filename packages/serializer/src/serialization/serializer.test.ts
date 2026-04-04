@@ -1,8 +1,8 @@
+import { describe, expect, test } from "bun:test";
 import type {
-	SugarBoxClassConstructor,
-	SugarBoxClassInstance,
+	ChoicekitClassConstructor,
+	ChoicekitClassInstance,
 } from "@packages/engine-class";
-import { describe, expect, test } from "vitest";
 import {
 	deserialize,
 	registerClass,
@@ -109,7 +109,7 @@ describe("Serialization and Deserialization", () => {
 			weapons: ("stick" | "fist")[];
 		};
 
-		class Player implements SugarBoxClassInstance<SerializedPlayer> {
+		class Player implements ChoicekitClassInstance<SerializedPlayer> {
 			constructor(
 				public age: number,
 				public name: string,
@@ -128,7 +128,7 @@ describe("Serialization and Deserialization", () => {
 			}
 		}
 
-		Player satisfies SugarBoxClassConstructor<SerializedPlayer>;
+		Player satisfies ChoicekitClassConstructor<SerializedPlayer>;
 
 		const playerInstance = new Player(10, "Bob", 100, ["stick"]);
 

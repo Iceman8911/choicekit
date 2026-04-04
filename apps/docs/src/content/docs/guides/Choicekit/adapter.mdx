@@ -1,0 +1,260 @@
+---
+title: Adapters
+---
+
+Choicekit is headless and does not ship storage or caching implementations. You provide small adapter objects so the engine can read and write data in your environment.
+
+There are two adapter types:
+
+- **Persistence adapter**: stores saves, achievements, and settings (for example: localStorage, IndexedDB, filesystem, database).
+- **Cache adapter**: optional; speeds up state reconstruction when history grows.
+
+Configure adapters under `config` when initializing the engine.
+
+```ts
+import { ChoicekitEngine } from "Choicekit";
+
+const engine = await ChoicekitEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: { gold: 0 },
+
+  config: {
+    persistence: /* adapter here */,
+    cache: /* optional adapter here */,
+  },
+});
+```
+
+## Persistence adapter
+
+A persistence adapter is an async key/value store. Choicekit uses it for save slots, achievements, and settings. Save slot operations throw if `config.persistence` is missing.
+
+### Interface
+
+This matches the `ChoicekitPersistenceAdapter` shape in the library:
+
+```ts
+type ChoicekitPersistenceAdapter = {
+  set: (key: string, data: string) => Promise<unknown>;
+  get: (key: string) => Promise<string | undefined | null>;
+  delete: (key: string) => Promise<unknown>;
+
+  // Optional: if provided, makes listing present saves more efficient.
+  // Note: returns an Iterable, not necessarily an array.
+  keys?: () => Promise<Iterable<string>>;
+};
+```
+
+Notes:
+
+- Values are strings because the engine serializes save data for you.
+- `get()` may return `undefined` or `null` depending on your storage backend.
+- `keys()` is optional. If you don’t provide it, the engine falls back to probing with `get()`.
+
+### Example: browser `localStorage`
+
+`localStorage` is synchronous, so we wrap it in async methods.
+
+```ts
+type ChoicekitPersistenceAdapter = {
+  set: (key: string, data: string) => Promise<unknown>;
+  get: (key: string) => Promise<string | undefined | null>;
+  delete: (key: string) => Promise<unknown>;
+  keys?: () => Promise<Iterable<string>>;
+};
+
+export function createLocalStorageAdapter(prefix = ""): ChoicekitPersistenceAdapter {
+  return {
+    async get(key) {
+      // localStorage.getItem returns string | null
+      return localStorage.getItem(prefix + key);
+    },
+    async set(key, data) {
+      localStorage.setItem(prefix + key, data);
+    },
+    async delete(key) {
+      localStorage.removeItem(prefix + key);
+    },
+    async keys() {
+      // Return an iterable (array is fine because it is iterable)
+      const out: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const fullKey = localStorage.key(i);
+        if (!fullKey) continue;
+        if (!fullKey.startsWith(prefix)) continue;
+        out.push(fullKey.slice(prefix.length));
+      }
+      return out;
+    },
+  };
+}
+```
+
+Use it like:
+
+```ts
+import { ChoicekitEngine } from "Choicekit";
+import { createLocalStorageAdapter } from "./local-storage-adapter";
+
+const engine = await ChoicekitEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: {},
+  config: {
+    persistence: createLocalStorageAdapter("Choicekit:"),
+    saveSlots: 10,
+  },
+});
+```
+
+### Example: server-side adapter
+
+On the server, you might back persistence with a database. The only rule is: return strings and keep it async.
+
+```ts
+type ChoicekitPersistenceAdapter = {
+  set: (key: string, data: string) => Promise<unknown>;
+  get: (key: string) => Promise<string | undefined | null>;
+  delete: (key: string) => Promise<unknown>;
+  keys?: () => Promise<Iterable<string>>;
+};
+
+export function createDbAdapter(db: {
+  get: (key: string) => Promise<string | undefined | null>;
+  set: (key: string, data: string) => Promise<unknown>;
+  delete: (key: string) => Promise<unknown>;
+  keys?: () => Promise<Iterable<string>>;
+}): ChoicekitPersistenceAdapter {
+  return {
+    async get(key) {
+      return db.get(key);
+    },
+    async set(key, data) {
+      return db.set(key, data);
+    },
+    async delete(key) {
+      return db.delete(key);
+    },
+    keys: db.keys ? async () => db.keys!() : undefined,
+  };
+}
+```
+
+### What keys look like
+
+You generally don’t need to care about storage keys, but it helps when debugging.
+
+Choicekit namespaces keys by engine name and slot type. The format is:
+
+- `Choicekit-${engineName}-autosave`
+- `Choicekit-${engineName}-slot0`, `slot1`, etc.
+
+It also stores:
+
+- `Choicekit-${engineName}-achievements`
+- `Choicekit-${engineName}-settings`
+
+So engine `name` matters. Two engines with the same `name` will share the same persisted bucket.
+
+## Cache adapter
+
+The cache adapter is optional, but if you provide one it must match the library’s cache interface. Choicekit uses it to cache computed full state by story index.
+
+### Interface
+
+This matches the actual `ChoicekitCacheAdapter` shape in the library:
+
+```ts
+type ChoicekitCacheAdapter<TValue> = {
+  set: (key: number, data: TValue) => unknown;
+  get: (key: number) => TValue | undefined | null;
+  delete: (key: number) => unknown;
+
+  // Required by the engine (cleared when state changes)
+  clear: () => unknown;
+};
+```
+
+Notes:
+
+- `clear()` is required, not optional.
+- `get()` may return `undefined` or `null` depending on the cache backend.
+
+### Example: simple `Map` cache
+
+This is usually good enough for small to medium stories:
+
+```ts
+export function createMapCache<TValue>(): {
+  set: (key: number, data: TValue) => unknown;
+  get: (key: number) => TValue | undefined | null;
+  delete: (key: number) => unknown;
+  clear: () => unknown;
+} {
+  const map = new Map<number, TValue>();
+  return {
+    get: (key) => map.get(key),
+    set: (key, data) => map.set(key, data),
+    delete: (key) => map.delete(key),
+    clear: () => map.clear(),
+  };
+}
+```
+
+Hook it up:
+
+```ts
+import { ChoicekitEngine } from "Choicekit";
+import { createMapCache } from "./map-cache";
+
+const engine = await ChoicekitEngine.init({
+  name: "MyStory",
+  startPassage: { name: "Start", data: "..." },
+  otherPassages: [],
+  vars: { gold: 0 },
+
+  config: {
+    cache: createMapCache(),
+  },
+});
+```
+
+### LRU cache (when history gets large)
+
+If you expect a lot of snapshots but you only navigate around a small window, an LRU cache can be a better fit. The engine doesn’t require LRU, it just needs the adapter interface.
+
+## Choosing adapters
+
+A few practical rules:
+
+- If you want save slots, achievements persistence, or settings persistence, you need a **persistence adapter**.
+- If your story is small or you rarely read state, skip the cache adapter.
+- If state access is hot (UI reacts to state on every render), add a **cache adapter**.
+
+## Debugging tips
+
+### “Saving throws”
+
+Common causes:
+
+- `config.persistence` is missing
+- your adapter throws inside `get/set/delete`
+- you are trying to use an out-of-range numbered slot (slot indices are `0..saveSlots-1`)
+
+### “Listing saves is slow”
+
+Provide `keys()` in your persistence adapter if possible. Without it, the engine has to do more work to discover existing slots.
+
+### “State reads feel slow”
+
+Add a cache adapter and confirm you aren’t doing unnecessary deep clones or derived work on every render in your UI layer.
+
+## Related pages
+
+- [Saving and Loading](../save)
+- [State and History](../state)
+- [Events](../event)
+- [Engine Configuration](../config)

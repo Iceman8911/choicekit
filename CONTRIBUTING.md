@@ -1,4 +1,4 @@
-# Contributing to sugarbox
+# Contributing to Choicekit
 
 Thank you for your interest in contributing to our project! This guide will help you get started with the development process.
 
@@ -11,8 +11,8 @@ Thank you for your interest in contributing to our project! This guide will help
 ### Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/Iceman8911/sugarbox.git`
-3. Navigate to the project directory: `cd sugarbox`
+2. Clone your fork: `git clone https://github.com/Iceman8911/choicekit.git`
+3. Navigate to the project directory: `cd choicekit`
 4. Install dependencies: `bun install`
 5. Start development: `bun run dev`
 
@@ -53,6 +53,6 @@ Please be respectful and constructive in all interactions within our community.
 
 ## Questions?
 
-If you have any questions, please [open an issue](https://github.com/Iceman8911/sugarbox/issues/new) for discussion.
+If you have any questions, please [open an issue](https://github.com/Iceman8911/Choicekit/issues/new) for discussion.
 
-Thank you for contributing to sugarbox!
+Thank you for contributing to Choicekit!

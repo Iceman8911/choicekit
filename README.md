@@ -1,4 +1,4 @@
-# SugarBox Monorepo
+# Choicekit Monorepo
 
 Structure:
 
@@ -9,5 +9,6 @@ Structure:
   - string-compression
   - serializer
   - engine-class
+  - polyfills
 
-Docs can be found [here](https://iceman8911.github.io/sugarbox/)
+Docs can be found [here](https://iceman8911.github.io/choicekit/)
