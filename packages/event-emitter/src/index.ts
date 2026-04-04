@@ -60,28 +60,28 @@ export class TypedEventEmitter<const Events extends object> {
 	on<TEventName extends keyof Events>(
 		eventName: TEventName,
 		listener: Listener<Events[TEventName]>,
-	) {
+	): () => void {
 		return this.#addListener(eventName, listener);
 	}
 
 	once<TEventName extends keyof Events>(
 		eventName: TEventName,
 		listener: Listener<Events[TEventName]>,
-	) {
+	): () => void {
 		return this.#addListener(eventName, listener, true);
 	}
 
 	off<TEventName extends keyof Events>(
 		eventName: TEventName,
 		listener: Listener<Events[TEventName]>,
-	) {
+	): void {
 		this.#removeListener(eventName, listener);
 	}
 
 	emit<TEventName extends keyof Events>(
 		eventName: TEventName,
 		payload: Events[TEventName],
-	) {
+	): void {
 		const event = new CustomEvent<Events[TEventName]>(String(eventName), {
 			detail: payload,
 		});

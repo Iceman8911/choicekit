@@ -17,27 +17,15 @@ type BuilderMethods = Record<
 	(...args: any) => ChoicekitEngineBuilder<any>
 >;
 
-const {
-	achievements: sbAchievements,
-	classes: sbClasses,
-	config: sbConfig,
-	migrations: sbMigrations,
-	name: sbName,
-	passages: sbPassages,
-	settings: sbSettings,
-	vars: sbVars,
-	plugins: sbPlugins,
-} = {
-	achievements: "achievements",
-	classes: "classes",
-	config: "config",
-	migrations: "migrations",
-	name: "name",
-	passages: "passages",
-	plugins: "plugins",
-	settings: "settings",
-	vars: "vars",
-} as const satisfies { [K in ChoicekitEngineArgumentKeys]: K };
+const sbAchievements: "achievements" = "achievements";
+const sbClasses: "classes" = "classes";
+const sbConfig: "config" = "config";
+const sbMigrations: "migrations" = "migrations";
+const sbName: "name" = "name";
+const sbPassages: "passages" = "passages";
+const sbSettings: "settings" = "settings";
+const sbVars: "vars" = "vars";
+const sbPlugins: "plugins" = "plugins";
 
 /** To enforce type safety and work around typescript limitations with advanced generics, a builder for the engine is more convenient.
  *

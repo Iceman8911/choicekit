@@ -27,16 +27,6 @@
 		"typescript": "^6.0.2"
 	},
 	"exports": {
-		".": {
-			"import": {
-				"default": "./dist/index.js",
-				"types": "./dist/index.d.ts"
-			},
-			"require": {
-				"default": "./dist/index.cjs",
-				"types": "./dist/index.d.cts"
-			}
-		},
 		"./adapters": {
 			"import": {
 				"default": "./dist/adapters/index.js",
@@ -45,20 +35,6 @@
 			"require": {
 				"default": "./dist/adapters/index.cjs",
 				"types": "./dist/adapters/index.d.cts"
-			}
-		},
-		"./adapters/cache": {
-			"import": "./dist/adapters/cache/index.js",
-			"require": "./dist/adapters/cache/index.cjs"
-		},
-		"./adapters/persistence": {
-			"import": {
-				"default": "./dist/adapters/persistence/index.js",
-				"types": "./dist/adapters/persistence/index.d.ts"
-			},
-			"require": {
-				"default": "./dist/adapters/persistence/index.cjs",
-				"types": "./dist/adapters/persistence/index.d.cts"
 			}
 		},
 		"./engine": {
@@ -97,8 +73,6 @@
 		"dist"
 	],
 	"license": "MIT",
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
 	"name": "@apps/library",
 	"peerDependencies": {
 		"typescript": ">=4.5.0"
@@ -122,6 +96,5 @@
 		"tsc": "tsc --noEmit"
 	},
 	"type": "module",
-	"types": "./dist/index.d.ts",
 	"version": "0.8.0"
 }
