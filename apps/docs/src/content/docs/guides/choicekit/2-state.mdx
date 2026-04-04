@@ -40,6 +40,16 @@ engine.setVars((state) => {
 
 Treat the callback argument as mutable. Choicekit handles snapshot recording and event emission.
 
+### About copy-on-write depth
+
+`setVars` is intentionally lightweight: it performs copy-on-write at the first touched top-level key.
+
+That means nested updates are supported, but Choicekit does not do path-level structural sharing for every deep branch like Immer.
+
+So if `player.armor.hand.glove` changes, the entire `player.armor` is copied over.
+
+It's wasteful, but less noticeable with compression, at least, until I find a more sensible way.
+
 ## Reading current state
 
 Use `engine.vars` to read the current visible state.
