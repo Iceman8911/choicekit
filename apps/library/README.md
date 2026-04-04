@@ -13,3 +13,8 @@ yarn add sugarbox
 ```
 
 The rest of the documentation is hosted on github pages.
+
+
+## Why Sugarbox? / Sugarbox vs Sugarcube / Harlowe / Ink / ChoiceScript / etc
+
+TODO
