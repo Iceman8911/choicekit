@@ -37,6 +37,7 @@ import { InMemoryPersistenceAdapter } from "../adapters/persistence/in-memory";
 import type {
 	ChoicekitPlugin,
 	ChoicekitPluginSaveStructure,
+	MapPluginsToApiSurface,
 } from "../plugins/plugin";
 import type {
 	ChoicekitEngineArguments,
@@ -154,17 +155,6 @@ type ChoicekitEvents<TPassageData, TStateVariables> = {
 	>;
 };
 
-type MapPluginsToApi<TPlugins extends ChoicekitEngineGenerics["plugins"]> = {
-	[KPlugin in TPlugins[number] as KPlugin extends ChoicekitPlugin
-		? KPlugin["id"]
-		: never]: "initApi" extends keyof KPlugin
-		? // biome-ignore lint/suspicious/noExplicitAny: <For ease of use in generics>
-			KPlugin["initApi"] extends (...args: any) => any
-			? Awaited<ReturnType<KPlugin["initApi"]>>
-			: never
-		: never;
-};
-
 /** The main engine for Choicekit that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
@@ -177,7 +167,7 @@ class ChoicekitEngine<
 	readonly name: TEngineGenerics["name"];
 
 	//@ts-expect-error Inference Limitation
-	$: MapPluginsToApi<TEngineGenerics["plugins"]> = {};
+	$: MapPluginsToApiSurface<TEngineGenerics["plugins"]> = {};
 
 	private declare _type: {
 		engine: ChoicekitEngine<TEngineGenerics>;
@@ -607,7 +597,9 @@ class ChoicekitEngine<
 	 *
 	 * TODO: benchmark this later to see if caching will be beneficial
 	 */
-	getVisitCount(passageId: string = this.passageId): number {
+	getVisitCount(
+		passageId: typeof this._type.passage.name = this.passageId,
+	): number {
 		let count = this.#initialState.$$id === passageId ? 1 : 0;
 
 		const snapshots = this.#stateSnapshots;

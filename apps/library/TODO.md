@@ -6,12 +6,13 @@
 
 - [ ] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
 - [x] Make the "vars" possible callback async
-- [ ] Add Storylet support
+- [x] Add Storylet support
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
-- [ ] Rewrite the AI-generated test suite cus it's garbage.
+- [x] Rewrite the AI-generated test suite cus it's garbage.
 - [ ] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
 	- [ ] In fact, add tests for every config option.
+- [ ] For plugins with `withSave: true`, I should prolly store their state in the state snapshots of the engine, rather than just in the save data.
 
 ---
 
