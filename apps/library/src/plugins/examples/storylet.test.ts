@@ -13,16 +13,19 @@ const passages = [
 	{ data: "Castle", name: "castle", tags: [] },
 ] as const;
 
+type PassageType = (typeof passages)[number];
+
+const storyletPlugin = createStoryletPlugin<
+	ChoicekitEngine,
+	PassageType["name"]
+>();
+
 describe("Storylet Plugin", () => {
 	it("should return eligible storylets sorted by ranking", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-eligible-sorting")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -55,14 +58,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should return top eligible storylet or null", async () => {
-		const plugin = createStoryletPlugin();
-
 		const withEligibleEngine = await new ChoicekitEngineBuilder()
 			.withName("storylet-top-eligible")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -80,10 +79,8 @@ describe("Storylet Plugin", () => {
 
 		const withoutEligibleEngine = await new ChoicekitEngineBuilder()
 			.withName("storylet-top-none")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => false],
@@ -101,14 +98,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should prioritize fully passing storylets over partial matches", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-full-vs-partial")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true, () => false],
@@ -132,14 +125,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should use condition tuple priority as a tie breaker", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-condition-priority")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => [true, 1] as const],
@@ -161,14 +150,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should track selected and loaded counts", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-selection-load-tracking")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -201,14 +186,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should persist selected and loaded counts with story save data", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-persistence-1")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -226,10 +207,8 @@ describe("Storylet Plugin", () => {
 
 		const newEngine = await new ChoicekitEngineBuilder()
 			.withName("storylet-persistence-1")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -250,14 +229,12 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should rank complex multi-condition storylets predictably", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-complex-ranking")
 			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
 				...passages,
 			)
-			.withPlugin(plugin, {
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [
@@ -297,14 +274,12 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should use lexical name ordering as final deterministic tie-breaker", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-lexical-fallback")
 			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
 				...passages,
 			)
-			.withPlugin(plugin, {
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -326,14 +301,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should normalize non-finite priorities to zero", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-priority-normalization")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -363,14 +334,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should throw for unknown storylet names and empty condition arrays", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engineWithUnknown = await new ChoicekitEngineBuilder()
 			.withName("storylet-unknown")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -388,10 +355,8 @@ describe("Storylet Plugin", () => {
 
 		const engineWithEmptyConditions = await new ChoicekitEngineBuilder()
 			.withName("storylet-empty-conditions")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [],
@@ -411,14 +376,10 @@ describe("Storylet Plugin", () => {
 	});
 
 	it("should attribute loaded counts to the matching pending storylet passage", async () => {
-		const plugin = createStoryletPlugin();
-
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-pending-load-matching")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
-			.withPlugin(plugin, {
+			.withPassages<PassageType>(...passages)
+			.withPlugin(storyletPlugin, {
 				storylets: [
 					{
 						conditions: [() => true],
@@ -490,9 +451,7 @@ describe("Storylet Plugin", () => {
 
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-plugin-integration")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
+			.withPassages<PassageType>(...passages)
 			.withPlugin(achievementsPlugin, {
 				default: {
 					progress: {
@@ -563,9 +522,7 @@ describe("Storylet Plugin", () => {
 
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("storylet-plugin-weighted-integration")
-			.withPassages<{ data: string; name: string; tags: readonly string[] }>(
-				...passages,
-			)
+			.withPassages<PassageType>(...passages)
 			.withPlugin(achievementsPlugin, {
 				default: {
 					progress: {
