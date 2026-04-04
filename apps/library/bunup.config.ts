@@ -1,15 +1,15 @@
 import { defineConfig } from "bunup";
 
-const ENTRY_GLOBS = [
-	"src/**/index.ts",
-	// Ignore the root index which only re-exports from submodules, to avoid generating an extra entry point with no unique exports.
-	"!src/index.ts",
+const ENTRY_FILES = [
+	"src/plugins/index.ts",
+	"src/engine/index.ts",
+	"src/adapters/index.ts",
 ];
 
 const config = defineConfig([
 	{
 		dts: { splitting: true },
-		entry: ENTRY_GLOBS,
+		entry: ENTRY_FILES,
 		exports: true,
 		format: ["esm", "cjs"],
 		name: "regular",
@@ -21,7 +21,7 @@ const config = defineConfig([
 	{
 		clean: false,
 		dts: { splitting: true },
-		entry: ENTRY_GLOBS,
+		entry: ENTRY_FILES,
 		format: "esm",
 		minify: true,
 		name: "minified",

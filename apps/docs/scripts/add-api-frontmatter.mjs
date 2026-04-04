@@ -41,13 +41,13 @@ function yamlEscapeSingleQuoted(value) {
 function normalizeApiLinkTarget(target) {
 	const [pathAndQuery, hash = ""] = target.split("#");
 	const [pathPart, query = ""] = pathAndQuery.split("?");
-
-	if (!pathPart.endsWith(".md")) return target;
+	if (!pathPart || pathPart === "." || pathPart === "..") return target;
+	if (/^(https?:|mailto:|\/)/i.test(pathPart)) return target;
 
 	const normalizedPath = pathPart
 		.split("/")
-		.map((segment, index, all) => {
-			if (index !== all.length - 1) return segment;
+		.map((segment) => {
+			if (!segment || segment === "." || segment === "..") return segment;
 			const withoutExt = segment.replace(/\.md$/i, "");
 			return withoutExt.toLowerCase();
 		})
