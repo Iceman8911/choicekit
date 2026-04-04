@@ -14,6 +14,35 @@ type ChoicekitPluginBehaviourOnOverride = "err" | "ignore" | "override";
 
 type ChoicekitPlugins = ReadonlyArray<ChoicekitPlugin>;
 
+type InferApiFromPlugin<TPlugin extends ChoicekitPlugin> =
+	"initApi" extends keyof TPlugin
+		? TPlugin["initApi"] extends (...args: any[]) => any
+			? Awaited<ReturnType<TPlugin["initApi"]>>
+			: never
+		: never;
+
+/** Map a plugin tuple into the mounted API shape under `engine.$`. */
+export type MapPluginsToApiSurface<TPlugins extends ChoicekitPlugins> = {
+	[KPlugin in TPlugins[number] as KPlugin extends ChoicekitPlugin
+		? KPlugin["id"]
+		: never]: KPlugin extends ChoicekitPlugin
+		? InferApiFromPlugin<KPlugin>
+		: never;
+};
+
+/**
+ * Extend a base engine type with plugin API namespaces inferred from a plugin tuple.
+ *
+ * Useful for condition callbacks and other helpers that need a strongly typed
+ * `engine.$` without manually writing plugin API shapes.
+ */
+export type ChoicekitEngineWithPluginApis<
+	TEngine extends ChoicekitEngine,
+	TPlugins extends ChoicekitPlugins,
+> = TEngine & {
+	$: TEngine["$"] & MapPluginsToApiSurface<TPlugins>;
+};
+
 type MapPluginsToPluginAndConfigTuple<TPlugins extends ChoicekitPlugins> = {
 	[K in keyof TPlugins]: TPlugins[K] extends ChoicekitPlugin
 		? {

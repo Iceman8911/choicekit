@@ -1,6 +1,12 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import type { ChoicekitSemanticVersionString } from "../_internal/utils/version";
-import { definePlugin, type ValidatePluginGenerics } from "./plugin";
+import type { ChoicekitEngine } from "../engine/if-engine";
+import {
+	type ChoicekitEngineWithPluginApis,
+	definePlugin,
+	type MapPluginsToApiSurface,
+	type ValidatePluginGenerics,
+} from "./plugin";
 
 describe("Choicekit Plugins", () => {
 	it("should strongly type basic plugins with simple types", () => {
@@ -187,5 +193,59 @@ describe("Choicekit Plugins", () => {
 		expect(minimalPlugin.dependencies).toStrictEqual([]);
 		expect(minimalPlugin.serialize).toBeUndefined();
 		expect(minimalPlugin.onDeserialize).toBeUndefined();
+	});
+
+	it("should map plugin tuples to api namespaces and augment engine types", () => {
+		type AchievementsLikeGenerics = ValidatePluginGenerics<{
+			id: "achievements";
+			api: {
+				get: () => { completed: boolean };
+			};
+		}>;
+
+		type SettingsLikeGenerics = ValidatePluginGenerics<{
+			id: "settings";
+			api: {
+				get: () => { storyletsEnabled: boolean };
+			};
+		}>;
+
+		const achievementsLikePlugin = definePlugin<AchievementsLikeGenerics>({
+			id: "achievements",
+			initApi() {
+				return {
+					get: () => ({ completed: false }),
+				};
+			},
+		});
+
+		const settingsLikePlugin = definePlugin<SettingsLikeGenerics>({
+			id: "settings",
+			initApi() {
+				return {
+					get: () => ({ storyletsEnabled: true }),
+				};
+			},
+		});
+
+		type PluginTuple = [
+			typeof achievementsLikePlugin,
+			typeof settingsLikePlugin,
+		];
+
+		type Surface = MapPluginsToApiSurface<PluginTuple>;
+		expectTypeOf<Surface>().toEqualTypeOf<{
+			achievements: { get: () => { completed: boolean } };
+			settings: { get: () => { storyletsEnabled: boolean } };
+		}>();
+
+		type EngineWithApis = ChoicekitEngineWithPluginApis<
+			ChoicekitEngine,
+			PluginTuple
+		>;
+		expectTypeOf<EngineWithApis["$"]>().toMatchTypeOf<{
+			achievements: { get: () => { completed: boolean } };
+			settings: { get: () => { storyletsEnabled: boolean } };
+		}>();
 	});
 });

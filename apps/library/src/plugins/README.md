@@ -89,6 +89,11 @@ A plugin's public API is whatever `initApi` returns. That value is attached to `
 
 With typed plugins, `engine.$` is inferred from the plugin list passed to the engine.
 
+If you need a reusable engine type for helper callbacks (without rebuilding `engine.$` shapes manually), use:
+
+- `MapPluginsToApiSurface<TPlugins>` to map a plugin tuple into namespaced API props.
+- `ChoicekitEngineWithPluginApis<TEngine, TPlugins>` to augment an engine type with those plugin APIs.
+
 ## Limitations
 
 - Plugins cannot access private engine fields (anything behind `#`).
@@ -99,8 +104,10 @@ With typed plugins, `engine.$` is inferred from the plugin list passed to the en
 
 - Achievements example plugin: `src/plugins/examples/achievements.ts`
 - Settings example plugin: `src/plugins/examples/settings.ts`
+- Storylet official plugin: `src/plugins/examples/storylet.ts`
 
 Companion docs:
 
 - `src/plugins/examples/achievements.README.md`
 - `src/plugins/examples/settings.README.md`
+- `src/plugins/examples/storylet.README.md`

@@ -1,3 +1,4 @@
 export * from "./examples/achievements";
 export * from "./examples/settings";
+export * from "./examples/storylet";
 export * from "./plugin";
