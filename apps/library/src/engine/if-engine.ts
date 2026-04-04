@@ -862,9 +862,7 @@ class ChoicekitEngine<
 	 *
 	 * @throws if the passage id hasn't been added to the engine
 	 */
-	navigateTo(
-		passageId: string = this.passageId,
-	): typeof this._type.state.snapshot {
+	navigateTo(passageId = this.passageId): typeof this._type.state.snapshot {
 		if (!this.#isPassageIdValid(passageId))
 			throw Error(
 				`Cannot navigate: Passage with ID '${passageId}' not found. Add it using addPassage().`,

@@ -1138,6 +1138,7 @@ describe(ChoicekitEngine.name, () => {
 			})
 			.build();
 
+		//@ts-expect-error - navigateTo should only accept valid passage names
 		expect(() => engine.navigateTo("missing")).toThrow();
 	});
 

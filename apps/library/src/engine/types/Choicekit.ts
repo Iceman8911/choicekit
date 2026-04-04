@@ -159,10 +159,16 @@ export declare namespace ChoicekitType {
 			GenericSerializableObject = GenericSerializableObject,
 		TPlugins extends Plugin[] = Plugin[],
 	> = {
-		/** Maximum number of individual states that will be stored before old ones get merged into each other */
+		/** Maximum number of individual states that will be stored before old ones get merged into each other
+		 *
+		 * @default 100
+		 */
 		maxStates: number;
 
-		/** Number of individual states that will be merged into one when the state fills up */
+		/** Number of individual states that will be merged into one when the state fills up
+		 *
+		 * @default 1
+		 */
 		stateMergeCount: number;
 
 		/** Maximum amount of manual saves at any given time.
@@ -177,6 +183,7 @@ export declare namespace ChoicekitType {
 
 		/** Semantic version to use for all newly created saves by the engine. Also acts as a reference point for the engine to determine if a previous save is compatible with the current version of the story.
 		 *
+		 * @default "0.0.1"
 		 */
 		saveVersion: ChoicekitSemanticVersionString;
 
