@@ -5,7 +5,7 @@ import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
 
 // https://astro.build/config
 export default defineConfig({
-	base: "/Choicekit",
+	base: "/choicekit",
 	site: "https://iceman8911.github.io/",
 	integrations: [
 		starlight({
@@ -15,7 +15,7 @@ export default defineConfig({
 				{
 					icon: "github",
 					label: "GitHub",
-					href: "https://github.com/iceman8911/Choicekit",
+					href: "https://github.com/iceman8911/choicekit",
 				},
 			],
 			sidebar: [
@@ -31,14 +31,15 @@ export default defineConfig({
 				},
 				{
 					label: "Choicekit",
-					autogenerate: { directory: "guides/Choicekit" },
+					autogenerate: { directory: "guides/choicekit" },
 				},
 				{
 					label: "Reference",
-					items: [
-						{ label: "Overview", link: "reference" },
-						{ label: "All", link: "reference/all" },
-					],
+					items: [{ label: "API Overview", link: "reference/api/readme" }],
+				},
+				{
+					label: "API Reference",
+					autogenerate: { directory: "reference/api" },
 				},
 			],
 		}),

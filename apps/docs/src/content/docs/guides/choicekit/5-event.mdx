@@ -1,0 +1,106 @@
+---
+title: Events
+---
+
+Events are how you connect the headless engine to UI, audio, analytics, autosave indicators, and game-side effects.
+
+## Event API
+
+`ChoicekitEngine` exposes a typed listener API:
+
+1. `engine.on(eventName, listener)`
+2. `engine.once(eventName, listener)`
+3. `engine.off(eventName, listener)`
+
+`on` and `once` return an unsubscribe function.
+
+## Quick example
+
+```ts
+const offPassage = engine.on("passageChange", ({ oldPassage, newPassage }) => {
+	console.log("passage", oldPassage?.name, "->", newPassage?.name);
+});
+
+const offState = engine.on("stateChange", ({ oldState, newState }) => {
+	console.log("gold", oldState.player.gold, "->", newState.player.gold);
+});
+
+// later
+offPassage();
+offState();
+```
+
+## Core engine events
+
+### Story progression
+
+1. `passageChange`: active passage changed
+2. `historyChange`: active history index changed
+3. `stateChange`: visible state changed
+4. `engineReset`: reset completed
+
+### Persistence lifecycle
+
+1. `saveStart` / `saveEnd`
+2. `loadStart` / `loadEnd`
+3. `deleteStart` / `deleteEnd`
+
+These are ideal for save spinner UI and centralized error handling.
+
+### Migration lifecycle
+
+1. `migrationStart`
+2. `migrationEnd`
+
+Use these for progress messages and telemetry when loading older saves.
+
+## Example: save feedback
+
+```ts
+const offStart = engine.on("saveStart", ({ slot }) => {
+	console.log("saving", slot);
+});
+
+const offEnd = engine.on("saveEnd", (event) => {
+	if (event.type === "success") {
+		console.log("saved", event.slot);
+		return;
+	}
+	console.error("save failed", event.slot, event.error);
+});
+```
+
+## Example: avoiding event loops
+
+If you derive state from state changes, disable re-emission for internal normalization writes:
+
+```ts
+engine.on("stateChange", ({ newState }) => {
+	if (typeof newState.player.hp !== "number") {
+		engine.setVars((s) => {
+			s.player.hp = 0;
+		}, false);
+	}
+});
+```
+
+## IF design tip
+
+Treat `passageChange` as your narrative clock tick. Most story-level side effects (music transitions, chapter markers, autosave badges, scene analytics) can be modeled cleanly around this single event.
+
+## Event payload table
+
+| Event | Payload shape | Notes |
+| --- | --- | --- |
+| `engineReset` | `{ newSeed: number }` | Fired after `reset()` completes. |
+| `historyChange` | `{ oldIndex: number; newIndex: number }` | Fired when moving through snapshot history. |
+| `passageChange` | `{ oldPassage: Passage \| null; newPassage: Passage \| null }` | Primary narrative progression signal. |
+| `stateChange` | `{ oldState: Vars; newState: Vars }` | Fired after state writes that emit events. |
+| `saveStart` | `{ slot: "autosave" \| "export" \| "recent" \| number }` | Start of save operation. |
+| `saveEnd` | `{ type: "success"; slot: ... } \| { type: "error"; error: Error; slot: ... }` | End of save operation. |
+| `loadStart` | `{ slot: "autosave" \| "export" \| "recent" \| number }` | Start of load operation. |
+| `loadEnd` | `{ type: "success"; slot: ... } \| { type: "error"; error: Error; slot: ... }` | End of load operation. |
+| `deleteStart` | `{ slot: "autosave" \| number }` | Start of delete operation. |
+| `deleteEnd` | `{ type: "success"; slot: ... } \| { type: "error"; error: Error; slot: ... }` | End of delete operation. |
+| `migrationStart` | `{ fromVersion: string; toVersion: string }` | Emitted before a migration step runs. |
+| `migrationEnd` | `{ type: "success"; fromVersion: string; toVersion: string } \| { type: "error"; fromVersion: string; toVersion: string; error: Error }` | Emitted after migration completes or fails. |

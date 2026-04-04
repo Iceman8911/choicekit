@@ -1,0 +1,61 @@
+---
+title: Overview
+---
+
+Choicekit is a headless interactive-fiction engine focused on deterministic story state, passage navigation, and save data you can evolve safely.
+
+For most projects, the best entry point is `ChoicekitEngineBuilder`.
+
+## Mental model
+
+Think of a Choicekit run as three connected layers:
+
+1. **Passages**: your story nodes (scene, room, dialogue beat)
+2. **State**: mutable run data (flags, stats, inventory, relationship values)
+3. **Persistence**: save slots/export data and migration-safe checkpoints
+
+Choicekit lets you change any one of these layers without tightly coupling it to rendering.
+
+## Creating an engine (builder API)
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+
+export const engine = await new ChoicekitEngineBuilder()
+	.withName("daves-adventure")
+	.withPassages(
+		{ name: "Start", data: "You wake in a dim corridor.", tags: ["intro"] },
+		{ name: "Hallway", data: "Two doors. One is locked.", tags: ["hub"] },
+	)
+	.withVars({
+		player: {
+			gold: 10,
+			hp: 20,
+		},
+		flags: {
+			sawGhost: false,
+		},
+	})
+	.withConfig({
+		saveSlots: 10,
+		autoSave: "passage",
+	})
+	.build();
+```
+
+## Why initialization is async
+
+`build()` is async because engine startup may:
+
+1. Load recent save data (if enabled)
+2. Initialize plugins that perform async setup
+
+Settings and achievements are now official plugins/extensions, so they are documented in [Plugins](/choicekit/guides/choicekit/6-plugins/) and API reference pages rather than core engine pages.
+
+## Where to go next
+
+1. Start with [Passages and Navigation](/choicekit/guides/choicekit/1-passage/)
+2. Then read [State and History](/choicekit/guides/choicekit/2-state/)
+3. Then [Saving and Loading](/choicekit/guides/choicekit/3-save/)
+4. Then [Plugins](/choicekit/guides/choicekit/6-plugins/)
+5. Then [Engine Methods Reference](/choicekit/guides/choicekit/7-methods/)

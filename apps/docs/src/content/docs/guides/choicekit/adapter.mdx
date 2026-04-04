@@ -1,0 +1,152 @@
+---
+title: Adapters
+---
+
+Choicekit stays storage-agnostic through adapters. This keeps the engine portable across multiple contexts.
+
+## Adapter types
+
+1. **Persistence adapter**: save/load/delete story save data
+2. **Cache adapter**: optimize repeated state reconstruction
+
+Configure both under `withConfig(...)`.
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+import { LocalStoragePersistenceAdapter } from "choicekit";
+
+const cacheMap = new Map<number, unknown>();
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("my-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ gold: 0 })
+	.withConfig({
+		persistence: LocalStoragePersistenceAdapter,
+		cache: {
+			get: (k) => cacheMap.get(k),
+			set: (k, v) => cacheMap.set(k, v),
+			delete: (k) => cacheMap.delete(k),
+			clear: () => cacheMap.clear(),
+		},
+	})
+	.build();
+```
+
+## Persistence adapter contract
+
+```ts
+type PersistenceAdapter = {
+	set: (key: string, data: string) => Promise<unknown>;
+	get: (key: string) => Promise<string | undefined | null>;
+	delete: (key: string) => Promise<unknown>;
+	keys?: () => Promise<Iterable<string>>;
+};
+```
+
+Notes:
+
+1. Values are string payloads managed by Choicekit serialization.
+2. `keys()` is optional but improves save listing performance.
+
+## Cache adapter contract
+
+```ts
+type CacheAdapter<TValue> = {
+	set: (key: number, data: TValue) => unknown;
+	get: (key: number) => TValue | undefined | null;
+	delete: (key: number) => unknown;
+	clear: () => unknown;
+};
+```
+
+Use cache adapters when your IF has deep history and frequent `engine.vars` reads.
+
+## Custom adapters
+
+Use custom adapters when built-ins are not enough, such as cloud save, encrypted storage, remote sync, or special cache behavior.
+
+### Example: custom persistence adapter
+
+```ts
+type PersistenceAdapter = {
+	set(key: string, data: string): Promise<unknown>;
+	get(key: string): Promise<string | undefined | null>;
+	delete(key: string): Promise<unknown>;
+	keys?(): Promise<Iterable<string>>;
+};
+
+const memory = new Map<string, string>();
+
+export const CustomPersistenceAdapter: PersistenceAdapter = {
+	async set(key, data) {
+		memory.set(String(key), data);
+	},
+	async get(key) {
+		return memory.get(String(key));
+	},
+	async delete(key) {
+		memory.delete(String(key));
+	},
+	async keys() {
+		return memory.keys();
+	},
+};
+```
+
+Mount it through config:
+
+```ts
+const engine = await new ChoicekitEngineBuilder()
+	.withName("my-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ hp: 10 })
+	.withConfig({ persistence: CustomPersistenceAdapter })
+	.build();
+```
+
+### Example: custom cache adapter
+
+```ts
+const snapshotCache = new Map<number, unknown>();
+
+const cache = {
+	set(key: number, data: unknown) {
+		snapshotCache.set(key, data);
+	},
+	get(key: number) {
+		return snapshotCache.get(key);
+	},
+	delete(key: number) {
+		snapshotCache.delete(key);
+	},
+	clear() {
+		snapshotCache.clear();
+	},
+};
+```
+
+Mount with persistence:
+
+```ts
+.withConfig({
+	persistence: CustomPersistenceAdapter,
+	cache,
+})
+```
+
+### Design guidance
+
+1. Keep adapter key handling stable (`String(key)` normalization is common).
+2. Make operations idempotent where possible.
+3. Decide how to handle unavailable storage (throw vs fallback).
+4. If backing store is remote, consider retries and offline queueing in the adapter layer.
+5. Keep adapter methods focused on storage concerns only.
+
+
+## Related pages
+
+1. [Saving and Loading Saves](/choicekit/guides/choicekit/3-save/)
+2. [Save Migration](/choicekit/guides/choicekit/4-migration/)
+3. [Engine Configuration](/choicekit/guides/choicekit/config/)
+4. [Engine Methods Reference](/choicekit/guides/choicekit/7-methods/)

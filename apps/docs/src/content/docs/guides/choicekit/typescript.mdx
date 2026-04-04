@@ -1,0 +1,72 @@
+---
+title: TypeScript
+---
+
+Choicekit is TypeScript-first. If you model passages and vars clearly, the engine API becomes strongly typed end-to-end.
+
+## Typed engine setup (builder)
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+
+type StoryPassage = {
+	name: "Start" | "Town" | "Cave";
+	data: { text: string; mood?: "safe" | "danger" };
+	tags?: string[];
+};
+
+type StoryVars = {
+	playerName: string;
+	gold: number;
+	flags: {
+		sawGhost: boolean;
+	};
+};
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("typed-story")
+	.withPassages<StoryPassage>(
+		{ name: "Start", data: { text: "Welcome." }, tags: ["intro"] },
+		{ name: "Town", data: { text: "Busy streets.", mood: "safe" } },
+	)
+	.withVars<StoryVars>({
+		playerName: "Avery",
+		gold: 10,
+		flags: { sawGhost: false },
+	})
+	.build();
+```
+
+## Safe state updates
+
+`engine.vars` is readonly. Mutate through `setVars`:
+
+```ts
+engine.setVars((s) => {
+	s.gold += 5;
+	s.flags.sawGhost = true;
+});
+```
+
+This catches type mistakes early and keeps state transitions explicit.
+
+## Passage typing strategy
+
+Use literal unions for passage names when possible. This catches typo bugs before runtime.
+
+```ts
+const next: "Start" | "Town" | "Cave" = "Town";
+engine.navigateTo(next);
+```
+
+## Custom classes in vars
+
+If `vars` includes class instances, register them with `.withClasses(...)` and implement explicit serialization (`toJSON` / `fromJSON`).
+
+See [Custom Classes](/choicekit/guides/choicekit/classes/) for full patterns.
+
+## Migration-friendly typing
+
+1. Keep current runtime types clean and strict.
+2. Treat legacy save shapes separately in migration code.
+3. Prefer explicit unions and required fields over loose optional blobs.

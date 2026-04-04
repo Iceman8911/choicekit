@@ -1,0 +1,137 @@
+---
+title: Saving and Loading Saves
+---
+
+Saving in Choicekit is about preserving a playable run exactly as the player left it: passage, state history, and deterministic randomness context.
+
+In IF terms, a save is a branch checkpoint.
+
+## What gets persisted
+
+A story save contains data needed to restore narrative execution, including:
+
+1. state and state history
+2. current passage position
+3. metadata used for deterministic replay
+
+Plugin-level persistence concerns (like settings/achievements) are documented in [Plugins](/choicekit/guides/choicekit/6-plugins/).
+
+## Configure persistence
+
+Use a persistence adapter through engine config.
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+import { LocalStoragePersistenceAdapter } from "choicekit";
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("daves-adventure")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ gold: 0 })
+	.withConfig({
+		persistence: LocalStoragePersistenceAdapter,
+		saveSlots: 10,
+		autoSave: "passage",
+	})
+	.build();
+```
+
+Use a stable, unique engine name per story. Engines sharing a name share persisted keys.
+
+## Save slots
+
+Choicekit supports:
+
+1. autosave slot
+2. numbered slots (`0` to `saveSlots - 1`)
+
+Manual save/load:
+
+```ts
+await engine.saveToSaveSlot(2);
+await engine.loadFromSaveSlot(2);
+```
+
+Autosave slot shortcuts:
+
+```ts
+await engine.saveToSaveSlot();
+await engine.loadFromSaveSlot();
+```
+
+Load best available recent save:
+
+```ts
+await engine.loadRecentSave();
+```
+
+## Listing and deleting saves
+
+Build save UIs with `getSaves()`:
+
+```ts
+for await (const save of engine.getSaves()) {
+	if (save.type === "autosave") {
+		console.log("autosave", save.data.savedOn);
+	} else {
+		console.log("slot", save.slot, save.data.savedOn);
+	}
+}
+```
+
+Delete saves:
+
+```ts
+await engine.deleteSaveSlot(); // autosave
+await engine.deleteSaveSlot(3); // slot 3
+await engine.deleteAllSaveSlots();
+```
+
+## Export and import
+
+For cloud backup/share flows:
+
+```ts
+const exported = await engine.saveToExport();
+
+// later, same device or another device
+await engine.loadFromExport(exported);
+```
+
+This is useful for player support, migration between devices, and beta testing reproduction.
+
+## Compression and save size
+
+`config.compress` enables compact save payloads (recommended for large state/history).
+
+Also keep `vars` focused on story facts, not transient UI state.
+
+## Save lifecycle events
+
+You can hook save UX indicators and error handling with:
+
+1. `saveStart` / `saveEnd`
+2. `loadStart` / `loadEnd`
+3. `deleteStart` / `deleteEnd`
+
+```ts
+engine.on("saveStart", ({ slot }) => {
+	console.log("saving", slot);
+});
+
+engine.on("saveEnd", (event) => {
+	if (event.type === "success") {
+		console.log("saved", event.slot);
+		return;
+	}
+	console.error("save failed", event.slot, event.error);
+});
+```
+
+## Common pitfalls
+
+1. Missing persistence adapter: save/load/delete operations will fail.
+2. Changing state schema without migrations: old saves may become incompatible.
+3. Overloading vars with UI-only data: save payloads grow and become harder to evolve.
+
+Next: see [Save Migrations](/choicekit/guides/choicekit/4-migration/) for versioning strategy.

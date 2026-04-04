@@ -1,0 +1,153 @@
+---
+title: Engine Configuration
+---
+
+Engine config controls save behavior, state-history behavior, and RNG behavior. Every field is optional.
+
+## Quick example
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("my-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ gold: 10 })
+	.withConfig({
+		saveSlots: 10,
+		saveVersion: "0.4.0",
+		saveCompat: "strict",
+		autoSave: "passage",
+		compress: true,
+		loadOnStart: true,
+		maxStates: 200,
+		stateMergeCount: 5,
+		regenSeed: "passage",
+		initialSeed: 12345,
+		persistence: myPersistenceAdapter,
+		cache: myCacheAdapter,
+	})
+	.build();
+```
+
+## All config properties
+
+Every property in the config object is optional _except_ `persistence`.
+
+### Save behavior
+
+#### `saveSlots`
+
+- **Type**: `number`
+- **Default**: 20
+- **Description**: Maximum number of manual save slots. Must be at least 1. Does not count the autosave slot.
+
+#### `saveVersion`
+
+- **Type**: `ChoicekitSemanticVersionString` (e.g., `"1.0.0"`)
+- **Default**: `"0.0.1"`
+- **Description**: Semantic version for all newly created saves. Also used as a reference point to determine if older saves are compatible with the current story version.
+
+#### `saveCompat`
+
+- **Type**: `"strict" | "liberal"`
+- **Default**: `"strict"`
+- **Description**: How strict the engine is when determining save compatibility.
+  - `"strict"`: Only saves differing by patch version are compatible.
+  - `"liberal"`: Saves with lower or equal minor version are compatible.
+
+#### `autoSave`
+
+- **Type**: `"passage" | "state" | false`
+- **Default**: `false`
+- **Description**: Automatic save behavior.
+  - `"passage"`: Save on every passage navigation.
+  - `"state"`: Save on every state change (variable modification).
+  - `false`: No automatic saving.
+
+#### `loadOnStart`
+
+- **Type**: `boolean`
+- **Default**: `true`
+- **Description**: Whether to automatically load the most recent save when the engine initializes.
+
+#### `compress`
+
+- **Type**: `boolean`
+- **Default**: `true`
+- **Description**: Whether to compress save data. Compression only occurs if the stringified data is larger than 1KB.
+
+### State and history
+
+#### `maxStates`
+
+- **Type**: `number`
+- **Default**: 100
+- **Description**: Maximum number of individual state snapshots to store before old ones get merged together.
+
+#### `stateMergeCount`
+
+- **Type**: `number`
+- **Default**: 1
+- **Description**: Number of individual states to merge into one when the state history reaches its limit.
+
+#### `emitMode`
+
+- **Type**: `"acc" | "perf"`
+- **Default**: `"acc"`
+- **Description**: Optimization strategy for state change events.
+  - `"acc"` (accuracy): Deep clones the old state before modifications, ensuring complete isolation. Use when you need guaranteed data integrity.
+  - `"perf"` (performance): Avoids deep cloning for better performance. In rare edge cases, `oldState` and `newState` might reference the same object.
+
+### Pseudorandom number generation (PRNG)
+
+#### `initialSeed`
+
+- **Type**: `number`
+- **Default**: A random number between 0 and 2³²-1
+- **Description**: Initial seed for deterministic RNG. Must be between 0 and 2³²-1 (inclusive).
+
+#### `regenSeed`
+
+- **Type**: `"passage" | "eachCall" | false`
+- **Default**: `"passage"`
+- **Description**: Determines when the PRNG seed is regenerated.
+  - `"passage"`: Regenerate on every passage navigation.
+  - `"eachCall"`: Regenerate on every call to the `random` getter.
+  - `false`: Never regenerate; always use the initial seed.
+
+### Adapter wiring
+
+#### `persistence`
+
+- **Type**: `PersistenceAdapter`
+- **Required**: Yes
+- **Description**: Adapter for saving/loading game state. The engine needs this to support save slots and autosave. Defaults to an in-memory adapter.
+
+#### `cache`
+
+- **Type**: `CacheAdapter<TChoicekitVariables>`
+- **Default**: undefined
+- **Description**: Optional cache adapter to speed up state reconstruction. Useful for performance optimization with large state objects.
+
+## Recommended baseline
+
+```ts
+withConfig({
+	autoSave: "passage",
+	saveSlots: 10,
+	saveVersion: "0.1.0",
+	saveCompat: "strict",
+	compress: true,
+	loadOnStart: true,
+	regenSeed: "passage",
+})
+```
+
+## Related pages
+
+1. [Saving and Loading](/choicekit/guides/choicekit/3-save/)
+2. [Save Migration](/choicekit/guides/choicekit/4-migration/)
+3. [Adapters](/choicekit/guides/choicekit/adapter/)
+4. [PRNG](/choicekit/guides/choicekit/prng/)
+5. [Events](/choicekit/guides/choicekit/5-event/)

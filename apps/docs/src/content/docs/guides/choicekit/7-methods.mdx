@@ -1,0 +1,104 @@
+---
+title: Engine Methods Reference
+---
+
+This page is a practical map of the `ChoicekitEngine` API by workflow.
+
+For full signatures, generics, and return types, use generated API docs for [ChoicekitEngine](/choicekit/reference/api/classes/choicekitengine/) and [ChoicekitEngineBuilder](/choicekit/reference/api/classes/choicekitenginebuilder/).
+
+## Create and configure
+
+1. `ChoicekitEngine.init(args)`
+2. `new ChoicekitEngineBuilder().with*().build()`
+3. `registerClasses(...customClasses)`
+4. `registerMigrators(...migrators)`
+
+Use the builder for most apps. Use static `init` only when you need direct object initialization control.
+
+## Passages and navigation
+
+1. `addPassage(passage)`
+2. `addPassages(...passages)`
+3. `navigateTo(passageId?)`
+4. `getPassages({ type, tags })`
+5. `getVisitCount(passageId?)`
+
+Typical pattern:
+
+```ts
+engine.navigateTo("TownSquare");
+const visited = engine.getVisitCount("TownSquare");
+```
+
+## State updates and time travel
+
+1. `setVars(producer, emitEvent?)`
+2. `backward(step?)`
+3. `forward(step?)`
+4. `reset(resetSeed?)`
+
+Use `setVars` for all state writes. Avoid direct mutation of `engine.vars`.
+
+## Saving and loading
+
+1. `saveToSaveSlot(slot?)`
+2. `loadFromSaveSlot(slot?)`
+3. `loadRecentSave()`
+4. `saveToExport()`
+5. `loadFromExport(serialized)`
+6. `getSaves()`
+7. `deleteSaveSlot(slot?)`
+8. `deleteAllSaveSlots()`
+9. `loadSaveFromData(save)`
+
+`getSaves()` is an async generator and works well for rendering save menus.
+
+```ts
+for await (const save of engine.getSaves()) {
+	if (save.type === "autosave") console.log("autosave", save.data.savedOn);
+	else console.log("slot", save.slot, save.data.savedOn);
+}
+```
+
+## Event subscriptions
+
+1. `on(eventName, listener)`
+2. `once(eventName, listener)`
+3. `off(eventName, listener)`
+
+`on` and `once` return unsubscribe functions.
+
+```ts
+const off = engine.on("stateChange", ({ oldState, newState }) => {
+	console.log(oldState, newState);
+});
+off();
+```
+
+## Read-only getters
+
+1. `index`
+2. `passage`
+3. `passageId`
+4. `random`
+5. `vars`
+
+These are the main read surfaces for rendering and game logic.
+
+## Method selection cheat-sheet
+
+1. Need to move story position now: `navigateTo`
+2. Need to mutate state safely: `setVars`
+3. Need undo/redo: `backward` and `forward`
+4. Need save slots: `saveToSaveSlot`, `loadFromSaveSlot`, `getSaves`
+5. Need cross-device/import flow: `saveToExport`, `loadFromExport`
+6. Need reactiveness: `on`/`once`/`off`
+
+## Related pages
+
+1. [Passages and Navigation](/choicekit/guides/choicekit/1-passage/)
+2. [State and History](/choicekit/guides/choicekit/2-state/)
+3. [Saving and Loading Saves](/choicekit/guides/choicekit/3-save/)
+4. [Events](/choicekit/guides/choicekit/5-event/)
+5. [Save Migration](/choicekit/guides/choicekit/4-migration/)
+6. [Engine Configuration](/choicekit/guides/choicekit/config/)

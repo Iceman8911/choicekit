@@ -3,7 +3,7 @@ title: Getting Started
 description: Introduction to Choicekit
 ---
 
-Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Choicekit is a lightweight[^1], headless, framework-agnostic library for building web-based interactive fiction.
+Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Choicekit is a lightweight[^1], headless, framework-agnostic library for building interactive fiction.
 
 ---
 
@@ -14,29 +14,28 @@ Inspired by [Twine SugarCube](https://www.motoslave.net/sugarcube/2/), Choicekit
 - Saving and loading with versioning, optional compression, and migrations
 - Deterministic pseudorandom number generation (PRNG)
 - Custom class serialization for richer game objects
-- Achievements and settings stored separately from save slots
 - Headless by design (you bring the renderer and UI)
 
 ---
 
 # Installation
 
-This library is uploaded to npm at https://www.npmjs.com/package/Choicekit
+Install from npm package `choicekit`.
 
 import { Tabs, TabItem, Code } from "@astrojs/starlight/components"
 
 <Tabs syncKey="packageManager">
   <TabItem label="npm">
-    <Code code="npm install Choicekit" lang="bash" />
+    <Code code="npm install choicekit" lang="bash" />
   </TabItem>
   <TabItem label="pnpm">
-    <Code code="pnpm install Choicekit" lang="bash"   />
+    <Code code="pnpm add choicekit" lang="bash"   />
   </TabItem>
   <TabItem label="yarn">
-    <Code code="yarn install Choicekit" lang="bash"  />
+    <Code code="yarn add choicekit" lang="bash"  />
   </TabItem>
   <TabItem label="bun">
-    <Code code="bun install Choicekit" lang="bash"  />
+    <Code code="bun add choicekit" lang="bash"  />
   </TabItem>
 </Tabs>
 
@@ -44,29 +43,20 @@ import { Tabs, TabItem, Code } from "@astrojs/starlight/components"
 
 Notes on the current API:
 
-- Engine initialization uses `vars` (not `variables`)
-- Passage content lives on `passage.data` (not `passage.passage`)
+- Prefer `ChoicekitEngineBuilder` for ergonomic type-safe setup
+- Passage content lives on `passage.data`
 
 ```typescript
-import { ChoicekitEngine } from "Choicekit";
+import { ChoicekitEngineBuilder } from "choicekit";
 
-const startPassage = {
-  name: "Start",
-  data: "You wake up in a quiet room.",
-  tags: ["intro"],
-};
-
-const otherPassages = [
-  { name: "Hallway", data: "A long corridor stretches ahead." },
-];
-
-const engine = await ChoicekitEngine.init({
-  name: "Test",
-  vars: { playerName: "Dave", inventory: { gold: 123, gems: 12 } },
-  startPassage,
-  otherPassages,
-  // Optionally: config, classes, achievements, settings, migrations
-});
+const engine = await new ChoicekitEngineBuilder()
+	.withName("test-story")
+	.withPassages(
+		{ name: "Start", data: "You wake up in a quiet room.", tags: ["intro"] },
+		{ name: "Hallway", data: "A long corridor stretches ahead." },
+	)
+	.withVars({ playerName: "Dave", inventory: { gold: 123, gems: 12 } })
+	.build();
 
 engine.setVars((state) => {
   state.playerName = "Sheep";
@@ -76,4 +66,4 @@ engine.setVars((state) => {
 engine.navigateTo("Hallway");
 ```
 
-[^1]: Less than **5KB** after minification and gzip compression
+[^1]: Less than **8KB** after minification and gzip compression

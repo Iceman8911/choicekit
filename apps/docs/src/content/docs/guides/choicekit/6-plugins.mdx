@@ -1,0 +1,235 @@
+---
+title: Plugins
+---
+
+Plugins are how Choicekit intentionally stays minimal at its core while still supporting richer IF systems.
+
+The core engine focuses on passages, state history, deterministic randomness, and save infrastructure. Plugins layer on top to add domain features like achievements, settings, storylets, codex systems, quest logs, and telemetry.
+
+## Why plugins exist
+
+Without plugins, every project would either:
+
+1. Fork engine behavior
+2. Keep ad hoc side systems outside the engine
+3. Rebuild common IF features repeatedly
+
+With plugins, you get a clean extension boundary:
+
+1. Core stays stable and predictable
+2. Feature systems can evolve independently
+3. APIs mount in a single discoverable place: `engine.$`
+
+## Plugin purpose in relation to engine core
+
+Think of Choicekit in two layers:
+
+1. **Core runtime**: passage navigation, state snapshots, save/load, migrations, PRNG
+2. **Feature runtime (plugins)**: player-facing systems specific to your game design
+
+The engine owns save orchestration and lifecycle. Plugins hook into that lifecycle and can persist their own state either with or outside normal save slots.
+
+This is exactly where IF-specific features belong:
+
+1. Achievements and unlock tracking
+2. User settings and accessibility preferences
+3. Storylet selection logic and narrative scheduling
+4. Quest journals, codex entries, relationship trackers, meta-progression
+
+## Where plugin APIs live
+
+When mounted, each plugin exposes its public API under a namespaced key on `engine.$`.
+
+```ts
+engine.$.achievements.get();
+engine.$.settings.set((draft) => {
+	draft.textSpeed = "fast";
+});
+```
+
+Each plugin `id` becomes a namespace key (for example `"achievements"` or `"settings"`).
+
+## Plugin lifecycle
+
+At initialization, Choicekit mounts plugins in sequence.
+
+1. Resolve namespace conflicts (`onOverride`)
+2. Attempt to mount declared dependencies
+3. Initialize plugin state (`initState`, if provided)
+4. Initialize public API (`initApi`) and mount it at `engine.$[id]`
+5. Attempt to restore plugin data stored outside normal saves (for plugins using `serialize.withSave === false`)
+
+## Plugin shape (what you can implement)
+
+A plugin can define:
+
+1. `id` (required): unique namespace under `engine.$`
+2. `onOverride` (optional): conflict behavior (`"err" | "ignore" | "override"`)
+3. `dependencies` (optional): other plugins to mount first
+4. `initState` (optional): initialize per-engine private plugin state
+5. `initApi` (optional): return public API mounted at `engine.$[id]`
+6. `serialize` (optional): control plugin-state serialization and save placement
+7. `onDeserialize` (optional): restore plugin state from serialized payload
+8. `version` (optional): plugin save-data version metadata
+
+Use `definePlugin` and `ValidatePluginGenerics` for strong typing and predictable inference.
+
+## Persistence model for plugin data
+
+Plugin persistence is opt-in via `serialize` + `onDeserialize`.
+
+1. `withSave: true`: plugin data is stored with normal story saves
+2. `withSave: false`: plugin data is stored in plugin-specific storage and included in export payloads
+
+Use `withSave: false` for cross-run systems (for example achievements/settings that should not rewind when loading old story saves).
+
+## Registering plugins
+
+Use the builder to mount plugins before `build()`.
+
+```ts
+import {
+	ChoicekitEngineBuilder,
+	createAchievementsPlugin,
+	createSettingsPlugin,
+} from "choicekit";
+
+const achievementsPlugin = createAchievementsPlugin({
+	storyBeat1: false,
+	storyBeat2: false,
+});
+
+const settingsPlugin = createSettingsPlugin({
+	textSpeed: "normal" as "slow" | "normal" | "fast",
+	musicVolume: 0.7,
+});
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("my-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ gold: 0 })
+	.withPlugin(achievementsPlugin, {
+		default: {
+			storyBeat1: false,
+			storyBeat2: false,
+		},
+	})
+	.withPlugin(settingsPlugin, {
+		default: {
+			textSpeed: "normal",
+			musicVolume: 0.7,
+		},
+	})
+	.build();
+```
+
+## Building a custom plugin
+
+Use `definePlugin` for custom systems. The example below shows a compact "quest log" plugin with typed config, internal state, public API, and persistence.
+
+```ts
+import {
+	definePlugin,
+	type ChoicekitPlugin,
+	type ValidatePluginGenerics,
+} from "choicekit";
+
+type QuestPluginGenerics = ValidatePluginGenerics<{
+	id: "quests";
+	config: {
+		default: Record<string, { completed: boolean; title: string }>;
+	};
+	state: {
+		quests: Record<string, { completed: boolean; title: string }>;
+	};
+	serializedState: {
+		quests: Record<string, { completed: boolean; title: string }>;
+	};
+	api: {
+		all(): Readonly<Record<string, { completed: boolean; title: string }>>;
+		complete(id: string): void;
+	};
+	dependencies: [];
+}>;
+
+export const createQuestPlugin = (): ChoicekitPlugin<QuestPluginGenerics> =>
+	definePlugin({
+		id: "quests",
+		initState() {
+			return { quests: {} };
+		},
+		initApi({ config, state, triggerSave }) {
+			state.quests = { ...config.default };
+
+			return {
+				all() {
+					return state.quests;
+				},
+				complete(id) {
+					if (!state.quests[id]) return;
+					state.quests[id].completed = true;
+					triggerSave();
+				},
+			};
+		},
+		serialize: {
+			withSave: true,
+			method(state) {
+				return { quests: state.quests };
+			},
+		},
+		onDeserialize({ data, state }) {
+			state.quests = data.quests;
+		},
+	});
+```
+
+Mount it with:
+
+```ts
+engineBuilder.withPlugin(createQuestPlugin(), {
+	default: {
+		mainQuest: { title: "Find the archive key", completed: false },
+	},
+});
+```
+
+## Current official example plugins
+
+1. [createAchievementsPlugin](/choicekit/reference/api/functions/createachievementsplugin/)
+2. [createSettingsPlugin](/choicekit/reference/api/functions/createsettingsplugin/)
+
+These two examples demonstrate the key plugin patterns:
+
+1. Stateful API mounted at `engine.$`
+2. Event emitter API for feature-specific events
+3. Persistent plugin state (`withSave: false`) for out-of-save progression/preferences
+
+## Storylets and other IF systems
+
+Storylets are a strong candidate for plugins because they are game-design systems, not engine-core mechanics.
+
+A storylet plugin can:
+
+1. Evaluate requirements against current engine state
+2. Return eligible entries sorted by priority
+3. Keep independent metadata (cooldowns, exhaustion, unlock context)
+
+That approach keeps the base runtime focused and lets you iterate narrative systems without destabilizing passage/state/save internals.
+
+## Best practices for plugin authors
+
+1. Keep plugin IDs stable. Changing IDs breaks plugin save partitions.
+2. Treat plugin config as an explicit contract, not an ad hoc object.
+3. Use `ValidatePluginGenerics` to avoid weak inference on `config`, `state`, and API.
+4. Decide early whether plugin data should rewind with saves (`withSave: true`) or persist independently (`withSave: false`).
+5. Keep `initState` pure and return fresh data for each engine instance.
+6. Guard dependency usage if dependency mounting can fail in your scenario.
+
+## Related pages
+
+1. [TypeScript](/choicekit/guides/choicekit/typescript/)
+2. [Saving and Loading](/choicekit/guides/choicekit/3-save/)
+3. [Adapters](/choicekit/guides/choicekit/adapter/)
+4. [Engine Configuration](/choicekit/guides/choicekit/config/)
+5. [Engine Methods Reference](/choicekit/guides/choicekit/7-methods/)

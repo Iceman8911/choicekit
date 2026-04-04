@@ -1,0 +1,68 @@
+---
+title: State and History
+---
+
+Story **state** is your run memory: inventory, flags, relationship values, quest progress, combat state, and anything your choices depend on.
+
+Choicekit tracks state as:
+
+1. an immutable initial state
+2. a history of incremental snapshots
+3. an active index in that history
+
+This is what enables deterministic rewind/forward behavior without deep-cloning a full object every turn.
+
+## Setting initial state
+
+```ts
+const engine = await new ChoicekitEngineBuilder()
+	.withName("daves-adventure")
+	.withPassages({ name: "Start", data: "You wake in a dim corridor." })
+	.withVars({
+		player: { hp: 20, gold: 10 },
+		flags: { sawGhost: false },
+		inventory: [] as string[],
+	})
+	.build();
+```
+
+## Updating state with `setVars`
+
+Use `setVars` for every runtime mutation.
+
+```ts
+engine.setVars((state) => {
+	state.player.gold += 5;
+	state.inventory.push("old-key");
+	state.flags.sawGhost = true;
+});
+```
+
+Treat the callback argument as mutable. Choicekit handles snapshot recording and event emission.
+
+## Reading current state
+
+Use `engine.vars` to read the current visible state.
+
+```ts
+if (engine.vars.flags.sawGhost) {
+	engine.navigateTo("Hallway");
+}
+```
+
+## History, index, and IF flow
+
+Each meaningful change creates history context. That means:
+
+1. `navigateTo(...)` changes narrative position
+2. `setVars(...)` changes world memory
+3. `backward(...)` and `forward(...)` move through prior story states
+
+This model maps naturally to IF features like rewind, transcript playback, branch debugging, and deterministic QA.
+
+## Practical modeling advice
+
+1. Store only story-relevant facts in `vars`
+2. Keep derived UI-only values outside `vars` when possible
+3. Prefer explicit values (`null`, enums, booleans) over implicit absence
+4. Use stable keys for branch flags (`flags.met_captain`) for long-term save compatibility

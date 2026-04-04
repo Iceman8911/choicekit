@@ -1,0 +1,61 @@
+---
+title: PRNG
+---
+
+Choicekit provides deterministic random numbers through `engine.random`, making IF outcomes reproducible for testing, debugging, and seeded playthroughs.
+
+## Core idea
+
+For a given seed and call order, random outcomes are repeatable.
+
+`engine.random` returns a float within 0 and 1.
+
+## Basic usage
+
+```ts
+const encounterRoll = engine.random;
+const isRare = encounterRoll < 0.1;
+```
+
+Derive helpers in your app:
+
+```ts
+function randomInt(engine: { random: number }, min: number, max: number) {
+	return Math.floor(engine.random * (max - min + 1)) + min;
+}
+```
+
+## Seeding
+
+Set `initialSeed` for reproducible runs:
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("my-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({})
+	.withConfig({
+		initialSeed: 12345,
+		regenSeed: "passage",
+	})
+	.build();
+```
+
+## `regenSeed` modes
+
+1. `"passage"` (default): good IF default, changes seed on navigation
+2. `"eachCall"`: changes seed for every random draw
+3. `false`: strict deterministic sequence from initial seed
+
+
+## TODO
+
+- Maybe add a plugin for common IF random patterns (loot tables, weighted choices, etc).
+
+## Related pages
+
+1. [Engine Configuration](/choicekit/guides/choicekit/config/)
+2. [State and History](/choicekit/guides/choicekit/2-state/)
+3. [Saving and Loading](/choicekit/guides/choicekit/3-save/)

@@ -1,0 +1,152 @@
+---
+title: Custom Classes
+---
+
+Custom classes let you keep rich domain models in story state while still supporting save/load.
+
+If you persist class instances in `vars`, register those constructors so they can be revived with methods intact.
+
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside>For generics and typing `vars`, see the TypeScript guide.</Aside>
+
+---
+
+## When to use this
+
+Use custom class registration when state contains runtime objects such as `Player`, `Inventory`, or `QuestLog` and you need them restored as class instances after loading.
+
+---
+
+## The contract: `ChoicekitClassInstance` and `ChoicekitClassConstructor`
+
+A serializable custom class has two sides:
+
+- `ChoicekitClassInstance<TSerialized>` (instance)
+- `ChoicekitClassConstructor<TSerialized>` (constructor)
+
+Requirements:
+
+- `static readonly classId: string` (stable identifier stored in saves)
+- `toJSON(): TSerialized` (serialized shape)
+- `static fromJSON(data: TSerialized): Instance` (revival)
+
+Round trip: `instance → toJSON() → save → load → fromJSON() → instance`
+
+---
+
+## Example
+
+```ts
+import type { ChoicekitClassConstructor, ChoicekitClassInstance } from "choicekit";
+
+type PlayerSerialized = {
+	name: string;
+	age: number;
+	class: string;
+	level: number;
+	location: string;
+	inventory: {
+		gems: number;
+		gold: number;
+		items: string[];
+	};
+};
+
+class Player implements ChoicekitClassInstance<PlayerSerialized> {
+	static readonly classId = "Player";
+
+	name = "Dave";
+	age = 21;
+	class = "Paladin";
+	level = 6;
+	location = "Tavern";
+	inventory = {
+		gems: 12,
+		gold: 123,
+		items: ["Black Sword", "Slug Shield", "Old Cloth"],
+	};
+
+	favouriteItem() {
+		return this.inventory.items[0];
+	}
+
+	toJSON(): PlayerSerialized {
+		const { favouriteItem: _favouriteItem, toJSON: _toJSON, ...rest } = this;
+		return rest;
+	}
+
+	static fromJSON(data: PlayerSerialized): Player {
+		const player = new Player();
+		Object.assign(player, data);
+		return player;
+	}
+}
+
+Player satisfies ChoicekitClassConstructor<PlayerSerialized>;
+```
+
+---
+
+## Registering classes
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("classes-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({
+		player: new Player(),
+	})
+	.withClasses(Player)
+	.build();
+```
+
+Without registration, loaded instances can degrade into plain objects.
+
+---
+
+## `classId` is save-format data
+
+Keep `classId` stable. If serialized shape changes in a breaking way, bump save version and migrate.
+
+---
+
+## What `toJSON()` should return
+
+`toJSON()` should return something serializable and revivable:
+
+- plain objects/arrays
+- primitives
+- supported built-ins (`Date`, `Map`, `Set`, `bigint`)
+- other registered class instances (including cycles)
+
+Avoid returning:
+
+- functions
+- DOM nodes
+- network clients
+- unregistered class instances you expect to revive as classes
+
+---
+
+## Circular object graphs
+
+Cycles are supported as long as all participating classes are registered and `fromJSON` restores any invariants your gameplay relies on.
+
+---
+
+## Common gotchas
+
+1. Register every class that can appear in persisted state.
+2. Keep runtime-only objects (DOM nodes, services, clients) out of `vars`.
+3. Keep `toJSON` output explicit and stable.
+
+---
+
+## Summary
+
+1. Implement `toJSON`, `fromJSON`, and `classId`.
+2. Register constructors with `.withClasses(...)`.
+3. Use migrations when serialized class shape changes.

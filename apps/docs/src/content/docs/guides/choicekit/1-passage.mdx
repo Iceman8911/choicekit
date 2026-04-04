@@ -1,0 +1,87 @@
+---
+title: Passages and Navigation
+---
+
+In interactive fiction, a **passage** is a single story unit: a room, scene, dialogue beat, combat node, or cutscene.
+
+Choicekit does not dictate rendering, so each passage can store whatever payload your UI needs.
+
+## Passage shape
+
+Each passage has:
+
+1. `name`: unique id for navigation
+2. `data`: content payload (string, markdown, rich object, etc.)
+3. `tags?`: optional labels for filtering/querying
+
+```ts
+{
+  name: "Hallway",
+  data: "Two doors. One is locked.",
+  tags: ["hub", "act-1"]
+}
+```
+
+## Defining starting passages
+
+With `ChoicekitEngineBuilder`, the first passage in `withPassages(...)` is the starting passage.
+
+```ts
+const engine = await new ChoicekitEngineBuilder()
+  .withName("daves-adventure")
+  .withPassages(
+    { name: "Start", data: "You wake in a dim corridor.", tags: ["intro"] },
+    { name: "Hallway", data: "Two doors. One is locked.", tags: ["hub"] },
+  )
+  .withVars({ hasKey: false })
+  .build();
+```
+
+You can add passages later as content unlocks:
+
+```ts
+engine.addPassage({
+  name: "SecretRoom",
+  data: "Dusty relics line the walls.",
+  tags: ["secret"],
+});
+```
+
+## Reading current location
+
+1. `engine.passageId`: current passage id
+2. `engine.passage`: current passage object
+
+These are what your renderer should use to display story content.
+
+## Navigating
+
+Use `navigateTo(passageId)` to resolve a choice and move story flow.
+
+```ts
+engine.navigateTo("Hallway");
+```
+
+For rewind/forward UX, use:
+
+1. `engine.backward(step?)`
+2. `engine.forward(step?)`
+
+## Passage events
+
+Subscribe with typed engine events:
+
+```ts
+const unsubscribe = engine.on("passageChange", ({ oldPassage, newPassage }) => {
+  console.log("from", oldPassage?.name, "to", newPassage?.name);
+});
+
+// later
+unsubscribe();
+```
+
+Navigation also changes visible state history, so `stateChange` can fire around passage transitions too. This is expected and useful for reactive UIs.
+
+## IF design tip
+
+Treat passage ids as durable story keys (e.g. `act1_hub`, `forest_edge`) instead of display text. It makes migrations, analytics, and save compatibility much easier as the narrative evolves.

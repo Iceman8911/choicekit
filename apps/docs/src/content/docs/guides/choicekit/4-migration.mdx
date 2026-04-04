@@ -1,0 +1,96 @@
+---
+title: Save Migration
+---
+
+As your story evolves, save shapes evolve too. Migrations keep old player progress loadable after schema changes.
+
+## Key concepts
+
+1. `saveVersion`: semantic version stamped into saves
+2. `saveCompat`: compatibility policy (`strict` or `liberal`)
+3. `migrations`: version-to-version data transforms
+
+If a save is older and compatible-by-policy, Choicekit can apply migration steps until it reaches your current `saveVersion`.
+
+## When to bump `saveVersion`
+
+Bump whenever persisted meaning changes, for example:
+
+1. renaming/moving fields in `vars`
+2. changing value types
+3. adding new required fields
+4. restructuring nested objects
+
+## Registering migrations
+
+Use `.withMigrators(...)` in the builder.
+
+```ts
+const engine = await new ChoicekitEngineBuilder()
+	.withName("daves-adventure")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ player: { gold: 10 } })
+	.withConfig({
+		saveVersion: "0.2.0",
+		saveCompat: "strict",
+	})
+	.withMigrators([
+		{
+			from: "0.1.0",
+			data: {
+				to: "0.2.0",
+				migrater: (oldSave) => {
+					const gold =
+						typeof oldSave.gold === "number" ? oldSave.gold : 0;
+
+					return {
+						...oldSave,
+						player: {
+							...(typeof oldSave.player === "object" && oldSave.player
+								? oldSave.player
+								: {}),
+							gold,
+						},
+					};
+				},
+			},
+		},
+	])
+	.build();
+```
+
+## Strict vs liberal compatibility
+
+1. `strict` (recommended for production): minor version differences are treated as old/new and require explicit migration.
+2. `liberal`: lower minor versions with same major can load directly.
+
+Use `strict` if you want predictable long-term save behavior.
+
+## Migration design guidelines
+
+1. Keep each step small and version-local (`0.1.0 -> 0.2.0`, not `0.1.0 -> 1.0.0`)
+2. Be defensive about unexpected old data
+3. Avoid side effects (no network/UI/gameplay logic)
+4. Normalize data into your current invariants
+
+## Migration events
+
+Listen for lifecycle hooks to drive loading UX:
+
+```ts
+engine.on("migrationStart", ({ fromVersion, toVersion }) => {
+	console.log("migrating", fromVersion, "->", toVersion);
+});
+
+engine.on("migrationEnd", (event) => {
+	if (event.type === "success") {
+		console.log("migration complete");
+		return;
+	}
+	console.error("migration failed", event.error);
+});
+```
+
+## Testing recommendation
+
+Treat migrations as critical reliability code. Keep fixtures for old save versions and assert the final migrated shape in automated tests.
