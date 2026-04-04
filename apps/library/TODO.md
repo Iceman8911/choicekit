@@ -18,7 +18,7 @@
 - [ ] Figure out the best way for adding passages
 - [ ] Add a turn-based event system (i.e a way to have callbacks run after a certain number of "turns")
 - [ ] Add more useful interactive fiction method helpers.
-- [ ] Add `getVisitCount` for determining how many times a passage has been navigated to.
+- [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
 
 ---
@@ -28,9 +28,12 @@
 - [ ] maybe tie autosaving to a custom setting instead of at the engine level
 - [ ] introduce `has` for the persistence adapter
 - [ ] Maybe some simple text templating? (i.e converting `You have {{ player.gold }} gold` to `You have 100 gold).
-- [ ] Add tags to passages and query methods for passages based off their properties.
+- [x] Add tags to passages and query methods for passages based off their properties.
 - [ ] Consider a complementary **module-scoped** api in addition to the present **class-based** api. 
 	- Functions internally and export them at the module scope as well as a class wrapper for those who prefer the ergonomics. Similar to how valibot and formisch work.
+- [ ] Allow Choicekit class instances to provide a `.clone()` method for more efficient cloning, in comparison to the more expensive way of serializing and de-serializing.
+- [ ] Make types better.
+- [ ] Use `const` over `function` for better minifcation.
 
 ---
 
@@ -48,3 +51,5 @@
 - [x] Consider making the passage names optionally strongly typed?
 - [-] ~~Consider using immer and it's patches for state management, since the current system may poorly perform for very large story state (e.g management sims)~~
   - No immer, cus it'll bloat up the bundle size real quick
+- [x] Rename to "Choicekit" or smth 
+- [x] Add a `once` param to the `TypedEventEmitter` and ensure to do the same with any wrappers in the entire monorepo
