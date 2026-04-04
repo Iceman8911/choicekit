@@ -1,6 +1,9 @@
 import * as v from "valibot";
-
 import type { TransformableOrJsonSerializableType } from "../serialization/serializer";
+
+const LazyTransformableOrJsonSerializableSchema: v.LazySchema<
+	typeof TransformableOrJsonSerializableSchema
+> = v.lazy(() => TransformableOrJsonSerializableSchema);
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -9,10 +12,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 
 	if (
 		!v.is(
-			v.objectWithRest(
-				{},
-				v.lazy(() => TransformableOrJsonSerializableSchema),
-			),
+			v.record(v.string(), LazyTransformableOrJsonSerializableSchema),
 			value,
 		)
 	) {
@@ -21,22 +21,6 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 
 	const prototype = Object.getPrototypeOf(value);
 	return prototype === Object.prototype || prototype === null;
-};
-
-const isPlainRecord = (
-	value: unknown,
-): value is TransformableOrJsonSerializableType => {
-	if (!isPlainObject(value)) {
-		return false;
-	}
-
-	return v.is(
-		v.record(
-			v.string(),
-			v.lazy(() => TransformableOrJsonSerializableSchema),
-		),
-		value,
-	);
 };
 
 const isCustomClassInstance = (
@@ -66,14 +50,14 @@ export const TransformableOrJsonSerializableSchema: v.GenericSchema<Transformabl
 		v.boolean(),
 		v.null(),
 		v.undefined(),
-		v.array(v.lazy(() => TransformableOrJsonSerializableSchema)),
-		v.custom<TransformableOrJsonSerializableType>(isPlainRecord),
+		v.array(LazyTransformableOrJsonSerializableSchema),
+		v.custom<TransformableOrJsonSerializableType>(isPlainObject),
 		v.date(),
 		v.map(
-			v.lazy(() => TransformableOrJsonSerializableSchema),
-			v.lazy(() => TransformableOrJsonSerializableSchema),
+			LazyTransformableOrJsonSerializableSchema,
+			LazyTransformableOrJsonSerializableSchema,
 		),
-		v.set(v.lazy(() => TransformableOrJsonSerializableSchema)),
+		v.set(LazyTransformableOrJsonSerializableSchema),
 		v.bigint(),
 		v.custom<TransformableOrJsonSerializableType>(isCustomClassInstance),
 	]);
