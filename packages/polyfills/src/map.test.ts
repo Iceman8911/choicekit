@@ -1,4 +1,4 @@
-/// <reference path="./map.types.ts" />
+/// <reference path="./map.d.ts" />
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import "./map";

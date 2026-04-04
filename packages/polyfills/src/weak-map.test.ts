@@ -1,4 +1,4 @@
-/// <reference path="./weak-map.types.ts" />
+/// <reference path="./weak-map.d.ts" />
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import "./weak-map";
