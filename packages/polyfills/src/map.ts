@@ -1,4 +1,4 @@
-/// <reference path="./map.d.ts" />
+/// <reference path="./map.types.ts" />
 
 Map.prototype.getOrInsert ??= function <K, V>(
 	this: Map<K, V>,

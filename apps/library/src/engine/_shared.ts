@@ -1,11 +1,11 @@
 import type { ChoicekitClassConstructorWithValidSerialization } from "@packages/serializer";
-import type { ChoicekitType } from "../types/Choicekit";
 import type {
 	GenericObject,
 	GenericSerializableObject,
-} from "../../_internal/models/shared";
-import type { ChoicekitSemanticVersionString } from "../../_internal/utils/version";
-import type { ChoicekitPlugin } from "../../plugins/plugin";
+} from "../_internal/models/shared";
+import type { ChoicekitSemanticVersionString } from "../_internal/utils/version";
+import type { ChoicekitPlugin } from "../plugins/plugin";
+import type { ChoicekitType } from "./types/Choicekit";
 
 export type ChoicekitSaveMigration<
 	TOldSaveStructure,

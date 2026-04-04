@@ -1,4 +1,4 @@
-/// <reference path="./weak-map.d.ts" />
+/// <reference path="./weak-map.types.ts" />
 
 WeakMap.prototype.getOrInsert ??= function <K extends object, V>(
 	this: WeakMap<K, V>,
