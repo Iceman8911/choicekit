@@ -286,13 +286,19 @@ describe("Achievements Plugin", () => {
 
 		const exportedStr = await engine.saveToExport();
 
-		expect(
-			(
-				deserialize(
-					await decompressPossiblyCompressedJsonString(exportedStr),
-				) as any
-			).plugins.achievements.data.achievements,
-		).toEqual({
+		const deserializedExport = deserialize(
+			await decompressPossiblyCompressedJsonString(exportedStr),
+		) as {
+			plugins: {
+				achievements: {
+					data: {
+						achievements: WidenedSimpleAchievements;
+					};
+				};
+			};
+		};
+
+		expect(deserializedExport.plugins.achievements.data.achievements).toEqual({
 			foundKey: true,
 			heroArc: {
 				beatDemonLord: true,

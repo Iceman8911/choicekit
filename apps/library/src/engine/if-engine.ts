@@ -397,6 +397,7 @@ class ChoicekitEngine<
 							prop
 						];
 
+						//@ts-expect-error tired of fighting ts :p
 						target[prop] = clone(previousStateValue);
 					}
 				}

@@ -3,7 +3,8 @@ import type { TransformableOrJsonSerializableType } from "@packages/serializer";
 import type { ReadonlyDeep } from "type-fest";
 
 /** Generic type helper for creating producers */
-export type Producer<TData> = (state: TData) => undefined | TData;
+// biome-ignore lint/suspicious/noConfusingVoidType: <I don't want to force a return>
+export type Producer<TData> = (state: TData) => void | TData;
 
 /** Generic type helper for creating state setters which take in a producer, run it, and store the state changes, alongside optionally emitting an event.
  *

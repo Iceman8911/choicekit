@@ -13,6 +13,7 @@ type BuilderMethods = Record<
 	"withPlugins" extends `with${Capitalize<ChoicekitEngineArgumentKeys>}`
 		? "withPlugin"
 		: `with${Capitalize<ChoicekitEngineArgumentKeys>}`,
+	// biome-ignore lint/suspicious/noExplicitAny: <Generics>
 	(...args: any) => ChoicekitEngineBuilder<any>
 >;
 
@@ -54,6 +55,7 @@ export class ChoicekitEngineBuilder<
 		this.#args[prop] = val;
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: <Not worth explictly typing this>
 	#returnThis(): any {
 		return this;
 	}
