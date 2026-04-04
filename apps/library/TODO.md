@@ -4,7 +4,7 @@
 
 ## HIGH PRIORITY
 
-- [ ] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
+- [x] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
 - [x] Make the "vars" possible callback async
 - [x] Add Storylet support
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
@@ -23,6 +23,7 @@
 - [ ] Add more useful interactive fiction method helpers.
 - [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
+- [ ] Add framework adapters (react, vue, svelte, solidjs, etc) for reactivity, or at the very least, show examples.
 
 ---
 
