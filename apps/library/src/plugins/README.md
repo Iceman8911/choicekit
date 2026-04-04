@@ -1,73 +1,106 @@
 # Plugins
 
-## Introduction
+Plugins are how you extend the engine beyond core concerns. A plugin is a plain object (usually created with `definePlugin`) that the engine mounts under `engine.$[id]`.
 
+In interactive fiction terms, plugins are where you add higher-level systems like achievements, settings, storylets, quest logs, codex entries, analytics, and similar features.
 
-Plugins are a means for extending the Choicekit [[apps/library/src/engine/README|engine's]] core beyond the basics available. Plugins are defined as plain objects (the recommended helper is `definePlugin`) with a well-known shape.
+## Plugin shape
 
-A plugin exposes public functionality / apiwhich the engine mounts under the plugin's namespace on `engine.$`. Instead of a single `init` function, the plugin API exposes lifecycle hooks such as `initState` (to create per-engine state), `initApi` (to return the public API attached under the plugin id), and optional serialization hooks.
+A plugin can define:
 
+- `id` (required): unique namespace key under `engine.$`.
+- `onOverride` (optional): conflict policy when another plugin already uses the same `id`.
+  - `err`: throw.
+  - `ignore`: keep existing plugin and warn.
+  - `override`: replace existing plugin and warn.
+- `dependencies` (optional): array of `{ plugin, config }` entries to attempt mounting before this plugin's `initApi`.
+- `initState` (optional): initialize per-engine private plugin state.
+- `initApi` (optional): return the public API mounted at `engine.$[id]`.
+- `serialize` (optional): plugin-state serializer with `withSave` and `method(state)`.
+- `onDeserialize` (optional): restore plugin state from serialized payload.
+- `version` (optional): included in serialized plugin payload.
 
-A plugin consists of:
+Use `definePlugin` and `ValidatePluginGenerics` to keep plugin types precise.
 
-- a unique `id` that defines the namespace on which this plugin's API will be mounted, e.g. a plugin with `id: "meta"` will be mounted onto `engine.$.meta`.
-- an optional `dependencies` array. Each entry is a `{ plugin, config }` pair (the runtime expects a plugin plus its mount-time config) and will be loaded/mounted before this plugin's `initApi` is called.
-- an optional `onOverride` option that determines the engine behavior when conflicting plugins attempt to mount to the same `id`. Values:
-  - `err` — Keep the original plugin and throw an error when a conflicting mount is attempted.
-  - `ignore` — Keep the original plugin; do not throw, but log a warning.
-  - `override` — Replace the original plugin; do not throw, but log a warning.
-- optional life-cycle hooks instead of a single `init`:
-  - `initState` — (optional) initialize per-engine private state. Must return a fresh state object and is called once per engine instance.
-  - `initApi` — (optional) attach public functionality to the engine. Signature: `(arg: { engine, config, state, triggerSave }) => api`. All declared `dependencies` are available on `engine.$` when this is called. Use this to add listeners to the engine's events or other mounted plugin events. The `triggerSave` function allows the plugin to immediately persist its state if applicable.
-- an optional `version` to help with save-data migrations and dependency compatibility checks.
-- optional persistence hooks if you need to save internal state:
-  - `serialize` — an object with a `withSave: boolean` flag and a `method(state)` function that returns the serializable form of the plugin state. `withSave` controls whether this data is stored with normal saves (`true`) or only with exports (`false)`. This property is always an object.
-  - `onDeserialize` — called when serialized data is loaded. Signature: `(arg: { data, state, version }) => void | Promise<void>` to restore/migrate internal state. The `state` argument is the plugin's internal state object.
+## TypeScript note
 
-Use the `definePlugin` and `ValidatePluginGenerics` helpers to get correct typing for these properties when authoring plugins.
+When authoring typed plugins, define the plugin generics object up front (with `ValidatePluginGenerics`) instead of relying on inline inference from `definePlugin(...)` alone.
 
-## Mounting
+If you skip this, TypeScript can widen parts of the plugin shape (`config`, `state`, `api`, and events) to overly broad object types, which reduces autocomplete quality and weakens type safety on `engine.$`.
 
+Recommended pattern:
 
-Plugins are mounted onto the engine during initialization, before any story save data is loaded. Plugins cannot be added or removed after engine startup. When a plugin is mounted, the following steps are carried out:
+```ts
+type MyPluginGenerics = ValidatePluginGenerics<{
+  id: "myPlugin";
+  config: { enabled: boolean };
+  state: { count: number };
+  api: {
+    getCount(): number;
+  };
+}>;
 
-- Store the plugin's reference in an internal record in the engine, indexed by the plugin's `id`.
-  - If a plugin is already mounted at that namespace, mounting throws, is ignored, or replaced silently depending on the already-present plugin's `onOverride` property.
-- Call the plugin's `initState` method where available and initialize the plugin's state in the engine.
-- Load any separate stored data for the plugin if `serialize.withSave` is `false`. Otherwise, its save data will be restored when the engine loads previous story data.
-- Call the plugin's `initApi` method, passing `{ engine, config, state, triggerSave }`.
+const myPlugin: ChoicekitPlugin<MyPluginGenerics> = definePlugin({
+  id: "myPlugin",
+  initState() {
+    return { count: 0 };
+  },
+  initApi({ state }) {
+    return {
+      getCount() {
+        return state.count;
+      },
+    };
+  },
+});
+```
 
+## Mounting lifecycle
 
-# Plugin State Saving & Persistence
+Plugins are mounted during engine initialization via the `plugins` init argument (or through the builder's `withPlugin(...)` chain before `build()`).
 
-- Plugin save data is scoped to their namespace and cannot be accessed by other plugins[^2].
-- Migrations are handled by the plugin itself based on the version number difference (the `version` property).
+At mount time, the engine:
 
+1. Resolves namespace conflicts using `onOverride`.
+2. Attempts to mount declared dependencies.
+3. Creates plugin state using `initState` (or `{}` if omitted).
+4. Calls `initApi({ engine, config, state, triggerSave })` and mounts returned API under `engine.$[id]`.
 
-# Dependency Resolution
+After mounting all plugins, the engine attempts to restore plugin data that is stored outside story save slots (`serialize.withSave === false`).
 
-Plugins can rely on external functionality enabled by other plugins by including the necessary plugins in their `dependencies` array. Each dependency is a `{ plugin, config }` pair. During mounting, the engine will attempt to load and mount dependencies beforehand. This preloading may fail and throw an error when:
+## Persistence model
 
-- An existing plugin with the same namespace exists, and its override behavior is set to `err`.
-- Circular dependencies are encountered.
-- A plugin dependency itself throws during initialization.
-- An existing plugin with the same namespace exists, its override behavior is set to `override`, but their versions aren't compatible according to semver.[^3]
+Plugin persistence is opt-in (`serialize` + `onDeserialize`).
 
+- `withSave: true`: plugin data is stored with normal story save data.
+- `withSave: false`: plugin data is stored in plugin-specific persistent storage and included in export data.
 
-# Limitations
+`triggerSave()` is provided to `initApi` so plugins can explicitly persist their own state when needed.
 
-- Plugins cannot access the engine's internal state (any property or method gated behind `#`).
+## Dependency behavior
+
+Dependencies are mounted recursively as best effort. If a dependency fails to mount, the engine currently warns and continues mounting the parent plugin.
+
+Because of that, a plugin should not assume dependencies always mounted successfully; guard access if dependency absence is possible.
+
+## API exposure
+
+A plugin's public API is whatever `initApi` returns. That value is attached to `engine.$[id]`.
+
+With typed plugins, `engine.$` is inferred from the plugin list passed to the engine.
+
+## Limitations
+
+- Plugins cannot access private engine fields (anything behind `#`).
 - Plugins cannot be unmounted from an engine instance.
-- Plugins can only be mounted on engine startup.
-  - During initialization, plugins are processed sequentially to prevent race conditions when more than one plugin has the same `id` but conflicting `onOverride` behavior. Otherwise, plugins are processed as soon as their dependencies are resolved.
-- For type safety when using `definePlugin`, the generic object parameter must be deifned upfront since typescript will be unable to infer it normally and will fall back to a widened catch-all. Use `ValidatePluginGenerics`.
+- Plugins can only be mounted during initialization.
 
-## API Exposure
+## Example plugins
 
-Each plugin's public API returned from `initApi` is mounted under its `id` on `engine.$`. The type of `engine.$` is automatically inferred from the plugins provided to the engine.
+- Achievements example plugin: `src/plugins/examples/achievements.ts`
+- Settings example plugin: `src/plugins/examples/settings.ts`
 
-[^1]: By original, I mean the first plugin to be mounted.
+Companion docs:
 
-[^2]: A plugin would explicitly have to expose events to workaround this.
-
-[^3]: If the versions differ by their majors.
+- `src/plugins/examples/achievements.README.md`
+- `src/plugins/examples/settings.README.md`
