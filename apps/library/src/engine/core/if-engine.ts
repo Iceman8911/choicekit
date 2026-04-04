@@ -8,10 +8,10 @@
 import PRNG from "@iceman8911/tiny-prng/prng";
 import { TypedEventEmitter } from "@packages/event-emitter";
 import {
+	type ChoicekitClassConstructorWithValidSerialization,
 	clone,
 	deserialize,
 	registerClass,
-	type SugarboxClassConstructorWithValidSerialization,
 	serialize,
 } from "@packages/serializer";
 import {
@@ -21,30 +21,30 @@ import {
 import type { Promisable } from "type-fest";
 import * as v from "valibot";
 import {
-	SugarboxExportDataSchema,
-	SugarboxPluginSaveStructureSchema,
-	SugarboxSaveDataSchema,
+	ChoicekitExportDataSchema,
+	ChoicekitPluginSaveStructureSchema,
+	ChoicekitSaveDataSchema,
 } from "../../_internal/models/if-engine.schemas";
 import type {
 	GenericObject,
 	GenericSerializableObject,
 } from "../../_internal/models/shared";
 import {
+	type ChoicekitSemanticVersionString,
 	isSaveCompatibleWithEngine,
-	type SugarBoxSemanticVersionString,
 } from "../../_internal/utils/version";
 import { InMemoryPersistenceAdapter } from "../../adapters/persistence/in-memory";
 import type {
-	SugarboxPlugin,
-	SugarboxPluginSaveStructure,
+	ChoicekitPlugin,
+	ChoicekitPluginSaveStructure,
 } from "../../plugins/plugin";
-import type { SugarboxType } from "../types/sugarbox";
+import type { ChoicekitType } from "../types/Choicekit";
 import type {
-	SugarBoxEngineArguments,
-	SugarBoxEngineGenerics,
-	SugarBoxEngineVariableInitData,
-	SugarBoxSaveMigration,
-	SugarBoxSaveMigrationMap,
+	ChoicekitEngineArguments,
+	ChoicekitEngineGenerics,
+	ChoicekitEngineVariableInitData,
+	ChoicekitSaveMigration,
+	ChoicekitSaveMigrationMap,
 } from "./_shared";
 
 const DEFAULT_CONFIG = {
@@ -71,7 +71,7 @@ const DEFAULT_CONFIG = {
 	saveVersion: `0.0.1`,
 
 	stateMergeCount: 1,
-} as const satisfies SugarboxType.Config;
+} as const satisfies ChoicekitType.Config;
 
 const MINIMUM_SAVE_SLOT_INDEX = 0;
 
@@ -80,10 +80,10 @@ const MINIMUM_SAVE_SLOTS = 1;
 const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
 
 type StateWithMetadata<TVariables extends GenericSerializableObject> =
-	TVariables & SugarboxType.SnapshotMetadata;
+	TVariables & ChoicekitType.SnapshotMetadata;
 
 type SnapshotWithMetadata<TVariables extends GenericSerializableObject> =
-	Partial<TVariables & SugarboxType.SnapshotMetadata>;
+	Partial<TVariables & ChoicekitType.SnapshotMetadata>;
 
 type SaveStartEvent = { slot: "autosave" | "export" | "recent" | number };
 
@@ -101,8 +101,8 @@ type DeleteEndEvent =
 	| { type: "success"; slot: "autosave" | number }
 	| { type: "error"; error: Error; slot: "autosave" | number };
 
-/** Events fired from a `SugarBoxEngine` instance */
-type SugarBoxEvents<TPassageData, TStateVariables> = {
+/** Events fired from a `ChoicekitEngine` instance */
+type ChoicekitEvents<TPassageData, TStateVariables> = {
 	engineReset: Readonly<{
 		newSeed: number;
 	}>;
@@ -135,27 +135,27 @@ type SugarBoxEvents<TPassageData, TStateVariables> = {
 	deleteEnd: DeleteEndEvent;
 
 	migrationStart: Readonly<{
-		fromVersion: SugarBoxSemanticVersionString;
-		toVersion: SugarBoxSemanticVersionString;
+		fromVersion: ChoicekitSemanticVersionString;
+		toVersion: ChoicekitSemanticVersionString;
 	}>;
 
 	migrationEnd: Readonly<
 		| {
 				type: "success";
-				fromVersion: SugarBoxSemanticVersionString;
-				toVersion: SugarBoxSemanticVersionString;
+				fromVersion: ChoicekitSemanticVersionString;
+				toVersion: ChoicekitSemanticVersionString;
 		  }
 		| {
 				type: "error";
-				fromVersion: SugarBoxSemanticVersionString;
-				toVersion: SugarBoxSemanticVersionString;
+				fromVersion: ChoicekitSemanticVersionString;
+				toVersion: ChoicekitSemanticVersionString;
 				error: Error;
 		  }
 	>;
 };
 
-type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
-	[KPlugin in TPlugins[number] as KPlugin extends SugarboxPlugin
+type MapPluginsToApi<TPlugins extends ChoicekitEngineGenerics["plugins"]> = {
+	[KPlugin in TPlugins[number] as KPlugin extends ChoicekitPlugin
 		? KPlugin["id"]
 		: never]: "initApi" extends keyof KPlugin
 		? // biome-ignore lint/suspicious/noExplicitAny: <For ease of use in generics>
@@ -165,12 +165,13 @@ type MapPluginsToApi<TPlugins extends SugarBoxEngineGenerics["plugins"]> = {
 		: never;
 };
 
-/** The main engine for Sugarbox that provides headless interface to basic utilities required for Interactive Fiction
+/** The main engine for Choicekit that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
  */
-class SugarboxEngine<
-	const TEngineGenerics extends SugarBoxEngineGenerics = SugarBoxEngineGenerics,
+class ChoicekitEngine<
+	const TEngineGenerics extends
+		ChoicekitEngineGenerics = ChoicekitEngineGenerics,
 > {
 	/** Must be unique to prevent conflicts */
 	readonly name: TEngineGenerics["name"];
@@ -179,9 +180,9 @@ class SugarboxEngine<
 	$: MapPluginsToApi<TEngineGenerics["plugins"]> = {};
 
 	private declare _type: {
-		engine: SugarboxEngine<TEngineGenerics>;
+		engine: ChoicekitEngine<TEngineGenerics>;
 		passage: TEngineGenerics["passages"];
-		config: SugarboxType.Config<
+		config: ChoicekitType.Config<
 			TEngineGenerics["vars"],
 			TEngineGenerics["plugins"]
 		>;
@@ -189,12 +190,12 @@ class SugarboxEngine<
 			complete: StateWithMetadata<TEngineGenerics["vars"]>;
 			snapshot: SnapshotWithMetadata<TEngineGenerics["vars"]>;
 		};
-		saveData: SugarboxType.SaveData<TEngineGenerics["vars"]>;
-		exportData: SugarboxType.ExportData<TEngineGenerics["vars"]>;
+		saveData: ChoicekitType.SaveData<TEngineGenerics["vars"]>;
+		exportData: ChoicekitType.ExportData<TEngineGenerics["vars"]>;
 		adapter: {
-			cache: SugarboxType.CacheAdapter<TEngineGenerics["vars"]>;
+			cache: ChoicekitType.CacheAdapter<TEngineGenerics["vars"]>;
 		};
-		events: SugarBoxEvents<
+		events: ChoicekitEvents<
 			TEngineGenerics["passages"],
 			TEngineGenerics["vars"]
 		>;
@@ -232,7 +233,7 @@ class SugarboxEngine<
 	 * Not sure what types to put here without overcomplicating things
 	 */
 	// biome-ignore lint/suspicious/noExplicitAny: <It'll not be worth defining the types for these>
-	#saveMigrationMap: SugarBoxSaveMigrationMap<any, any> = new Map();
+	#saveMigrationMap: ChoicekitSaveMigrationMap<any, any> = new Map();
 
 	/** Since recalculating the current state can be expensive */
 	#stateCache?: typeof this._type.adapter.cache;
@@ -243,24 +244,24 @@ class SugarboxEngine<
 	 */
 	#stateSnapshots: Array<typeof this._type.state.snapshot> = [];
 
-	#plugins: Record<string, SugarboxPlugin> = {};
+	#plugins: Record<string, ChoicekitPlugin> = {};
 	#pluginState: Record<string, GenericObject> = {};
 
 	private constructor(args: {
-		classes: SugarboxClassConstructorWithValidSerialization[];
-		config: SugarboxType.Config<
+		classes: ChoicekitClassConstructorWithValidSerialization[];
+		config: ChoicekitType.Config<
 			TEngineGenerics["vars"],
 			TEngineGenerics["plugins"]
 		>;
 		migrations: {
-			from: SugarBoxSemanticVersionString;
-			data: SugarBoxSaveMigration<never, unknown>;
+			from: ChoicekitSemanticVersionString;
+			data: ChoicekitSaveMigration<never, unknown>;
 		}[];
 		name: TEngineGenerics["name"];
 		passages: [TEngineGenerics["passages"], ...TEngineGenerics["passages"][]];
 		vars:
 			| TEngineGenerics["vars"]
-			| ((init: SugarBoxEngineVariableInitData) => TEngineGenerics["vars"]);
+			| ((init: ChoicekitEngineVariableInitData) => TEngineGenerics["vars"]);
 	}) {
 		const { classes, config, migrations, name, passages, vars } = args;
 		const initialSeed = config.initialSeed ?? getRandomInteger();
@@ -304,9 +305,9 @@ class SugarboxEngine<
 		this.registerMigrators(...migrations);
 	}
 
-	static async init<const TGenerics extends SugarBoxEngineGenerics>(
-		args: Partial<SugarBoxEngineArguments<TGenerics>>,
-	): Promise<SugarboxEngine<TGenerics>> {
+	static async init<const TGenerics extends ChoicekitEngineGenerics>(
+		args: Partial<ChoicekitEngineArguments<TGenerics>>,
+	): Promise<ChoicekitEngine<TGenerics>> {
 		const {
 			config = { ...DEFAULT_CONFIG },
 			name = "",
@@ -320,7 +321,7 @@ class SugarboxEngine<
 		const mergedConfig = {
 			...DEFAULT_CONFIG,
 			...(config ?? {}),
-		} as SugarboxType.Config<TGenerics["vars"]>;
+		} as ChoicekitType.Config<TGenerics["vars"]>;
 
 		mergedConfig.initialSeed ??= getRandomInteger();
 
@@ -329,9 +330,9 @@ class SugarboxEngine<
 		if (saveSlots && saveSlots < MINIMUM_SAVE_SLOTS)
 			throw Error(`Invalid number of save slots: ${saveSlots}`);
 
-		const engine = new SugarboxEngine<TGenerics>({
+		const engine = new ChoicekitEngine<TGenerics>({
 			classes,
-			config: mergedConfig as SugarboxType.Config<
+			config: mergedConfig as ChoicekitType.Config<
 				TGenerics["vars"],
 				TGenerics["plugins"]
 			>,
@@ -524,11 +525,14 @@ class SugarboxEngine<
 
 	/** Returns an object containing the data of all present saves */
 	async *getSaves(): AsyncGenerator<
-		| { type: "autosave"; data: SugarboxType.SaveData<TEngineGenerics["vars"]> }
+		| {
+				type: "autosave";
+				data: ChoicekitType.SaveData<TEngineGenerics["vars"]>;
+		  }
 		| {
 				type: "normal";
 				slot: number;
-				data: SugarboxType.SaveData<TEngineGenerics["vars"]>;
+				data: ChoicekitType.SaveData<TEngineGenerics["vars"]>;
 		  }
 	> {
 		for await (const key of this.#getKeysOfPresentSaves()) {
@@ -537,7 +541,7 @@ class SugarboxEngine<
 			if (!serializedSaveData) continue;
 
 			const saveData: typeof this._type.saveData = v.parse(
-				SugarboxSaveDataSchema,
+				ChoicekitSaveDataSchema,
 				deserialize(
 					await decompressPossiblyCompressedJsonString(serializedSaveData),
 				),
@@ -630,7 +634,7 @@ class SugarboxEngine<
 				const jsonString = await decompressPossiblyCompressedJsonString(data);
 
 				const { saveData, plugins }: typeof this._type.exportData = v.parse(
-					SugarboxExportDataSchema,
+					ChoicekitExportDataSchema,
 					deserialize(jsonString),
 				);
 
@@ -669,7 +673,7 @@ class SugarboxEngine<
 					await decompressPossiblyCompressedJsonString(serializedSaveData);
 
 				await this.loadSaveFromData(
-					v.parse(SugarboxSaveDataSchema, deserialize(jsonString)),
+					v.parse(ChoicekitSaveDataSchema, deserialize(jsonString)),
 				);
 			},
 		);
@@ -826,7 +830,7 @@ class SugarboxEngine<
 	 * @throws if the any plugin throws
 	 */
 	async #loadPluginSaveDataFromRecord(
-		pluginSaveData: Record<string, SugarboxPluginSaveStructure>,
+		pluginSaveData: Record<string, ChoicekitPluginSaveStructure>,
 	): Promise<void> {
 		const loadingPromises: Promisable<void>[] = [];
 
@@ -912,7 +916,7 @@ class SugarboxEngine<
 
 	/** Any custom classes stored in the story's state must be registered with this */
 	registerClasses(
-		...customClasses: SugarboxClassConstructorWithValidSerialization[]
+		...customClasses: ChoicekitClassConstructorWithValidSerialization[]
 	): void {
 		customClasses.forEach((customClass) => {
 			registerClass(customClass);
@@ -928,8 +932,8 @@ class SugarboxEngine<
 		TNewSaveStructure = TEngineGenerics["vars"],
 	>(
 		...migrators: {
-			from: SugarBoxSemanticVersionString;
-			data: SugarBoxSaveMigration<TOldSaveStructure, TNewSaveStructure>;
+			from: ChoicekitSemanticVersionString;
+			data: ChoicekitSaveMigration<TOldSaveStructure, TNewSaveStructure>;
 		}[]
 	): void {
 		for (const { from, data } of migrators) {
@@ -1085,33 +1089,33 @@ class SugarboxEngine<
 	}
 
 	// Some of these could be properties instead, but I like the consistency
-	#getAutoSaveStorageKey(): SugarboxType.AutoSaveKey {
-		return `sugarbox-${this.name}-autosave`;
+	#getAutoSaveStorageKey(): ChoicekitType.AutoSaveKey {
+		return `Choicekit-${this.name}-autosave`;
 	}
 
-	#getPluginStorageKey(pluginId: string): SugarboxType.PluginSaveKey {
-		return `sugarbox-${this.name}-plugin-${pluginId}` as const;
+	#getPluginStorageKey(pluginId: string): ChoicekitType.PluginSaveKey {
+		return `Choicekit-${this.name}-plugin-${pluginId}` as const;
 	}
 
-	#getSaveSlotStorageKey(saveSlot: number): SugarboxType.NormalSaveKey {
+	#getSaveSlotStorageKey(saveSlot: number): ChoicekitType.NormalSaveKey {
 		this.#assertSaveSlotIsValid(saveSlot);
-		return `sugarbox-${this.name}-slot${saveSlot}` as const;
+		return `Choicekit-${this.name}-slot${saveSlot}` as const;
 	}
 
-	async *#getKeysOfPresentSaves(): AsyncGenerator<SugarboxType.SaveKey> {
+	async *#getKeysOfPresentSaves(): AsyncGenerator<ChoicekitType.SaveKey> {
 		const persistence = this.#persistenceAdapter;
 
 		const keys = await persistence.keys?.();
 
 		const autosaveKey = this.#getAutoSaveStorageKey();
 
-		const saveSlotKeyPrefix = `sugarbox-${this.name}-slot` as const;
+		const saveSlotKeyPrefix = `Choicekit-${this.name}-slot` as const;
 
 		if (keys) {
 			// Filter out the keys that are not save slots
 			for (const key of keys) {
 				if (key.startsWith(saveSlotKeyPrefix) || key === autosaveKey) {
-					//@ts-expect-error TS doesn't know that the key is a SugarboxType.SaveKey
+					//@ts-expect-error TS doesn't know that the key is a ChoicekitType.SaveKey
 					yield key;
 				}
 			}
@@ -1384,7 +1388,7 @@ class SugarboxEngine<
 		}
 	}
 
-	#assertPluginExists(pluginId: string): SugarboxPlugin {
+	#assertPluginExists(pluginId: string): ChoicekitPlugin {
 		const plugin = this.#plugins[pluginId];
 
 		if (!plugin) throw Error(`Plugin ''${pluginId}'' has not been mounted.`);
@@ -1443,8 +1447,8 @@ class SugarboxEngine<
 
 		if (!stringifiedData) return;
 
-		const { data, version }: SugarboxPluginSaveStructure = v.parse(
-			SugarboxPluginSaveStructureSchema,
+		const { data, version }: ChoicekitPluginSaveStructure = v.parse(
+			ChoicekitPluginSaveStructureSchema,
 			deserialize(stringifiedData),
 		);
 
@@ -1502,7 +1506,7 @@ class SugarboxEngine<
 
 	/** Mounts and initializes a plugin */
 	async #usePlugin(
-		pluginToUse: SugarboxPlugin,
+		pluginToUse: ChoicekitPlugin,
 		config?: GenericObject,
 	): Promise<void> {
 		const {
@@ -1513,7 +1517,7 @@ class SugarboxEngine<
 			dependencies = [],
 		} = pluginToUse;
 
-		const activePluginUsingNameSpace: SugarboxPlugin | undefined =
+		const activePluginUsingNameSpace: ChoicekitPlugin | undefined =
 			//@ts-expect-error Inference Limitation
 			this.$[id];
 
@@ -1589,8 +1593,8 @@ class SugarboxEngine<
 	/** Plugin save data that should be stored with saves or outside of saves */
 	async #getPluginSaveData(
 		shouldBeBoundToSave: boolean,
-	): Promise<Record<string, SugarboxPluginSaveStructure>> {
-		const saveData: Record<string, SugarboxPluginSaveStructure> = {};
+	): Promise<Record<string, ChoicekitPluginSaveStructure>> {
+		const saveData: Record<string, ChoicekitPluginSaveStructure> = {};
 
 		const pendingPromises: Promise<void>[] = [];
 
@@ -1632,4 +1636,4 @@ const sanitiseError = (possibleError: unknown) =>
 
 const getRandomInteger = () => Math.floor(Math.random() * 2 ** 32);
 
-export { SugarboxEngine };
+export { ChoicekitEngine };

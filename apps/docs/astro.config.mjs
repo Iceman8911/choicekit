@@ -5,17 +5,17 @@ import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
 
 // https://astro.build/config
 export default defineConfig({
-	base: "/sugarbox",
+	base: "/Choicekit",
 	site: "https://iceman8911.github.io/",
 	integrations: [
 		starlight({
 			plugins: [viewTransitions()],
-			title: "Sugarbox Docs",
+			title: "Choicekit Docs",
 			social: [
 				{
 					icon: "github",
 					label: "GitHub",
-					href: "https://github.com/iceman8911/sugarbox",
+					href: "https://github.com/iceman8911/Choicekit",
 				},
 			],
 			sidebar: [
@@ -30,8 +30,8 @@ export default defineConfig({
 					],
 				},
 				{
-					label: "SugarBox",
-					autogenerate: { directory: "guides/sugarbox" },
+					label: "Choicekit",
+					autogenerate: { directory: "guides/Choicekit" },
 				},
 				{
 					label: "Reference",

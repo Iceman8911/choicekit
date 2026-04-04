@@ -3,9 +3,9 @@ import {
 	definePlugin,
 	type ValidatePluginGenerics,
 } from "../../plugins/plugin";
-import { SugarboxEngineBuilder } from "../builder";
-import type { SugarboxType } from "../types/sugarbox";
-import { SugarboxEngine } from "./if-engine";
+import { ChoicekitEngineBuilder } from "../builder";
+import type { ChoicekitType } from "../types/Choicekit";
+import { ChoicekitEngine } from "./if-engine";
 
 // ==================== Plugin Type Definitions ====================
 
@@ -96,11 +96,11 @@ const combinedPlugin = definePlugin<CombinedPluginGenerics>({
 
 // ==================== Tests ====================
 
-describe(SugarboxEngine.name, () => {
+describe(ChoicekitEngine.name, () => {
 	// ==================== Type Assertions ====================
 
 	it("should have strict plugin types with strong generics", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PluginTypes")
 			.withVars({ hp: 100 })
 			.withPassages({
@@ -127,7 +127,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should properly accumulate multiple plugin types", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("MultiPlugin")
 			.withVars({})
 			.withPassages({
@@ -152,7 +152,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should support plugin dependencies with proper typing", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("DependentPlugins")
 			.withVars({})
 			.withPassages({
@@ -180,7 +180,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== Plugin Functionality ====================
 
 	it("should execute plugin functions with correct state updates", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PluginExecution")
 			.withVars({ engineVar: 1 })
 			.withPassages({
@@ -204,7 +204,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should maintain plugin state independently from engine state", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PluginState")
 			.withVars({ engineCount: 0 })
 			.withPassages({
@@ -229,7 +229,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should handle plugin state with serialization", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PluginSerial")
 			.withVars({})
 			.withPassages({
@@ -248,7 +248,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should allow plugins to access engine state and passage info", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PluginEngineAccess")
 			.withVars({ playerName: "Hero" })
 			.withPassages(
@@ -268,7 +268,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== State Management ====================
 
 	it("should update variables with setVars", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("StateUpdate")
 			.withVars({ count: 0, name: "Initial" })
 			.withPassages({
@@ -291,7 +291,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should support replacing entire state with setVars return", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("ReplaceState")
 			.withVars({ x: 1, y: 2 })
 			.withPassages({
@@ -311,7 +311,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should emit stateChange event with old and new state", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("StateChangeEvent")
 			.withVars({ value: 0 })
 			.withPassages({
@@ -343,7 +343,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should not emit stateChange when emitEvent is false", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("NoEvent")
 			.withVars({ value: 0 })
 			.withPassages({
@@ -369,7 +369,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== Navigation & Passages ====================
 
 	it("should navigate between passages and update passage properties", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("Navigation")
 			.withVars({})
 			.withPassages<{ data: string; name: string; tags: string[] }>(
@@ -391,7 +391,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should add passages dynamically and navigate to them", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("DynamicPassages")
 			.withVars({})
 			.withPassages<{ data: string; name: string; tags: string[] }>({
@@ -413,7 +413,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should emit passageChange events with old and new passage", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PassageEvent")
 			.withVars({})
 			.withPassages(
@@ -442,7 +442,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should query passages by tags", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PassageQuery")
 			.withVars({})
 			.withPassages<{ data: string; name: string; tags: string[] }>(
@@ -472,7 +472,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== History & Undo/Redo ====================
 
 	it("should support backward and forward navigation in history", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("History")
 			.withVars({ step: 0 })
 			.withPassages(
@@ -497,7 +497,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should handle multiple history steps", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("MultiStep")
 			.withVars({})
 			.withPassages(
@@ -520,7 +520,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should not go beyond history boundaries", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("Boundaries")
 			.withVars({})
 			.withPassages({
@@ -540,7 +540,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should emit historyChange for navigation and load transitions", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("HistoryChangeEvent")
 			.withVars({})
 			.withPassages(
@@ -573,7 +573,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== Events ====================
 
 	it("should allow subscribing with on() and unsubscribing with off()", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("EventManagement")
 			.withVars({})
 			.withPassages({
@@ -602,7 +602,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should allow subscribing with once()", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("EventManagementOnce")
 			.withVars({})
 			.withPassages({
@@ -629,7 +629,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should unsubscribe via returned function from on()", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("UnsubscribeFunc")
 			.withVars({})
 			.withPassages({
@@ -659,7 +659,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should support canonical event names without legacy prefix", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("CanonicalEventNames")
 			.withVars({ value: 0 })
 			.withPassages({
@@ -685,7 +685,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== Reset & Persistent State ====================
 
 	it("should reset engine to initial state", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("Reset")
 			.withVars({ counter: 0 })
 			.withPassages(
@@ -719,7 +719,7 @@ describe(SugarboxEngine.name, () => {
 	it("should support randomness with seeded PRNG", async () => {
 		const config = { initialSeed: 12345 };
 
-		const engine1 = await new SugarboxEngineBuilder()
+		const engine1 = await new ChoicekitEngineBuilder()
 			.withName("Rand1")
 			.withVars({})
 			.withPassages({
@@ -732,7 +732,7 @@ describe(SugarboxEngine.name, () => {
 
 		const value1 = engine1.random;
 
-		const engine2 = await new SugarboxEngineBuilder()
+		const engine2 = await new ChoicekitEngineBuilder()
 			.withName("Rand2")
 			.withVars({})
 			.withPassages({
@@ -751,7 +751,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should initialize with callback-based variables using PRNG", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("CallbackVars")
 			.withVars(({ prng }) => ({
 				randomNum: Math.floor(prng * 1000),
@@ -772,7 +772,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== Persistence (Save/Load) ====================
 
 	it("should create exportable save data", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("SaveExport")
 			.withVars({ score: 0 })
 			.withPassages(
@@ -803,7 +803,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should save to default persistence adapter", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("PersistSave")
 			.withVars({ data: 123 })
 			.withPassages({
@@ -819,7 +819,7 @@ describe(SugarboxEngine.name, () => {
 
 		await expect(engine.saveToSaveSlot(1)).resolves.toBeUndefined();
 
-		const reader = await new SugarboxEngineBuilder()
+		const reader = await new ChoicekitEngineBuilder()
 			.withName("PersistSave")
 			.withVars({ data: 0 })
 			.withPassages({
@@ -835,7 +835,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should handle autosave configuration", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("Autosave")
 			.withVars({ value: 0 })
 			.withPassages({
@@ -864,7 +864,7 @@ describe(SugarboxEngine.name, () => {
 
 		await autosaved;
 
-		const loader = await new SugarboxEngineBuilder()
+		const loader = await new ChoicekitEngineBuilder()
 			.withName("Autosave")
 			.withVars({ value: -999 })
 			.withPassages({
@@ -884,7 +884,7 @@ describe(SugarboxEngine.name, () => {
 	// ==================== Complex Scenarios ====================
 
 	it("should handle complex nested state with plugins and passage navigation", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("Complex")
 			.withVars({
 				player: {
@@ -931,7 +931,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should maintain type safety across engine lifecycle", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("TypeSafety")
 			.withVars({ count: 0, name: "Test" })
 			.withPassages({
@@ -968,7 +968,7 @@ describe(SugarboxEngine.name, () => {
 	it("should share save slots across engine instances with the same name", async () => {
 		const sharedName = "SharedSavesEngine";
 
-		const engine1 = await new SugarboxEngineBuilder()
+		const engine1 = await new ChoicekitEngineBuilder()
 			.withName(sharedName)
 			.withVars({ hp: 10, xp: 0 })
 			.withPassages(
@@ -994,7 +994,7 @@ describe(SugarboxEngine.name, () => {
 
 		await engine1.saveToSaveSlot(3);
 
-		const engine2 = await new SugarboxEngineBuilder()
+		const engine2 = await new ChoicekitEngineBuilder()
 			.withName(sharedName)
 			.withVars({ hp: 0, xp: 0 })
 			.withPassages(
@@ -1019,7 +1019,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should isolate save slots for engines with different names", async () => {
-		const engineA = await new SugarboxEngineBuilder()
+		const engineA = await new ChoicekitEngineBuilder()
 			.withName("Engine-A")
 			.withVars({ flag: "A", score: 123 })
 			.withPassages({
@@ -1036,7 +1036,7 @@ describe(SugarboxEngine.name, () => {
 
 		await engineA.saveToSaveSlot(2);
 
-		const engineB = await new SugarboxEngineBuilder()
+		const engineB = await new ChoicekitEngineBuilder()
 			.withName("Engine-B")
 			.withVars({ flag: "B", score: 0 })
 			.withPassages({
@@ -1054,7 +1054,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should handle passage visit tracking", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("VisitTracking")
 			.withVars({})
 			.withPassages(
@@ -1079,7 +1079,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should support addPassages for branching content added later", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("AddPassages")
 			.withVars({ chapter: 1 })
 			.withPassages<{ data: string; name: string; tags: string[] }>({
@@ -1102,7 +1102,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should reject duplicate plugin namespaces at runtime", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("DuplicatePlugins")
 			.withVars({})
 			.withPassages({
@@ -1114,7 +1114,7 @@ describe(SugarboxEngine.name, () => {
 			.build();
 
 		await expect(
-			new SugarboxEngineBuilder()
+			new ChoicekitEngineBuilder()
 				.withName("DuplicatePluginsTwo")
 				.withVars({})
 				.withPassages({
@@ -1131,7 +1131,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should throw when trying to navigate to a passage that does not exist", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("MissingPassage")
 			.withVars({})
 			.withPassages({
@@ -1145,7 +1145,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should enumerate and delete saves through getSaves and deleteSaveSlot", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("SaveEnumeration")
 			.withVars({ chapter: 0 })
 			.withPassages(
@@ -1195,7 +1195,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should reject invalid save slot indexes on save and load", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("InvalidSaveSlots")
 			.withVars({ value: 1 })
 			.withPassages({
@@ -1211,7 +1211,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should delete all save slots including autosave", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("DeleteAllSaves")
 			.withVars({ value: 0 })
 			.withPassages({
@@ -1247,7 +1247,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should load the latest save with loadRecentSave", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("RecentSave")
 			.withVars({ chapter: 0 })
 			.withPassages(
@@ -1270,7 +1270,7 @@ describe(SugarboxEngine.name, () => {
 		});
 		await engine.saveToSaveSlot(1);
 
-		const loader = await new SugarboxEngineBuilder()
+		const loader = await new ChoicekitEngineBuilder()
 			.withName("RecentSave")
 			.withVars({ chapter: -1 })
 			.withPassages(
@@ -1287,7 +1287,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should restore state from loadSaveFromData", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("LoadFromData")
 			.withVars({ hp: 10, mana: 5 })
 			.withPassages(
@@ -1304,7 +1304,7 @@ describe(SugarboxEngine.name, () => {
 		});
 		await engine.saveToSaveSlot(0);
 
-		let saveData: SugarboxType.SaveData | undefined;
+		let saveData: ChoicekitType.SaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
 				saveData = save.data;
@@ -1328,7 +1328,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should migrate old saves with registerMigrators", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("MigrationFlow")
 			.withVars({ hp: 5 })
 			.withPassages({
@@ -1366,7 +1366,7 @@ describe(SugarboxEngine.name, () => {
 
 		await engine.saveToSaveSlot(0);
 
-		let saveData: SugarboxType.SaveData | undefined;
+		let saveData: ChoicekitType.SaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
 				saveData = save.data;
@@ -1385,7 +1385,7 @@ describe(SugarboxEngine.name, () => {
 	});
 
 	it("should emit save, load, and delete lifecycle events with slot metadata", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("LifecycleEvents")
 			.withVars({ points: 1 })
 			.withPassages(
@@ -1473,7 +1473,7 @@ describe(SugarboxEngine.name, () => {
 			}
 		}
 
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("RegisteredClasses")
 			.withVars({ hero: new StoryHero(30, "Mira") })
 			.withPassages({

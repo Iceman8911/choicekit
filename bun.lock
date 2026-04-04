@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "sugarbox",
+      "name": "Choicekit",
       "dependencies": {
         "lint-staged": "^16.4.0",
       },

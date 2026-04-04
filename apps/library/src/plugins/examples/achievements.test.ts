@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "bun:test";
 import { deserialize } from "@packages/serializer";
 import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import type { ExpandType } from "../../_internal/models/shared";
-import { SugarboxEngineBuilder } from "../../engine/builder";
+import { ChoicekitEngineBuilder } from "../../engine/builder";
 import createAchievementsPlugin from "./achievements";
 
 function createSimpleAchievements() {
@@ -35,7 +35,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should add the simple getter and setter to the engine on mount", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-achievements")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -52,7 +52,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should not apply achievement mutations if the producer throws", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-achievements")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -71,7 +71,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should allow listeners for achievement changes to be created", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-achievements")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -96,7 +96,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should allow listeners for achievement changes to be removed", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-achievements")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -132,7 +132,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should support deep updates to nested achievement state", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-deep-update")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -151,7 +151,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should allow multiple listeners and all should be called", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-multi-listener")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -176,7 +176,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should handle rapid consecutive updates and emit correct events", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-rapid-updates")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -208,7 +208,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should not allow off() to remove unrelated listeners", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-off-test")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -237,7 +237,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should support interactive fiction style: unlock, progress, and reset achievements", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-if-style")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -269,7 +269,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should properly persist data when the save is exported from the engine", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-if-style")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -300,7 +300,7 @@ describe("Achievements Plugin", () => {
 			},
 		});
 
-		const newEngine = await new SugarboxEngineBuilder()
+		const newEngine = await new ChoicekitEngineBuilder()
 			.withName("engine-if-style2")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),
@@ -319,7 +319,7 @@ describe("Achievements Plugin", () => {
 	});
 
 	it("should not emit change events when the state is updated but emitEvent is set to false", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-no-event")
 			.withPlugin(simpleAchievementsplugin, {
 				default: createSimpleAchievements(),

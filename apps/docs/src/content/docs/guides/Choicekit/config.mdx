@@ -2,16 +2,16 @@
 title: Engine Configuration
 ---
 
-Sugarbox keeps most behavior behind a single `config` object you pass to `SugarboxEngine.init()`. Every field is optional; the engine fills in defaults.
+Choicekit keeps most behavior behind a single `config` object you pass to `ChoicekitEngine.init()`. Every field is optional; the engine fills in defaults.
 
 This page is a reference for the config fields that exist in the library code in this repo.
 
 ## Quick example
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
@@ -154,7 +154,7 @@ This setting only affects the *compatibility decision* (`compat` / `old` / `new`
 Type: persistence adapter (async key/value store)
 Default: `undefined`
 
-This is how Sugarbox reads and writes save slots, achievements, and settings.
+This is how Choicekit reads and writes save slots, achievements, and settings.
 
 Required methods:
 
@@ -171,7 +171,7 @@ Optional:
 Type: cache adapter for caching computed state by story index
 Default: `undefined`
 
-If present, Sugarbox caches the computed full state at an index so repeated reads can be faster.
+If present, Choicekit caches the computed full state at an index so repeated reads can be faster.
 
 Implementation details (what the engine expects):
 

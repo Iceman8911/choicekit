@@ -2,16 +2,16 @@
 title: Overview
 ---
 
-Sugarbox is a single engine class, `SugarboxEngine`, created with the async `init()` method.
+Choicekit is a single engine class, `ChoicekitEngine`, created with the async `init()` method.
 
 `init()` is async because it can load previously stored achievements and settings, and it can also load the most recent save on startup (when enabled in config).
 
 ## Creating an engine
 
 ```tsx
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
-export const engine = await SugarboxEngine.init({
+export const engine = await ChoicekitEngine.init({
   name: "Dave's Adventure",
 
   startPassage: {

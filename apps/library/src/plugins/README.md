@@ -3,7 +3,7 @@
 ## Introduction
 
 
-Plugins are a means for extending the Sugarbox [[apps/library/src/engine/README|engine's]] core beyond the basics available. Plugins are defined as plain objects (the recommended helper is `definePlugin`) with a well-known shape.
+Plugins are a means for extending the Choicekit [[apps/library/src/engine/README|engine's]] core beyond the basics available. Plugins are defined as plain objects (the recommended helper is `definePlugin`) with a well-known shape.
 
 A plugin exposes public functionality / apiwhich the engine mounts under the plugin's namespace on `engine.$`. Instead of a single `init` function, the plugin API exposes lifecycle hooks such as `initState` (to create per-engine state), `initApi` (to return the public API attached under the plugin id), and optional serialization hooks.
 

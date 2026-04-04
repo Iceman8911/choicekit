@@ -1,6 +1,6 @@
 # `@packages/serializer`
 
-Very lightweight serializer / deserializer package built to fulfill the needs of `sugarbox`, an interactive fiction library. As such, it needs to:
+Very lightweight serializer / deserializer package built to fulfill the needs of `Choicekit`, an interactive fiction library. As such, it needs to:
 
 - Be as small as possible
 - Support the serialization and deserialization of:

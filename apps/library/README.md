@@ -1,20 +1,20 @@
-# sugarbox
+# Choicekit
 
-Loosely based off *Twine SugarCube*, **Sugarbox** is a lightweight (<5KB minified and gzipped), headless, unopinionated, and framework-agnostic library to help with developing web-based interactive fiction.
+Loosely based off *Twine SugarCube*, **Choicekit** is a lightweight (<5KB minified and gzipped), headless, unopinionated, and framework-agnostic library to help with developing web-based interactive fiction.
 
 ## Installation
 
 ```bash
-npm install sugarbox
+npm install Choicekit
 # or
-bun install sugarbox
+bun install Choicekit
 # or
-yarn add sugarbox
+yarn add Choicekit
 ```
 
 The rest of the documentation is hosted on github pages.
 
 
-## Why Sugarbox? / Sugarbox vs Sugarcube / Harlowe / Ink / ChoiceScript / etc
+## Why Choicekit? / Choicekit vs Sugarcube / Harlowe / Ink / ChoiceScript / etc
 
 TODO

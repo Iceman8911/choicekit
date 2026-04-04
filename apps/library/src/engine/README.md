@@ -1,6 +1,6 @@
-# Sugarbox Engine
+# Choicekit Engine
 
-This is the core of Sugarbox, deliberately designed to be minimal, since it's structured around a [[apps/library/src/plugins/README|plugin]] architecture. This allows new features and enhancements to be optionally added without bloat. 
+This is the core of Choicekit, deliberately designed to be minimal, since it's structured around a [[apps/library/src/plugins/README|plugin]] architecture. This allows new features and enhancements to be optionally added without bloat. 
 
 The engine class is only responsible for a few concerns, namely:
 
@@ -52,6 +52,6 @@ The engine exposes a small set of custom events for lifecycle hooks and state/hi
 
 # Limitations
 
-- Sugarbox is fully headless. The concerns of rendering are left to consumers.
+- Choicekit is fully headless. The concerns of rendering are left to consumers.
 
 [^1]: Since they are not attached to conventional saves.

@@ -1,9 +1,9 @@
 import * as idb from "idb-keyval";
-import type { SugarboxType } from "../../engine/types/sugarbox";
+import type { ChoicekitType } from "../../engine/types/Choicekit";
 
-const store = idb.createStore("sugarbox", "kv");
+const store = idb.createStore("Choicekit", "kv");
 
-export const IndexedDbPersistenceAdapter: SugarboxType.PersistenceAdapter = {
+export const IndexedDbPersistenceAdapter: ChoicekitType.PersistenceAdapter = {
 	async delete(key) {
 		return idb.del(key, store);
 	},

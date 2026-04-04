@@ -1,6 +1,6 @@
 {
 	"bugs": {
-		"url": "https://github.com/Iceman8911/sugarbox/issues"
+		"url": "https://github.com/Iceman8911/choicekit/issues"
 	},
 	"dependencies": {
 		"lint-staged": "^16.4.0"
@@ -10,16 +10,16 @@
 		"turbo": "^2.9.3",
 		"typescript": "^6.0.2"
 	},
-	"homepage": "https://github.com/Iceman8911/sugarbox#readme",
+	"homepage": "https://github.com/Iceman8911/choicekit#readme",
 	"lint-staged": {
 		"*.{js,jsx,ts,tsx,json,css}": "bunx biome check --write"
 	},
-	"name": "sugarbox",
+	"name": "choicekit",
 	"packageManager": "bun@1.3.0",
 	"private": true,
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Iceman8911/sugarbox.git"
+		"url": "git+https://github.com/Iceman8911/choicekit.git"
 	},
 	"scripts": {
 		"build": "turbo build",

@@ -1,6 +1,6 @@
 import type {
-	SugarBoxClassConstructor,
-	SugarBoxClassInstance,
+	ChoicekitClassConstructor,
+	ChoicekitClassInstance,
 } from "@packages/engine-class";
 
 /** Since arrays are converted to a transformed object, there aren't included as-is here */
@@ -16,10 +16,10 @@ type JsonSerializableType =
 	| JsonSerializableType[]
 	| TransformedDataType;
 
-export interface SugarboxClassConstructorWithValidSerialization
-	extends SugarBoxClassConstructor<TransformableOrJsonSerializableType> {}
-interface SugarboxClassInstanceWithValidSerialization
-	extends SugarBoxClassInstance<TransformableOrJsonSerializableType> {}
+export interface ChoicekitClassConstructorWithValidSerialization
+	extends ChoicekitClassConstructor<TransformableOrJsonSerializableType> {}
+interface ChoicekitClassInstanceWithValidSerialization
+	extends ChoicekitClassInstance<TransformableOrJsonSerializableType> {}
 
 type TransformableType =
 	| Array<TransformableOrJsonSerializableType>
@@ -31,7 +31,7 @@ type TransformableType =
 	  >
 	| Set<TransformableOrJsonSerializableType>
 	| bigint
-	| SugarboxClassInstanceWithValidSerialization;
+	| ChoicekitClassInstanceWithValidSerialization;
 
 export type TransformableOrJsonSerializableType =
 	| TransformableType
@@ -155,11 +155,11 @@ const POSITIVE_INFINITY = Infinity,
 
 const classRegistrybyId = new Map<
 	string,
-	SugarboxClassConstructorWithValidSerialization
+	ChoicekitClassConstructorWithValidSerialization
 >();
 
 const classRegistrybyConstructor = new WeakMap<
-	SugarboxClassConstructorWithValidSerialization,
+	ChoicekitClassConstructorWithValidSerialization,
 	string
 >();
 
@@ -169,7 +169,7 @@ const arrayFrom = Array.from;
 
 // Register a custom class for serialization
 export const registerClass = (
-	classConstructor: SugarboxClassConstructorWithValidSerialization,
+	classConstructor: ChoicekitClassConstructorWithValidSerialization,
 ): void => {
 	const id = classConstructor.classId;
 
@@ -253,9 +253,9 @@ const transformForSerialization = (
 		/** Custom Class or Plain Object */
 
 		//@ts-expect-error I'll check whether this is actually registered, since there's no concise, typesafe way of proving that this may be a class
-		const possibleClass: SugarboxClassInstanceWithValidSerialization = data;
+		const possibleClass: ChoicekitClassInstanceWithValidSerialization = data;
 		const possibleClassId = classRegistrybyConstructor.get(
-			possibleClass.constructor as SugarboxClassConstructorWithValidSerialization,
+			possibleClass.constructor as ChoicekitClassConstructorWithValidSerialization,
 		);
 
 		if (possibleClassId != null) {

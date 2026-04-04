@@ -1,17 +1,17 @@
-import type { SugarboxClassConstructorWithValidSerialization } from "@packages/serializer";
-import type { SugarboxType } from "../types/sugarbox";
+import type { ChoicekitClassConstructorWithValidSerialization } from "@packages/serializer";
+import type { ChoicekitType } from "../types/Choicekit";
 import type {
 	GenericObject,
 	GenericSerializableObject,
 } from "../../_internal/models/shared";
-import type { SugarBoxSemanticVersionString } from "../../_internal/utils/version";
-import type { SugarboxPlugin } from "../../plugins/plugin";
+import type { ChoicekitSemanticVersionString } from "../../_internal/utils/version";
+import type { ChoicekitPlugin } from "../../plugins/plugin";
 
-export type SugarBoxSaveMigration<
+export type ChoicekitSaveMigration<
 	TOldSaveStructure,
 	TNewSaveStructure,
 	TNewVersion extends
-		SugarBoxSemanticVersionString = SugarBoxSemanticVersionString,
+		ChoicekitSemanticVersionString = ChoicekitSemanticVersionString,
 > = {
 	/** Version that the save will be set to if the migration function works */
 	to: TNewVersion;
@@ -20,35 +20,35 @@ export type SugarBoxSaveMigration<
 	migrater: (saveDataToMigrate: TOldSaveStructure) => TNewSaveStructure;
 };
 
-export type SugarBoxSaveMigrationMap<
+export type ChoicekitSaveMigrationMap<
 	TOldSaveStructure,
 	TNewSaveStructure,
 	TOldVersion extends
-		SugarBoxSemanticVersionString = SugarBoxSemanticVersionString,
+		ChoicekitSemanticVersionString = ChoicekitSemanticVersionString,
 	TNewVersion extends
-		SugarBoxSemanticVersionString = SugarBoxSemanticVersionString,
+		ChoicekitSemanticVersionString = ChoicekitSemanticVersionString,
 > = Map<
 	TOldVersion,
-	SugarBoxSaveMigration<TOldSaveStructure, TNewSaveStructure, TNewVersion>
+	ChoicekitSaveMigration<TOldSaveStructure, TNewSaveStructure, TNewVersion>
 >;
 
-export interface SugarBoxEngineGenerics {
-	passages: SugarboxType.Passage<unknown, string, string>;
+export interface ChoicekitEngineGenerics {
+	passages: ChoicekitType.Passage<unknown, string, string>;
 	vars: GenericSerializableObject;
 	settings: GenericSerializableObject;
 	achievements: GenericSerializableObject;
 	name: string;
-	plugins: SugarboxPlugin[];
+	plugins: ChoicekitPlugin[];
 }
 
 /** Relevant data that can be made available for the variable intialization for the engine e.g PRNG */
-export interface SugarBoxEngineVariableInitData {
+export interface ChoicekitEngineVariableInitData {
 	/** The prng random value between 0 and 1 */
 	readonly prng: number;
 }
 
-export interface SugarBoxEngineArguments<
-	TEngineGenerics extends SugarBoxEngineGenerics = SugarBoxEngineGenerics,
+export interface ChoicekitEngineArguments<
+	TEngineGenerics extends ChoicekitEngineGenerics = ChoicekitEngineGenerics,
 > {
 	/** Name of the engine. Engines initalized with the same name have access to the same saves, acheivements, and story-specific settings */
 	name: TEngineGenerics["name"];
@@ -59,7 +59,7 @@ export interface SugarBoxEngineArguments<
 	 */
 	vars:
 		| TEngineGenerics["vars"]
-		| ((init: SugarBoxEngineVariableInitData) => TEngineGenerics["vars"]);
+		| ((init: ChoicekitEngineVariableInitData) => TEngineGenerics["vars"]);
 
 	/** All the passages to intialize asap.
 	 *
@@ -68,7 +68,7 @@ export interface SugarBoxEngineArguments<
 	passages: [TEngineGenerics["passages"], ...TEngineGenerics["passages"][]];
 
 	/** So you don't have to manually register classes for proper serialization / deserialization */
-	classes: SugarboxClassConstructorWithValidSerialization[];
+	classes: ChoicekitClassConstructorWithValidSerialization[];
 
 	/** Achievements that should persist across saves */
 	achievements: TEngineGenerics["achievements"];
@@ -76,15 +76,15 @@ export interface SugarBoxEngineArguments<
 	/** Settings data that is not tied to save data, like audio volume, font size, etc */
 	settings: TEngineGenerics["settings"];
 
-	config: Partial<SugarboxType.Config<TEngineGenerics["vars"]>>;
+	config: Partial<ChoicekitType.Config<TEngineGenerics["vars"]>>;
 
 	/** If the engine had been intialised before with a lower version.
 	 *
 	 * Add migrations to this array to migrate the old save data to the new version.
 	 */
 	migrations: {
-		from: SugarBoxSemanticVersionString;
-		data: SugarBoxSaveMigration<never, unknown>;
+		from: ChoicekitSemanticVersionString;
+		data: ChoicekitSaveMigration<never, unknown>;
 	}[];
 
 	/** Plugins (and their user-provided config) to mount at initialization.
@@ -92,7 +92,7 @@ export interface SugarBoxEngineArguments<
 	 * Each entry will be mounted in the order provided during `init`.
 	 */
 	plugins?: {
-		plugin: SugarboxPlugin;
+		plugin: ChoicekitPlugin;
 		config?: GenericObject | undefined;
 	}[];
 }

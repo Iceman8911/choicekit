@@ -2,11 +2,11 @@
 title: Saving and Loading Saves
 ---
 
-Sugarbox can persist story progress to storage, export saves as a string, and load them back later. Saves are versioned and can be migrated when your data shape changes.
+Choicekit can persist story progress to storage, export saves as a string, and load them back later. Saves are versioned and can be migrated when your data shape changes.
 
 This page covers the practical bits: setting up persistence, working with save slots, exporting/importing, and deleting save data.
 
-## What “saving” means in Sugarbox
+## What “saving” means in Choicekit
 
 A save generally includes:
 
@@ -15,7 +15,7 @@ A save generally includes:
 - the current passage id
 - PRNG seed metadata (stored inside the state snapshots) so outcomes can be reproducible across load
 
-Sugarbox also stores two other buckets separately from save slots:
+Choicekit also stores two other buckets separately from save slots:
 
 - **settings** (volume, theme, etc.)
 - **achievements**
@@ -57,7 +57,7 @@ type PersistenceAdapter = {
   keys?: () => Promise<Iterable<string>>;
 };
 
-export function createLocalStorageAdapter(prefix = "sugarbox:"): PersistenceAdapter {
+export function createLocalStorageAdapter(prefix = "Choicekit:"): PersistenceAdapter {
   return {
     async get(key) {
       // localStorage returns `string | null`, which fits the engine’s expectations
@@ -86,10 +86,10 @@ export function createLocalStorageAdapter(prefix = "sugarbox:"): PersistenceAdap
 Then attach it during initialization:
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 import { createLocalStorageAdapter } from "./local-storage-adapter";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
@@ -109,7 +109,7 @@ Notes:
 
 ## Save slots
 
-Sugarbox supports:
+Choicekit supports:
 
 - an **autosave** slot (no number)
 - **numbered slots** (0..`saveSlots - 1`)
@@ -121,7 +121,7 @@ The engine also exposes a “recent save” concept when loading on start via `l
 `config.saveSlots` controls how many numbered slots exist.
 
 ```ts
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
@@ -143,7 +143,7 @@ The actual config type is:
 - `"state"`: autosave when you change state via `setVars()`
 
 ```ts
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
@@ -205,7 +205,7 @@ Export is meant for share links, manual backups, support requests, or moving pro
 
 ### Export
 
-Sugarbox can export a save bundle as a string via `saveToExport()`. Depending on config, that string may be compressed.
+Choicekit can export a save bundle as a string via `saveToExport()`. Depending on config, that string may be compressed.
 
 The engine emits save/load events during export too, so you can show UI feedback.
 
@@ -234,7 +234,7 @@ Compression is controlled by `config.compress`.
 Note: the library only compresses when the stringified data is large enough (it avoids compressing tiny payloads).
 
 ```ts
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],

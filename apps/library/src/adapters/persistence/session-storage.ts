@@ -1,7 +1,7 @@
-import type { SugarboxType } from "../../engine/types/sugarbox";
+import type { ChoicekitType } from "../../engine/types/Choicekit";
 import { _getKeysFromWebStorage } from "./_shared";
 
-export const SessionStoragePersistenceAdapter: SugarboxType.PersistenceAdapter =
+export const SessionStoragePersistenceAdapter: ChoicekitType.PersistenceAdapter =
 	{
 		async delete(key) {
 			sessionStorage.removeItem(key);

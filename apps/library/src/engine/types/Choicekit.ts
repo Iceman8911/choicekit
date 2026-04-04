@@ -1,25 +1,25 @@
 import type {
-	SugarBoxClassConstructor,
-	SugarBoxClassInstance,
+	ChoicekitClassConstructor,
+	ChoicekitClassInstance,
 } from "@packages/engine-class";
 import type { GenericSerializableObject } from "../../_internal/models/shared";
-import type { SugarBoxSemanticVersionString } from "../../_internal/utils/version";
+import type { ChoicekitSemanticVersionString } from "../../_internal/utils/version";
 import type {
-	SugarboxPlugin,
-	SugarboxPluginInputGenerics,
-	SugarboxPluginSaveStructure,
+	ChoicekitPlugin,
+	ChoicekitPluginInputGenerics,
+	ChoicekitPluginSaveStructure,
 	ValidatePluginGenerics as ValidatePluginGenericsType,
 } from "../../plugins/plugin";
-import type { SugarboxEngine } from "../core/if-engine";
+import type { ChoicekitEngine } from "../core/if-engine";
 
-export declare namespace SugarboxType {
+export declare namespace ChoicekitType {
 	/** All userland custom classes need to implement this if they must be part of the story's state */
 	export type ClassInstance<TSerializedStructure = unknown> =
-		SugarBoxClassInstance<TSerializedStructure>;
+		ChoicekitClassInstance<TSerializedStructure>;
 
 	/** All userland custom class constructors need to implement this if they must be part of the story's state */
 	export type ClassConstructor<TSerializedStructure = unknown> =
-		SugarBoxClassConstructor<TSerializedStructure>;
+		ChoicekitClassConstructor<TSerializedStructure>;
 
 	/** Special information attached to every state snapshot */
 	export type SnapshotMetadata = {
@@ -67,31 +67,32 @@ export declare namespace SugarboxType {
 	};
 
 	/** Generic input shape for plugin type definitions */
-	export type PluginInputGenerics = SugarboxPluginInputGenerics;
+	export type PluginInputGenerics = ChoicekitPluginInputGenerics;
 
 	/** Typed helper for creating plugin generics */
 	export type ValidatePluginGenerics<
-		TGenerics extends SugarboxPluginInputGenerics,
+		TGenerics extends ChoicekitPluginInputGenerics,
 	> = ValidatePluginGenericsType<TGenerics>;
 
 	/** Plugin type shape */
 	export type Plugin<
-		TGenerics extends SugarboxPluginInputGenerics = SugarboxPluginInputGenerics,
+		TGenerics extends
+			ChoicekitPluginInputGenerics = ChoicekitPluginInputGenerics,
 		TMode extends "input" | "output" = "output",
-	> = SugarboxPlugin<TGenerics, TMode>;
+	> = ChoicekitPlugin<TGenerics, TMode>;
 
 	/** Serialized plugin save payload */
-	export type PluginSaveStructure = SugarboxPluginSaveStructure;
+	export type PluginSaveStructure = ChoicekitPluginSaveStructure;
 
 	/** Keys used for indexing save data
 	 *
 	 * Consists of the engine's name and save slot number
 	 */
-	export type NormalSaveKey = `sugarbox-${string}-slot${number}`;
+	export type NormalSaveKey = `Choicekit-${string}-slot${number}`;
 
-	export type AutoSaveKey = `sugarbox-${string}-autosave`;
+	export type AutoSaveKey = `Choicekit-${string}-autosave`;
 
-	export type PluginSaveKey = `sugarbox-${string}-plugin-${string}`;
+	export type PluginSaveKey = `Choicekit-${string}-plugin-${string}`;
 
 	export type SaveKey = AutoSaveKey | NormalSaveKey;
 
@@ -102,12 +103,12 @@ export declare namespace SugarboxType {
 	 * Contains initial state, snapshots, current story index and other relevant metadata
 	 */
 	export type SaveData<
-		TSugarBoxVariables extends
+		TChoicekitVariables extends
 			GenericSerializableObject = GenericSerializableObject,
 	> = Readonly<{
-		intialState: TSugarBoxVariables & SnapshotMetadata;
+		intialState: TChoicekitVariables & SnapshotMetadata;
 
-		snapshots: Partial<TSugarBoxVariables & SnapshotMetadata>[];
+		snapshots: Partial<TChoicekitVariables & SnapshotMetadata>[];
 
 		storyIndex: number;
 
@@ -125,12 +126,12 @@ export declare namespace SugarboxType {
 		// playtimeInSeconds: number;
 
 		/** The version of the story associated with this save */
-		version: SugarBoxSemanticVersionString;
+		version: ChoicekitSemanticVersionString;
 
 		/** Plugin data that should be altered / sync up when the user saves or loads save-data
 		 *
 		 * Indexed by the plugin's namespace */
-		plugins: Record<string, SugarboxPluginSaveStructure>;
+		plugins: Record<string, ChoicekitPluginSaveStructure>;
 	}>;
 
 	/** Export data structure used for saving the state of the engine to disk.
@@ -145,7 +146,7 @@ export declare namespace SugarboxType {
 		/** Plugin data that should be unaltered when the user saves or loads save-data
 		 *
 		 * Indexed by the plugin's namespace */
-		plugins: Record<string, SugarboxPluginSaveStructure>;
+		plugins: Record<string, ChoicekitPluginSaveStructure>;
 	};
 
 	/**
@@ -154,7 +155,7 @@ export declare namespace SugarboxType {
 	export type SaveVersionCompatiblityMode = "strict" | "liberal";
 
 	export type Config<
-		TSugarBoxVariables extends
+		TChoicekitVariables extends
 			GenericSerializableObject = GenericSerializableObject,
 		TPlugins extends Plugin[] = Plugin[],
 	> = {
@@ -177,7 +178,7 @@ export declare namespace SugarboxType {
 		/** Semantic version to use for all newly created saves by the engine. Also acts as a reference point for the engine to determine if a previous save is compatible with the current version of the story.
 		 *
 		 */
-		saveVersion: SugarBoxSemanticVersionString;
+		saveVersion: ChoicekitSemanticVersionString;
 
 		/**
 		 * Determines how strict the engine will be when deciding if a save is compatible the the current engine's version.
@@ -234,7 +235,7 @@ export declare namespace SugarboxType {
 		regenSeed: "passage" | "eachCall" | false;
 
 		/** Optional cache adapter to use to speed up state fetching */
-		cache?: CacheAdapter<TSugarBoxVariables>;
+		cache?: CacheAdapter<TChoicekitVariables>;
 
 		/** Optional persistence adapter for saving support.
 		 *
@@ -282,7 +283,7 @@ export declare namespace SugarboxType {
 		tags: ReadonlyArray<TPassageTag>;
 	}>;
 
-	export type Storylet<TEngine extends SugarboxEngine> = {
+	export type Storylet<TEngine extends ChoicekitEngine> = {
 		name: string;
 		/** Higher priority = Earlier in the resulting array when querying for vaild storylets */
 		priority: number;

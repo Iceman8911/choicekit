@@ -2,8 +2,8 @@ import { describe, expect, expectTypeOf, it } from "bun:test";
 import { deserialize } from "@packages/serializer";
 import { decompressPossiblyCompressedJsonString } from "@packages/string-compression";
 import type { ExpandType } from "../../_internal/models/shared";
-import { SugarboxEngineBuilder } from "../../engine/builder";
-import type { SugarboxType } from "../../engine/types/sugarbox";
+import { ChoicekitEngineBuilder } from "../../engine/builder";
+import type { ChoicekitType } from "../../engine/types/Choicekit";
 import createSettingsPlugin from "./settings";
 
 function createSimpleSettings() {
@@ -35,7 +35,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should add the simple getter and setter to the engine on mount", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-settings")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -52,7 +52,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should not apply settings mutations if the producer throws", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-settings")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -71,7 +71,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should allow listeners for settings changes to be created", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-settings")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -96,7 +96,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should allow listeners for settings changes to be removed", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-settings")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -132,7 +132,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should allow listeners for settings changes to fire once", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-with-simple-settings")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -161,7 +161,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should support deep updates to nested settings state", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-deep-update")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -180,7 +180,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should allow multiple listeners and all should be called", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-multi-listener")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -205,7 +205,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should handle rapid consecutive updates and emit correct events", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-rapid-updates")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -237,7 +237,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should not allow off() to remove unrelated listeners", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-off-test")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -266,7 +266,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should support interactive fiction style: toggle, progress and reset settings", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-if-style")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -296,7 +296,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should properly persist data when the save is exported from the engine", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-settings-persistence")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -316,7 +316,7 @@ describe("Settings Plugin", () => {
 
 		const exportedData = deserialize(
 			await decompressPossiblyCompressedJsonString(exportedStr),
-		) as unknown as SugarboxType.ExportData;
+		) as unknown as ChoicekitType.ExportData;
 
 		const persistedSettings = (
 			exportedData.plugins?.settings?.data as
@@ -333,7 +333,7 @@ describe("Settings Plugin", () => {
 			volume: 0.9,
 		});
 
-		const newEngine = await new SugarboxEngineBuilder()
+		const newEngine = await new ChoicekitEngineBuilder()
 			.withName("engine-settings-persistence-2")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),
@@ -353,7 +353,7 @@ describe("Settings Plugin", () => {
 	});
 
 	it("should not emit change events when the state is updated but emitEvent is set to false", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("engine-no-event")
 			.withPlugin(simpleSettingsPlugin, {
 				default: createSimpleSettings(),

@@ -8,8 +8,8 @@ import type {
 } from "../../_internal/models/shared";
 import { createStateSetter } from "../../_internal/utils/producers";
 import {
+	type ChoicekitPlugin,
 	definePlugin,
-	type SugarboxPlugin,
 	type ValidatePluginGenerics,
 } from "../plugin";
 
@@ -57,7 +57,7 @@ type SettingsPluginGenerics<TData extends GenericSerializableObject> =
 
 export function createSettingsPlugin<TData extends GenericSerializableObject>(
 	data: TData,
-): SugarboxPlugin<SettingsPluginGenerics<ExpandType<TData>>> {
+): ChoicekitPlugin<SettingsPluginGenerics<ExpandType<TData>>> {
 	return definePlugin({
 		id: "settings",
 		initApi({ config, state, triggerSave }) {

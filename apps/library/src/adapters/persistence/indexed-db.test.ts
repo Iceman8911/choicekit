@@ -2,8 +2,8 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { IndexedDbPersistenceAdapter } from "./indexed-db";
 
-const keyA = "sugarbox-test-indexed-slot1" as const;
-const keyB = "sugarbox-test-indexed-slot2" as const;
+const keyA = "Choicekit-test-indexed-slot1" as const;
+const keyB = "Choicekit-test-indexed-slot2" as const;
 
 describe("IndexedDbPersistenceAdapter", () => {
 	beforeEach(async () => {

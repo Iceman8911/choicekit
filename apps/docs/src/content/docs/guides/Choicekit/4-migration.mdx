@@ -4,13 +4,13 @@ title: Save Migration
 
 Saving is easy until you ship a version, change your data shape, and users try to load something from last week.
 
-Sugarbox has a migration system so you can keep old saves working, even when you add, rename, or restructure fields in your story state.
+Choicekit has a migration system so you can keep old saves working, even when you add, rename, or restructure fields in your story state.
 
 This page explains:
 
 - what `saveVersion` is and how it’s used
 - how compatibility checks work (`saveCompat`)
-- how to register migrations during `SugarboxEngine.init()`
+- how to register migrations during `ChoicekitEngine.init()`
 - what to migrate (and what not to)
 
 ## The moving parts
@@ -19,7 +19,7 @@ This page explains:
 
 Every save is tagged with a semantic version string like `"0.3.0"`.
 
-When you call `saveToSaveSlot()` or `saveToExport()`, the engine stores `saveVersion` alongside the saved data. Later, when loading, Sugarbox uses that version with `saveCompat` to categorize the save as:
+When you call `saveToSaveSlot()` or `saveToExport()`, the engine stores `saveVersion` alongside the saved data. Later, when loading, Choicekit uses that version with `saveCompat` to categorize the save as:
 
 - compatible (`"compat"`): load directly
 - old (`"old"`): attempt migration
@@ -53,7 +53,7 @@ If a save is considered **new**, the engine throws. If it’s considered **old**
 
 A migration is a small function that transforms **state** from one `saveVersion` to the next.
 
-Sugarbox expects migrations at init time in the `migrations` array:
+Choicekit expects migrations at init time in the `migrations` array:
 
 - each entry has a `from` version (the version you are migrating from)
 - and `data` which includes:
@@ -77,7 +77,7 @@ So yes, migrations are chained, but only if you provide every hop the engine nee
 
 ### 1) Decide what you version
 
-In Sugarbox, the most common thing you version is your story variables (`vars`) and any save metadata you rely on.
+In Choicekit, the most common thing you version is your story variables (`vars`) and any save metadata you rely on.
 
 Settings and achievements are persisted separately from save slots, so versioning your *save* schema usually focuses on variables and story progress.
 
@@ -86,9 +86,9 @@ Settings and achievements are persisted separately from save slots, so versionin
 When you make a schema change, bump the version you pass into init:
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
@@ -107,9 +107,9 @@ Say version `0.1.0` stored `gold` at the top level, and `0.2.0` moves it under `
 Add a migration:
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],

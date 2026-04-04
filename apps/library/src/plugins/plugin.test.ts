@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
-import type { SugarBoxSemanticVersionString } from "../_internal/utils/version";
+import type { ChoicekitSemanticVersionString } from "../_internal/utils/version";
 import { definePlugin, type ValidatePluginGenerics } from "./plugin";
 
-describe("Sugarbox Plugins", () => {
+describe("Choicekit Plugins", () => {
 	it("should strongly type basic plugins with simple types", () => {
 		type SimplePluginGenerics = ValidatePluginGenerics<{
 			id: "simple";
@@ -77,7 +77,7 @@ describe("Sugarbox Plugins", () => {
 			count: number;
 		}>();
 		expectTypeOf<OnDeserializeParam["version"]>().toEqualTypeOf<
-			SugarBoxSemanticVersionString | undefined
+			ChoicekitSemanticVersionString | undefined
 		>();
 	});
 
@@ -172,7 +172,7 @@ describe("Sugarbox Plugins", () => {
 		// version uses semantic version string type (or undefined)
 		expectTypeOf(
 			appPlugin.version,
-		).toEqualTypeOf<SugarBoxSemanticVersionString>();
+		).toEqualTypeOf<ChoicekitSemanticVersionString>();
 	});
 
 	it("should allow omitting optional properties like dependencies and serializedState", () => {

@@ -1,2 +1,2 @@
-export type * from "../types/sugarbox";
-export { SugarboxEngine } from "./if-engine";
+export type * from "../types/Choicekit";
+export { ChoicekitEngine } from "./if-engine";

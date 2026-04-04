@@ -1,4 +1,4 @@
-import type { SugarboxType } from "../../engine/types/sugarbox";
+import type { ChoicekitType } from "../../engine/types/Choicekit";
 
 type SemanticVersionTuple = readonly [
 	major: number,
@@ -18,7 +18,7 @@ const getMajorAndMinorAndPatchFromVersionString = (
 const isSaveCompatibleWithEngine = (
 	saveVersion: SemanticVersionString,
 	engineVersion: SemanticVersionString,
-	compatibilityMode: SugarboxType.SaveVersionCompatiblityMode,
+	compatibilityMode: ChoicekitType.SaveVersionCompatiblityMode,
 ): "compat" | "old" | "new" => {
 	const [svMajor, svMinor] =
 		getMajorAndMinorAndPatchFromVersionString(saveVersion);
@@ -58,6 +58,6 @@ const isSaveCompatibleWithEngine = (
 
 export {
 	isSaveCompatibleWithEngine,
-	type SemanticVersionString as SugarBoxSemanticVersionString,
-	type SemanticVersionTuple as SugarBoxSemanticVersionTuple,
+	type SemanticVersionString as ChoicekitSemanticVersionString,
+	type SemanticVersionTuple as ChoicekitSemanticVersionTuple,
 };

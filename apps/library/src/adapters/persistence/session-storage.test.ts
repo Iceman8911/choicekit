@@ -2,8 +2,8 @@ import "mock-local-storage";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { SessionStoragePersistenceAdapter } from "./session-storage";
 
-const keyA = "sugarbox-test-session-slot1" as const;
-const keyB = "sugarbox-test-session-slot2" as const;
+const keyA = "Choicekit-test-session-slot1" as const;
+const keyB = "Choicekit-test-session-slot2" as const;
 
 describe("SessionStoragePersistenceAdapter", () => {
 	beforeEach(() => {

@@ -2,23 +2,23 @@
 title: Events
 ---
 
-Sugarbox is headless, so events are how you wire the engine to your UI, persistence, and side effects.
+Choicekit is headless, so events are how you wire the engine to your UI, persistence, and side effects.
 
-Under the hood, each `SugarboxEngine` instance exposes a small typed event API:
+Under the hood, each `ChoicekitEngine` instance exposes a small typed event API:
 
 - `engine.on(eventName, listener)`
 - `engine.off(eventName, listener)`
 
 `on()` returns an unsubscribe function, so you often don’t need to call `off()` yourself unless you prefer that style.
 
-Sugarbox emits a set of custom events whose names start with `:`. The payload lives on `event.detail`.
+Choicekit emits a set of custom events whose names start with `:`. The payload lives on `event.detail`.
 
 ## Quick example
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "Example",
   startPassage: { name: "Start", data: "Hello" },
   otherPassages: [],
@@ -229,7 +229,7 @@ engine.on(":stateChange", (event) => {
 
 ## Notes on TypeScript
 
-Sugarbox’s events are custom events, so in vanilla DOM typing they show up as `Event`. In most projects you’ll either:
+Choicekit’s events are custom events, so in vanilla DOM typing they show up as `Event`. In most projects you’ll either:
 
 - cast to `CustomEvent` in the handful of places you need `detail`, or
 - wrap event registration in a tiny helper that narrows the types for you.

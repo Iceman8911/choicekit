@@ -1,7 +1,7 @@
 type Serialized = unknown;
 
 /** All userland custom classes need to implement this if they must be part of the story's state */
-type SugarBoxClassInstance<TSerializedStructure extends Serialized> = {
+type ChoicekitClassInstance<TSerializedStructure extends Serialized> = {
 	/** Must return a serializable plain object that when deserialized, can be reinitialized into an identical clone of the class.
 	 *
 	 * Is required for persistence.
@@ -9,12 +9,12 @@ type SugarBoxClassInstance<TSerializedStructure extends Serialized> = {
 	toJSON: () => TSerializedStructure;
 
 	// Typescript will keep saying that this sin't assignable to `Function` or smth
-	// constructor: SugarBoxClassConstructor<TSerializedStructure>
+	// constructor: ChoicekitClassConstructor<TSerializedStructure>
 };
 
 /** All userland custom class constructors need to implement this if they must be part of the story's state */
-type SugarBoxClassConstructor<TSerializedStructure extends Serialized> = {
-	new (...args: never[]): SugarBoxClassInstance<TSerializedStructure>;
+type ChoicekitClassConstructor<TSerializedStructure extends Serialized> = {
+	new (...args: never[]): ChoicekitClassInstance<TSerializedStructure>;
 
 	/** Immutable id that must be stable (i.e never ever change if you wish to keep current saves compatible) since it is used to index registered classes in the engine */
 	readonly classId: string;
@@ -22,12 +22,12 @@ type SugarBoxClassConstructor<TSerializedStructure extends Serialized> = {
 	/** Static method for reviving the class */
 	fromJSON(
 		serializedData: TSerializedStructure,
-	): SugarBoxClassInstance<TSerializedStructure>;
+	): ChoicekitClassInstance<TSerializedStructure>;
 
-	prototype: SugarBoxClassInstance<TSerializedStructure>;
+	prototype: ChoicekitClassInstance<TSerializedStructure>;
 };
 
-export type { SugarBoxClassInstance, SugarBoxClassConstructor };
+export type { ChoicekitClassConstructor, ChoicekitClassInstance };
 
 /**
  * (class PlayerAccount {
@@ -42,5 +42,5 @@ export type { SugarBoxClassInstance, SugarBoxClassConstructor };
     static fromJSON(data: { name: string }) {
         return new PlayerAccount(data.name);
     }
-}) satisfies SugarBoxClassConstructor<{ name: string }>;
+}) satisfies ChoicekitClassConstructor<{ name: string }>;
  */

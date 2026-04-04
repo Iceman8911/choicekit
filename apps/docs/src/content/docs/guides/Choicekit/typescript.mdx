@@ -2,7 +2,7 @@
 title: TypeScript
 ---
 
-Sugarbox is written in TypeScript and the engine becomes strongly typed once you tell it what kinds of data you’re storing.
+Choicekit is written in TypeScript and the engine becomes strongly typed once you tell it what kinds of data you’re storing.
 
 There are two main TypeScript tracks you’ll care about:
 
@@ -13,7 +13,7 @@ This page covers both.
 
 ## Engine generics (typing your story data)
 
-`SugarboxEngine` is generic over:
+`ChoicekitEngine` is generic over:
 
 - the passage `data` type
 - the `vars` type (your story variables)
@@ -26,7 +26,7 @@ In plain terms: you can make your engine instance know exactly what your story d
 ### Example: typed passages, vars, settings, achievements
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
 type PassageData =
 	| { kind: "text"; text: string }
@@ -48,7 +48,7 @@ type Achievements = {
 	beatGame: boolean;
 };
 
-const engine = await SugarboxEngine.init<PassageData, StoryVars, Settings, Achievements>({
+const engine = await ChoicekitEngine.init<PassageData, StoryVars, Settings, Achievements>({
 	name: "TypedStory",
 
 	startPassage: {
@@ -84,7 +84,7 @@ Now you get useful guarantees:
 
 ### A note about `engine.vars`
 
-`engine.vars` is read-only. To update state, use `engine.setVars()`. That method is intentionally “Immer-like”: inside the callback you mutate the object, and Sugarbox records the changes into a snapshot.
+`engine.vars` is read-only. To update state, use `engine.setVars()`. That method is intentionally “Immer-like”: inside the callback you mutate the object, and Choicekit records the changes into a snapshot.
 
 ```ts
 engine.setVars((s) => {
@@ -103,13 +103,13 @@ If you need to replace the entire state object, return a new object from the cal
 Passages are stored by `name` (string). If you want tighter typing around passage names, you can declare your passage ids as a union and use it for the engine’s passage name generic.
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
 type PassageName = "Start" | "Town" | "Cave";
 
 type PassageData = { text: string };
 
-const engine = await SugarboxEngine.init<PassageData, { gold: number }, {}, {}, string, PassageName>({
+const engine = await ChoicekitEngine.init<PassageData, { gold: number }, {}, {}, string, PassageName>({
 	name: "NamedPassages",
 	startPassage: { name: "Start", data: { text: "..." } },
 	otherPassages: [{ name: "Town", data: { text: "..." } }],
@@ -121,7 +121,7 @@ const next: PassageName = "Town";
 engine.navigateTo(next);
 ```
 
-Sugarbox still accepts strings at runtime, so this type safety is primarily for your own code. It helps prevent typos from turning into “missing passage” bugs.
+Choicekit still accepts strings at runtime, so this type safety is primarily for your own code. It helps prevent typos from turning into “missing passage” bugs.
 
 ## Achievements and settings typing
 
@@ -165,13 +165,13 @@ As soon as you store instances inside `vars`, plain JSON isn’t enough. For exa
 - `Map` / `Set`
 - your own classes like `Inventory`, `Player`, `QuestLog`
 
-Sugarbox supports custom class serialization by registering classes at engine init time.
+Choicekit supports custom class serialization by registering classes at engine init time.
 
 ### The important rule
 
 If a class instance might appear inside `vars`, you should register its constructor in `init({ classes: [...] })`, and that class must implement a consistent JSON representation plus a way to restore itself.
 
-In this repo’s code, classes are registered through the serializer package Sugarbox uses internally. In practice, your class needs:
+In this repo’s code, classes are registered through the serializer package Choicekit uses internally. In practice, your class needs:
 
 - a stable class id (string) that identifies its type
 - a `toJSON()` method that returns a plain object
@@ -209,7 +209,7 @@ type StoryVars = {
 	gold: number;
 };
 
-const engine = await SugarboxEngine.init<string, StoryVars>({
+const engine = await ChoicekitEngine.init<string, StoryVars>({
 	name: "ClassesStory",
 	startPassage: { name: "Start", data: "..." },
 	otherPassages: [],
@@ -225,7 +225,7 @@ Now when the engine saves and later loads, it can restore `inventory` as an `Inv
 
 If your objects reference each other (for example `Inventory` contains `Item[]` and each `Item` points back to its parent `Inventory`), that creates a cycle.
 
-Sugarbox’s serializer can handle cyclic object graphs internally. You do not need to strip parent pointers or otherwise “break” cycles for saves to work.
+Choicekit’s serializer can handle cyclic object graphs internally. You do not need to strip parent pointers or otherwise “break” cycles for saves to work.
 
 What matters is:
 
@@ -291,7 +291,7 @@ engine.setVars((s) => {
 
 ## Summary
 
-- Use `SugarboxEngine.init<...>()` generics so `engine.vars` and `engine.passage` are typed.
+- Use `ChoicekitEngine.init<...>()` generics so `engine.vars` and `engine.passage` are typed.
 - Store plain JSON-like data in `vars` unless you intentionally register classes.
 - If you store custom classes in state, register them via `classes` and implement explicit serialization and reconstruction.
 - Keep migrations and versioning in mind. Your TypeScript types represent “now”, but your users may load “then”.

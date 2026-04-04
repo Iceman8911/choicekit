@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { InMemoryPersistenceAdapter } from "./in-memory";
 
-const keyA = "sugarbox-test-in-memory-slot1" as const;
-const keyB = "sugarbox-test-in-memory-slot2" as const;
+const keyA = "Choicekit-test-in-memory-slot1" as const;
+const keyB = "Choicekit-test-in-memory-slot2" as const;
 
 describe("InMemoryPersistenceAdapter", () => {
 	it("should set and get values", async () => {

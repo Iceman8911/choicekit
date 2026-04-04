@@ -2,7 +2,7 @@
 title: Adapters
 ---
 
-Sugarbox is headless and does not ship storage or caching implementations. You provide small adapter objects so the engine can read and write data in your environment.
+Choicekit is headless and does not ship storage or caching implementations. You provide small adapter objects so the engine can read and write data in your environment.
 
 There are two adapter types:
 
@@ -12,9 +12,9 @@ There are two adapter types:
 Configure adapters under `config` when initializing the engine.
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
@@ -29,14 +29,14 @@ const engine = await SugarboxEngine.init({
 
 ## Persistence adapter
 
-A persistence adapter is an async key/value store. Sugarbox uses it for save slots, achievements, and settings. Save slot operations throw if `config.persistence` is missing.
+A persistence adapter is an async key/value store. Choicekit uses it for save slots, achievements, and settings. Save slot operations throw if `config.persistence` is missing.
 
 ### Interface
 
-This matches the `SugarBoxPersistenceAdapter` shape in the library:
+This matches the `ChoicekitPersistenceAdapter` shape in the library:
 
 ```ts
-type SugarboxPersistenceAdapter = {
+type ChoicekitPersistenceAdapter = {
   set: (key: string, data: string) => Promise<unknown>;
   get: (key: string) => Promise<string | undefined | null>;
   delete: (key: string) => Promise<unknown>;
@@ -58,14 +58,14 @@ Notes:
 `localStorage` is synchronous, so we wrap it in async methods.
 
 ```ts
-type SugarboxPersistenceAdapter = {
+type ChoicekitPersistenceAdapter = {
   set: (key: string, data: string) => Promise<unknown>;
   get: (key: string) => Promise<string | undefined | null>;
   delete: (key: string) => Promise<unknown>;
   keys?: () => Promise<Iterable<string>>;
 };
 
-export function createLocalStorageAdapter(prefix = ""): SugarboxPersistenceAdapter {
+export function createLocalStorageAdapter(prefix = ""): ChoicekitPersistenceAdapter {
   return {
     async get(key) {
       // localStorage.getItem returns string | null
@@ -95,16 +95,16 @@ export function createLocalStorageAdapter(prefix = ""): SugarboxPersistenceAdapt
 Use it like:
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 import { createLocalStorageAdapter } from "./local-storage-adapter";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],
   vars: {},
   config: {
-    persistence: createLocalStorageAdapter("sugarbox:"),
+    persistence: createLocalStorageAdapter("Choicekit:"),
     saveSlots: 10,
   },
 });
@@ -115,7 +115,7 @@ const engine = await SugarboxEngine.init({
 On the server, you might back persistence with a database. The only rule is: return strings and keep it async.
 
 ```ts
-type SugarboxPersistenceAdapter = {
+type ChoicekitPersistenceAdapter = {
   set: (key: string, data: string) => Promise<unknown>;
   get: (key: string) => Promise<string | undefined | null>;
   delete: (key: string) => Promise<unknown>;
@@ -127,7 +127,7 @@ export function createDbAdapter(db: {
   set: (key: string, data: string) => Promise<unknown>;
   delete: (key: string) => Promise<unknown>;
   keys?: () => Promise<Iterable<string>>;
-}): SugarboxPersistenceAdapter {
+}): ChoicekitPersistenceAdapter {
   return {
     async get(key) {
       return db.get(key);
@@ -147,28 +147,28 @@ export function createDbAdapter(db: {
 
 You generally don’t need to care about storage keys, but it helps when debugging.
 
-Sugarbox namespaces keys by engine name and slot type. The format is:
+Choicekit namespaces keys by engine name and slot type. The format is:
 
-- `sugarbox-${engineName}-autosave`
-- `sugarbox-${engineName}-slot0`, `slot1`, etc.
+- `Choicekit-${engineName}-autosave`
+- `Choicekit-${engineName}-slot0`, `slot1`, etc.
 
 It also stores:
 
-- `sugarbox-${engineName}-achievements`
-- `sugarbox-${engineName}-settings`
+- `Choicekit-${engineName}-achievements`
+- `Choicekit-${engineName}-settings`
 
 So engine `name` matters. Two engines with the same `name` will share the same persisted bucket.
 
 ## Cache adapter
 
-The cache adapter is optional, but if you provide one it must match the library’s cache interface. Sugarbox uses it to cache computed full state by story index.
+The cache adapter is optional, but if you provide one it must match the library’s cache interface. Choicekit uses it to cache computed full state by story index.
 
 ### Interface
 
-This matches the actual `SugarBoxCacheAdapter` shape in the library:
+This matches the actual `ChoicekitCacheAdapter` shape in the library:
 
 ```ts
-type SugarboxCacheAdapter<TValue> = {
+type ChoicekitCacheAdapter<TValue> = {
   set: (key: number, data: TValue) => unknown;
   get: (key: number) => TValue | undefined | null;
   delete: (key: number) => unknown;
@@ -207,10 +207,10 @@ export function createMapCache<TValue>(): {
 Hook it up:
 
 ```ts
-import { SugarboxEngine } from "sugarbox";
+import { ChoicekitEngine } from "Choicekit";
 import { createMapCache } from "./map-cache";
 
-const engine = await SugarboxEngine.init({
+const engine = await ChoicekitEngine.init({
   name: "MyStory",
   startPassage: { name: "Start", data: "..." },
   otherPassages: [],

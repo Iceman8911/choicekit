@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
-import { SugarboxEngineBuilder } from "./builder";
+import { ChoicekitEngineBuilder } from "./builder";
 
 type MathPluginGenerics = ValidatePluginGenerics<{
 	id: "math";
@@ -103,9 +103,9 @@ const dependentPlugin = definePlugin<DependentPluginGenerics>({
 	onOverride: "err",
 });
 
-describe("SugarboxEngineBuilder - Plugin Type Accumulation", () => {
+describe("ChoicekitEngineBuilder - Plugin Type Accumulation", () => {
 	it("should properly accumulate multiple plugin types in builder", async () => {
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("test-engine")
 			.withVars({ counter: 0 })
 			.withPassages({ data: "Starting passage", name: "start", tags: [] })
@@ -155,7 +155,7 @@ describe("SugarboxEngineBuilder - Plugin Type Accumulation", () => {
 		expectTypeOf<DepDependentEngine["$"]>().toHaveProperty("flags");
 		expectTypeOf<DepDependentEngine["$"]>().toHaveProperty("strings");
 
-		const engineWithDependent = await new SugarboxEngineBuilder()
+		const engineWithDependent = await new ChoicekitEngineBuilder()
 			.withName("dependent-test")
 			.withVars({ counter: 0 })
 			.withPassages({ data: "Starting", name: "start", tags: [] })
@@ -220,7 +220,7 @@ describe("SugarboxEngineBuilder - Plugin Type Accumulation", () => {
 			onOverride: "err",
 		});
 
-		const engine = await new SugarboxEngineBuilder()
+		const engine = await new ChoicekitEngineBuilder()
 			.withName("solo-test")
 			.withVars({ x: 1 })
 			.withPassages({ data: "test", name: "start", tags: [] })
@@ -244,7 +244,7 @@ describe("SugarboxEngineBuilder - Plugin Type Accumulation", () => {
 
 	it("should reject invalid save slot configuration at build time", async () => {
 		await expect(
-			new SugarboxEngineBuilder()
+			new ChoicekitEngineBuilder()
 				.withName("invalid-config")
 				.withVars({ x: 1 })
 				.withPassages({ data: "test", name: "start", tags: [] })

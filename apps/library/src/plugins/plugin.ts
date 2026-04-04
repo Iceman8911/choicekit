@@ -7,15 +7,15 @@ import type {
 	GenericObject,
 	GenericSerializableObject,
 } from "../_internal/models/shared";
-import type { SugarBoxSemanticVersionString } from "../_internal/utils/version";
-import type { SugarboxEngine } from "../engine/core/if-engine";
+import type { ChoicekitSemanticVersionString } from "../_internal/utils/version";
+import type { ChoicekitEngine } from "../engine/core/if-engine";
 
-type SugarboxPluginBehaviourOnOverride = "err" | "ignore" | "override";
+type ChoicekitPluginBehaviourOnOverride = "err" | "ignore" | "override";
 
-type SugarboxPlugins = ReadonlyArray<SugarboxPlugin>;
+type ChoicekitPlugins = ReadonlyArray<ChoicekitPlugin>;
 
-type MapPluginsToPluginAndConfigTuple<TPlugins extends SugarboxPlugins> = {
-	[K in keyof TPlugins]: TPlugins[K] extends SugarboxPlugin
+type MapPluginsToPluginAndConfigTuple<TPlugins extends ChoicekitPlugins> = {
+	[K in keyof TPlugins]: TPlugins[K] extends ChoicekitPlugin
 		? {
 				readonly plugin: TPlugins[K];
 				readonly config: InferConfigFromPlugin<TPlugins[K]>;
@@ -23,7 +23,7 @@ type MapPluginsToPluginAndConfigTuple<TPlugins extends SugarboxPlugins> = {
 		: TPlugins[K];
 };
 
-export interface SugarboxPluginInputGenerics {
+export interface ChoicekitPluginInputGenerics {
 	/** Unique id / name / namespace.
 	 *
 	 * Only one plugin can be mounted at a time on the engine with the same id.
@@ -45,7 +45,7 @@ export interface SugarboxPluginInputGenerics {
 	 *
 	 * You will likely not have to modify this.
 	 */
-	readonly engine?: SugarboxEngine;
+	readonly engine?: ChoicekitEngine;
 
 	/** All the public props and functionality the plugin will attach the given namespace on the engine */
 	readonly api?: GenericObject;
@@ -54,10 +54,10 @@ export interface SugarboxPluginInputGenerics {
 	 *
 	 * @default "err"
 	 */
-	readonly overrideBehaviour?: SugarboxPluginBehaviourOnOverride;
+	readonly overrideBehaviour?: ChoicekitPluginBehaviourOnOverride;
 
 	/** Optional external plugins this plugin needs to be mounted beforehand. */
-	readonly dependencies?: SugarboxPlugins;
+	readonly dependencies?: ChoicekitPlugins;
 
 	/** Optional data shape if you need to persist some plugin state. */
 	readonly serializedState?: GenericSerializableObject;
@@ -65,13 +65,13 @@ export interface SugarboxPluginInputGenerics {
 
 /** Typed helper for creating your plugin's generics with autocomplete on any competent IDE */
 export type ValidatePluginGenerics<
-	TGenerics extends SugarboxPluginInputGenerics,
+	TGenerics extends ChoicekitPluginInputGenerics,
 > = TGenerics;
 
-type InferConfigFromPlugin<TPlugin extends SugarboxPlugin> =
-	TPlugin extends SugarboxPlugin<infer RGenerics>
+type InferConfigFromPlugin<TPlugin extends ChoicekitPlugin> =
+	TPlugin extends ChoicekitPlugin<infer RGenerics>
 		? RGenerics["config"]
-		: SugarboxPluginInputGenerics["config"];
+		: ChoicekitPluginInputGenerics["config"];
 
 type NormalizeState<TState extends GenericObject | undefined> =
 	undefined extends TState
@@ -79,11 +79,11 @@ type NormalizeState<TState extends GenericObject | undefined> =
 		: TState extends undefined
 			? GenericObject
 			: TState;
-type NormalizeEngine<TEngine extends SugarboxEngine | undefined> =
+type NormalizeEngine<TEngine extends ChoicekitEngine | undefined> =
 	undefined extends TEngine
-		? SugarboxEngine
+		? ChoicekitEngine
 		: TEngine extends undefined
-			? SugarboxEngine
+			? ChoicekitEngine
 			: TEngine;
 type NormalizeApi<TApi extends GenericObject | undefined> =
 	undefined extends TApi
@@ -92,17 +92,17 @@ type NormalizeApi<TApi extends GenericObject | undefined> =
 			? GenericObject
 			: TApi;
 type NormalizeOverrideBehaviour<
-	TOverride extends SugarboxPluginBehaviourOnOverride | undefined,
+	TOverride extends ChoicekitPluginBehaviourOnOverride | undefined,
 > = undefined extends TOverride
-	? SugarboxPluginBehaviourOnOverride
+	? ChoicekitPluginBehaviourOnOverride
 	: TOverride extends undefined
-		? SugarboxPluginBehaviourOnOverride
+		? ChoicekitPluginBehaviourOnOverride
 		: TOverride;
-type NormalizeDependencies<TDeps extends SugarboxPlugins | undefined> =
+type NormalizeDependencies<TDeps extends ChoicekitPlugins | undefined> =
 	undefined extends TDeps
-		? SugarboxPlugins
+		? ChoicekitPlugins
 		: TDeps extends undefined
-			? SugarboxPlugins
+			? ChoicekitPlugins
 			: TDeps;
 type NormalizeSerializedState<
 	TSerialized extends TransformableOrJsonSerializableType | undefined,
@@ -113,18 +113,18 @@ type NormalizeSerializedState<
 		: TSerialized;
 
 type AddDependenciesToEngine<
-	TEngine extends SugarboxEngine,
-	TDeps extends SugarboxPlugins,
+	TEngine extends ChoicekitEngine,
+	TDeps extends ChoicekitPlugins,
 > =
-	TEngine extends SugarboxEngine<infer REngineGenerics>
-		? SugarboxEngine<
+	TEngine extends ChoicekitEngine<infer REngineGenerics>
+		? ChoicekitEngine<
 				REngineGenerics & {
 					plugins: [...REngineGenerics["plugins"], ...TDeps];
 				}
 			>
-		: SugarboxEngine;
+		: ChoicekitEngine;
 
-interface SugarboxPluginSerializeConfig<
+interface ChoicekitPluginSerializeConfig<
 	TNormalState extends GenericObject | undefined,
 	TSerializedState extends TransformableOrJsonSerializableType,
 > {
@@ -143,7 +143,7 @@ interface SugarboxPluginSerializeConfig<
 	method(state: TNormalState): Promisable<TSerializedState>;
 }
 
-interface BaseSugarboxPlugin<TGenerics extends SugarboxPluginInputGenerics> {
+interface BaseChoicekitPlugin<TGenerics extends ChoicekitPluginInputGenerics> {
 	/** Serves as the unique namespace and id on the engine instance where all methods and functionality are mounted.
 	 *
 	 * All ids/namespaces are within an object `$`, e.g `engine.$.storylet`
@@ -180,7 +180,7 @@ interface BaseSugarboxPlugin<TGenerics extends SugarboxPluginInputGenerics> {
 	 *
 	 * @default "0.0.1"
 	 */
-	version?: SugarBoxSemanticVersionString;
+	version?: ChoicekitSemanticVersionString;
 }
 
 type OptionalizeIfUndefined<TValue, TShape> = undefined extends TValue
@@ -188,7 +188,7 @@ type OptionalizeIfUndefined<TValue, TShape> = undefined extends TValue
 	: TShape;
 
 type ConditionalStatePluginExtension<
-	TGenerics extends SugarboxPluginInputGenerics,
+	TGenerics extends ChoicekitPluginInputGenerics,
 > = OptionalizeIfUndefined<
 	TGenerics["state"],
 	{
@@ -201,7 +201,7 @@ type ConditionalStatePluginExtension<
 >;
 
 type ConditionalApiPluginExtension<
-	TGenerics extends SugarboxPluginInputGenerics,
+	TGenerics extends ChoicekitPluginInputGenerics,
 > = OptionalizeIfUndefined<
 	TGenerics["api"],
 	{
@@ -213,7 +213,7 @@ type ConditionalApiPluginExtension<
 		 */
 		initApi(
 			arg: {
-				/** Sugarbox Engine for you to do all you need */
+				/** Choicekit Engine for you to do all you need */
 				engine: AddDependenciesToEngine<
 					NormalizeEngine<TGenerics["engine"]>,
 					NormalizeDependencies<TGenerics["dependencies"]>
@@ -250,12 +250,12 @@ type ConditionalApiPluginExtension<
 >;
 
 type ConditionalSerializedStatePluginExtension<
-	TGenerics extends SugarboxPluginInputGenerics,
+	TGenerics extends ChoicekitPluginInputGenerics,
 > = OptionalizeIfUndefined<
 	TGenerics["serializedState"],
 	{
 		/** If you need persistent state, implement this property. */
-		readonly serialize: SugarboxPluginSerializeConfig<
+		readonly serialize: ChoicekitPluginSerializeConfig<
 			TGenerics["state"],
 			NormalizeSerializedState<TGenerics["serializedState"]>
 		>;
@@ -279,7 +279,7 @@ type ConditionalSerializedStatePluginExtension<
 				 *
 				 * Useful for migrations
 				 */
-				version?: SugarBoxSemanticVersionString;
+				version?: ChoicekitSemanticVersionString;
 			} & (undefined extends TGenerics["state"]
 				? {
 						/** No state provided */
@@ -296,22 +296,22 @@ type ConditionalSerializedStatePluginExtension<
 	}
 >;
 
-export type SugarboxPlugin<
-	TGenerics extends SugarboxPluginInputGenerics = SugarboxPluginInputGenerics,
+export type ChoicekitPlugin<
+	TGenerics extends ChoicekitPluginInputGenerics = ChoicekitPluginInputGenerics,
 	TMode extends "input" | "output" = "output",
 > = ("input" extends TMode
-	? BaseSugarboxPlugin<TGenerics>
+	? BaseChoicekitPlugin<TGenerics>
 	: /** Since *purely* optional properties will be supplied defaults, they can be assumed to be always be non optional after `definePlugin` is called */
-		Required<BaseSugarboxPlugin<TGenerics>>) &
+		Required<BaseChoicekitPlugin<TGenerics>>) &
 	ConditionalApiPluginExtension<TGenerics> &
 	ConditionalSerializedStatePluginExtension<TGenerics> &
 	ConditionalStatePluginExtension<TGenerics>;
 
-export interface SugarboxPluginSaveStructure<
+export interface ChoicekitPluginSaveStructure<
 	TSerialized extends
 		TransformableOrJsonSerializableType = TransformableOrJsonSerializableType,
 > {
-	version: SugarBoxSemanticVersionString;
+	version: ChoicekitSemanticVersionString;
 	data: TSerialized;
 }
 
@@ -320,17 +320,17 @@ const PLUGIN_DEFAULTS = {
 	id: "",
 	onOverride: "err",
 	version: "0.0.1",
-} as const satisfies SugarboxPlugin;
+} as const satisfies ChoicekitPlugin;
 
 /** Small wrapper with a single object generic paramter for creating strongly-typed plugins.
  *
  * Applies defaults to missing properties.
  */
 export function definePlugin<
-	const TInputGenerics extends SugarboxPluginInputGenerics,
+	const TInputGenerics extends ChoicekitPluginInputGenerics,
 >(
-	plugin: SugarboxPlugin<TInputGenerics, "input">,
-): SugarboxPlugin<TInputGenerics, "output"> {
+	plugin: ChoicekitPlugin<TInputGenerics, "input">,
+): ChoicekitPlugin<TInputGenerics, "output"> {
 	//@ts-expect-error Inference limitation
 	return Object.assign(clone(PLUGIN_DEFAULTS), plugin);
 }
