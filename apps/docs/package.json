@@ -6,13 +6,19 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.10",
-		"astro-vtbot": "^2.1.12"
+		"astro-vtbot": "^2.1.12",
+		"typedoc": "^0.28.18",
+		"typedoc-plugin-markdown": "^4.11.0"
 	},
 	"name": "@apps/docs",
 	"scripts": {
 		"astro": "astro",
-		"build": "astro build",
+		"build": "bun run docs:api && astro build",
 		"dev": "astro dev",
+		"docs:api": "bun run docs:api:generate && node ./scripts/add-api-frontmatter.mjs",
+		"docs:api:generate": "typedoc --entryPoints ../library/src/index.ts --tsconfig ../library/tsconfig.json --plugin typedoc-plugin-markdown --out ./src/content/docs/reference/api --readme none --name choicekit --hidePageHeader --hideBreadcrumbs",
+		"docs:api:watch": "typedoc --entryPoints ../library/src/index.ts --tsconfig ../library/tsconfig.json --plugin typedoc-plugin-markdown --out ./src/content/docs/reference/api --readme none --name choicekit --watch --hidePageHeader --hideBreadcrumbs",
+		"docs:audit": "node ./scripts/audit-choicekit-coverage.mjs",
 		"format": "bun biome format ./ --write",
 		"lint": "bun biome lint ./ --write",
 		"preview": "astro preview",

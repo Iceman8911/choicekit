@@ -24,7 +24,6 @@
 		"quick-lru": "^7.3.0",
 		"turbo": "^2.9.3",
 		"type-fest": "^5.5.0",
-		"typedoc": "^0.28.18",
 		"typescript": "^6.0.2"
 	},
 	"exports": {
@@ -110,9 +109,8 @@
 		}
 	},
 	"scripts": {
-		"build": "bunup & bun run docgen",
-		"dev": "bunup --watch  & bun run docgen",
-		"docgen": "typedoc src/index.ts --json ../docs/src/generated/docs.json",
+		"build": "bunup",
+		"dev": "bunup --watch",
 		"format": "biome format --write ./src",
 		"lint": "biome check --write ./src",
 		"prepare": "husky",
