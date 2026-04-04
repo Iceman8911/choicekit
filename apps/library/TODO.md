@@ -10,6 +10,8 @@
 - [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
 - [ ] Rewrite the AI-generated test suite cus it's garbage.
+- [ ] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
+	- [ ] In fact, add tests for every config option.
 
 ---
 

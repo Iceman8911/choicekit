@@ -1,0 +1,1 @@
+- [ ] Add more examples for different passgae types, maybe ways of adding links too
