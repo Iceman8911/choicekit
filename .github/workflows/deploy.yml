@@ -4,7 +4,7 @@ on:
   # Trigger the workflow every time you push to the `main` branch
   # Using a different branch name? Replace `main` with your branch’s name
   push:
-    branches: [main]
+    branches: [main, master]
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -20,6 +20,11 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v5
+
+      - name: Setup Node.js (required by Astro)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
 
       # The docs site depends on generated JSON produced by building the library first.
       # Build with Turbo so dependency ordering is respected (docs -> dependsOn library#build).
