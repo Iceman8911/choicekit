@@ -1,3 +1,4 @@
+import * as v from "valibot";
 import type { ChoicekitEngine } from "../../engine/if-engine";
 import {
 	type ChoicekitPlugin,
@@ -5,18 +6,46 @@ import {
 	type ValidatePluginGenerics,
 } from "../plugin";
 
+type StoryletConfigEntryPriorityInput = number | undefined;
+type StoryletConfigEntryPriorityOutput = number;
+const StoryletConfigEntryPrioritySchema: v.GenericSchema<
+	StoryletConfigEntryPriorityInput,
+	StoryletConfigEntryPriorityOutput
+> = v.pipe(
+	v.optional(v.union([v.number(), v.nan()]), 0),
+	v.transform((val) => {
+		const num = Number(val);
+
+		// biome-ignore lint/suspicious/noGlobalIsNan: <Shorter + no fear of casting>
+		return isNaN(num) ? 0 : Math.min(0, num);
+	}),
+);
+
 /**
  * Result returned by a single storylet condition callback.
  *
- * - `boolean`: pass/fail with default weight `1` when passing.
- * - `[boolean, number]`: pass/fail with explicit weight used for tie-breaking.
+ * - `boolean`: pass/fail with default weight `0` when passing.
+ * - `[boolean, number]`: pass/fail with explicit weight (or default to 0) used for tie-breaking.
  */
-type StoryletConditionResult = boolean | readonly [boolean, number];
+type StoryletConditionResultInput =
+	| boolean
+	| [boolean, StoryletConfigEntryPriorityInput];
+type StoryletConditionResultOutput = [boolean, number];
+const StoryletConditionResultSchema: v.GenericSchema<
+	StoryletConditionResultInput,
+	StoryletConditionResultOutput
+> = v.union([
+	v.pipe(
+		v.boolean(),
+		v.transform((bool) => [bool, 0] as StoryletConditionResultOutput),
+	),
+	v.tuple([v.boolean(), StoryletConfigEntryPrioritySchema]),
+]);
 
 /** Condition callback evaluated against the current engine instance. */
 export type StoryletCondition<
 	TEngine extends ChoicekitEngine = ChoicekitEngine,
-> = (engine: TEngine) => StoryletConditionResult;
+> = (engine: TEngine) => StoryletConditionResultInput;
 
 /** One storylet definition consumed by the official storylet plugin. */
 export type StoryletConfigEntry<
@@ -28,7 +57,7 @@ export type StoryletConfigEntry<
 	/** Passage to navigate to when this storylet is selected/loaded. */
 	passageId: TPassageId;
 	/** Optional global priority (default `0`) used after ratio/weight tie-breakers. */
-	priority?: number;
+	priority?: StoryletConfigEntryPriorityInput;
 	/**
 	 * Condition callbacks for this entry.
 	 *
@@ -43,7 +72,7 @@ export type StoryletEvaluation<TPassageId extends string = string> = Readonly<{
 	passageId: TPassageId;
 
 	/** Normalized storylet-level priority value (defaults to `0`). */
-	priority: number;
+	priority: StoryletConfigEntryPriorityOutput;
 	/** `true` only when all configured conditions pass. */
 	isEligible: boolean;
 	/** Number of passing condition callbacks. */
@@ -100,34 +129,16 @@ type StoryletPluginGenerics<
 }>;
 
 /** Convert unknown priority-like values to a stable finite number. */
-function normalizePriority(value: unknown): number {
-	if (typeof value !== "number" || Number.isFinite(value) === false) {
-		return 0;
-	}
-
-	return value;
-}
+const normalizePriority = (
+	value: StoryletConfigEntryPriorityInput,
+): StoryletConfigEntryPriorityOutput =>
+	v.parse(StoryletConfigEntryPrioritySchema, value);
 
 /** Normalize condition callback outputs into a common shape for scoring. */
-function normalizeConditionResult(result: StoryletConditionResult): {
-	passed: boolean;
-	weight: number;
-} {
-	if (Array.isArray(result)) {
-		const [passed, rawWeight] = result as [boolean, number];
-		const weight = normalizePriority(rawWeight);
-
-		return {
-			passed,
-			weight,
-		};
-	}
-
-	return {
-		passed: result as boolean,
-		weight: 1,
-	};
-}
+const normalizeConditionResult = (
+	result: StoryletConditionResultInput,
+): StoryletConditionResultOutput =>
+	v.parse(StoryletConditionResultSchema, result);
 
 /**
  * Create the official storylet plugin.
@@ -139,11 +150,11 @@ function normalizeConditionResult(result: StoryletConditionResult): {
  *
  * Persistence uses `serialize.withSave = true`, so counters rewind with story saves.
  */
-export function createStoryletPlugin<
+export const createStoryletPlugin = <
 	TConditionEngine extends ChoicekitEngine = ChoicekitEngine,
 	TPassageId extends string = TConditionEngine["passageId"],
->(): ChoicekitPlugin<StoryletPluginGenerics<TConditionEngine, TPassageId>> {
-	return definePlugin({
+>(): ChoicekitPlugin<StoryletPluginGenerics<TConditionEngine, TPassageId>> =>
+	definePlugin({
 		id: "storylet",
 		initApi({ config, engine, state }) {
 			/** Resolve and validate a storylet name from config. */
@@ -175,7 +186,7 @@ export function createStoryletPlugin<
 					let passingWeight = 0;
 
 					for (const condition of storylet.conditions) {
-						const { passed, weight } = normalizeConditionResult(
+						const [passed, weight] = normalizeConditionResult(
 							condition(engine as unknown as TConditionEngine),
 						);
 
@@ -288,7 +299,7 @@ export function createStoryletPlugin<
 					const topStorylet = getTopEligibleStorylet();
 
 					if (!topStorylet) {
-						return null;
+						return topStorylet;
 					}
 
 					markStoryletSelected(topStorylet.name);
@@ -310,22 +321,21 @@ export function createStoryletPlugin<
 		},
 		/** Restore persisted counters; pending loads are intentionally reset. */
 		onDeserialize({ data, state }) {
-			state.selectedCounts = data.selectedCounts ?? {};
-			state.loadedCounts = data.loadedCounts ?? {};
+			state.selectedCounts = data.selectedCounts;
+			state.loadedCounts = data.loadedCounts;
 			state.pendingLoads = [];
 		},
 		serialize: {
 			/** Persist only stable counters with story save data. */
-			method(state) {
+			method({ loadedCounts, selectedCounts }) {
 				return {
-					loadedCounts: state.loadedCounts,
-					selectedCounts: state.selectedCounts,
+					loadedCounts,
+					selectedCounts,
 				};
 			},
 			/** Rewind with story saves so stats remain run-specific. */
 			withSave: true,
 		},
 	});
-}
 
 export default createStoryletPlugin;
