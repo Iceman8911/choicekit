@@ -91,6 +91,7 @@ Use the builder to mount plugins before `build()`.
 import {
 	ChoicekitEngineBuilder,
 	createAchievementsPlugin,
+	createStoryletPlugin,
 	createSettingsPlugin,
 } from "choicekit";
 
@@ -103,6 +104,8 @@ const settingsPlugin = createSettingsPlugin({
 	textSpeed: "normal" as "slow" | "normal" | "fast",
 	musicVolume: 0.7,
 });
+
+const storyletPlugin = createStoryletPlugin();
 
 const engine = await new ChoicekitEngineBuilder()
 	.withName("my-story")
@@ -119,6 +122,18 @@ const engine = await new ChoicekitEngineBuilder()
 			textSpeed: "normal",
 			musicVolume: 0.7,
 		},
+	})
+	.withPlugin(storyletPlugin, {
+		storylets: [
+			{
+				name: "VillageIntro",
+				passageId: "Start",
+				priority: 1,
+				conditions: [
+					(engine) => [engine.vars.gold >= 0, 1],
+				],
+			},
+		],
 	})
 	.build();
 ```
@@ -194,16 +209,17 @@ engineBuilder.withPlugin(createQuestPlugin(), {
 });
 ```
 
-## Current official example plugins
+## Current official plugins
 
 1. [createAchievementsPlugin](/choicekit/reference/api/functions/createachievementsplugin/)
 2. [createSettingsPlugin](/choicekit/reference/api/functions/createsettingsplugin/)
+3. [createStoryletPlugin](/choicekit/reference/api/functions/createstoryletplugin/)
 
-These two examples demonstrate the key plugin patterns:
+These official plugins demonstrate the key plugin patterns:
 
 1. Stateful API mounted at `engine.$`
 2. Event emitter API for feature-specific events
-3. Persistent plugin state (`withSave: false`) for out-of-save progression/preferences
+3. Persistent plugin state (`withSave: false` or `withSave: true`) depending on desired rewind behavior
 
 ## Storylets and other IF systems
 
