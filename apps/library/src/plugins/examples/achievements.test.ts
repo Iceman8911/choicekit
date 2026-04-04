@@ -291,7 +291,7 @@ describe("Achievements Plugin", () => {
 				deserialize(
 					await decompressPossiblyCompressedJsonString(exportedStr),
 				) as any
-			)["plugins"]["achievements"]["data"]["achievements"],
+			).plugins.achievements.data.achievements,
 		).toEqual({
 			foundKey: true,
 			heroArc: {

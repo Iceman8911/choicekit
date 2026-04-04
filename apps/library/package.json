@@ -72,16 +72,6 @@
 				"types": "./dist/engine/index.d.cts"
 			}
 		},
-		"./engine/core": {
-			"import": {
-				"default": "./dist/engine/core/index.js",
-				"types": "./dist/engine/core/index.d.ts"
-			},
-			"require": {
-				"default": "./dist/engine/core/index.cjs",
-				"types": "./dist/engine/core/index.d.cts"
-			}
-		},
 		"./package.json": "./package.json",
 		"./plugins": {
 			"import": {

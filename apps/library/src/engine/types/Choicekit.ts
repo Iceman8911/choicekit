@@ -10,7 +10,7 @@ import type {
 	ChoicekitPluginSaveStructure,
 	ValidatePluginGenerics as ValidatePluginGenericsType,
 } from "../../plugins/plugin";
-import type { ChoicekitEngine } from "../core/if-engine";
+import type { ChoicekitEngine } from "../if-engine";
 
 export declare namespace ChoicekitType {
 	/** All userland custom classes need to implement this if they must be part of the story's state */

@@ -3,8 +3,8 @@ import type {
 	ChoicekitEngineArguments,
 	ChoicekitEngineGenerics,
 	ChoicekitEngineVariableInitData,
-} from "./core/_shared";
-import { ChoicekitEngine } from "./core/if-engine";
+} from "./_shared";
+import { ChoicekitEngine } from "./if-engine";
 
 type ChoicekitEngineArgumentKeys = keyof ChoicekitEngineArguments;
 

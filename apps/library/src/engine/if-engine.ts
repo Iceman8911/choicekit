@@ -24,21 +24,20 @@ import {
 	ChoicekitExportDataSchema,
 	ChoicekitPluginSaveStructureSchema,
 	ChoicekitSaveDataSchema,
-} from "../../_internal/models/if-engine.schemas";
+} from "../_internal/models/if-engine.schemas";
 import type {
 	GenericObject,
 	GenericSerializableObject,
-} from "../../_internal/models/shared";
+} from "../_internal/models/shared";
 import {
 	type ChoicekitSemanticVersionString,
 	isSaveCompatibleWithEngine,
-} from "../../_internal/utils/version";
-import { InMemoryPersistenceAdapter } from "../../adapters/persistence/in-memory";
+} from "../_internal/utils/version";
+import { InMemoryPersistenceAdapter } from "../adapters/persistence/in-memory";
 import type {
 	ChoicekitPlugin,
 	ChoicekitPluginSaveStructure,
-} from "../../plugins/plugin";
-import type { ChoicekitType } from "../types/Choicekit";
+} from "../plugins/plugin";
 import type {
 	ChoicekitEngineArguments,
 	ChoicekitEngineGenerics,
@@ -46,6 +45,7 @@ import type {
 	ChoicekitSaveMigration,
 	ChoicekitSaveMigrationMap,
 } from "./_shared";
+import type { ChoicekitType } from "./types/Choicekit";
 
 const DEFAULT_CONFIG = {
 	autoSave: false,
@@ -397,7 +397,6 @@ class ChoicekitEngine<
 							prop
 						];
 
-						//@ts-expect-error TS is confused
 						target[prop] = clone(previousStateValue);
 					}
 				}
@@ -958,14 +957,17 @@ class ChoicekitEngine<
 	reset(resetSeed = false): void {
 		this.#rewriteState(
 			resetSeed
-				? { ...this.#initialState, $$seed: getRandomInteger() }
-				: this.#initialState,
+				? ({
+						...this.#initialState,
+						$$seed: getRandomInteger(),
+					} as typeof this._type.state.complete)
+				: ({ ...this.#initialState } as typeof this._type.state.complete),
 		);
 
 		this.#setIndex(0);
 
 		this.#emitCustomEvent("engineReset", {
-			newSeed: this.vars.$$seed,
+			newSeed: this.#currentStatePrngSeed,
 		});
 	}
 
@@ -1294,7 +1296,7 @@ class ChoicekitEngine<
 
 		if (cachedState) return cachedState;
 
-		const state = clone<typeof this._type.state.complete>(this.#initialState);
+		const state = clone(this.#initialState) as typeof this._type.state.complete;
 
 		for (let i = 0; i <= effectiveIndex; i++) {
 			let partialUpdateKey: keyof TEngineGenerics["vars"];
@@ -1320,7 +1322,7 @@ class ChoicekitEngine<
 
 	/** **WARNING:** This will **replace** the intialState and **empty** all the snapshots. */
 	#rewriteState(
-		stateToReplaceTheCurrentOne: typeof this._type.state.complete,
+		stateToReplaceTheCurrentOne: Readonly<typeof this._type.state.complete>,
 	): void {
 		this.#initialState = stateToReplaceTheCurrentOne;
 
@@ -1472,7 +1474,7 @@ class ChoicekitEngine<
 	}
 
 	get #currentStatePrngSeed(): number {
-		return this.vars.$$seed;
+		return this.vars.$$seed as number;
 	}
 
 	/** Since the seed is stored in each snapshot and reinitializing the class isn't expensive, there's not much use in having a dedicated prng prop */
@@ -1494,7 +1496,7 @@ class ChoicekitEngine<
 
 	async #getSaveData(): Promise<typeof this._type.saveData> {
 		return {
-			intialState: this.#initialState,
+			intialState: this.#initialState as typeof this._type.state.complete,
 			lastPassageId: this.passageId,
 			plugins: await this.#getPluginSaveData(true),
 			savedOn: new Date(),

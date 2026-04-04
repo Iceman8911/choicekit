@@ -1,11 +1,8 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
-import {
-	definePlugin,
-	type ValidatePluginGenerics,
-} from "../../plugins/plugin";
-import { ChoicekitEngineBuilder } from "../builder";
-import type { ChoicekitType } from "../types/Choicekit";
+import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
+import { ChoicekitEngineBuilder } from "./builder";
 import { ChoicekitEngine } from "./if-engine";
+import type { ChoicekitType } from "./types/Choicekit";
 
 // ==================== Plugin Type Definitions ====================
 

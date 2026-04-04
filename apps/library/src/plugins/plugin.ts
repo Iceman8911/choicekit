@@ -8,7 +8,7 @@ import type {
 	GenericSerializableObject,
 } from "../_internal/models/shared";
 import type { ChoicekitSemanticVersionString } from "../_internal/utils/version";
-import type { ChoicekitEngine } from "../engine/core/if-engine";
+import type { ChoicekitEngine } from "../engine/if-engine";
 
 type ChoicekitPluginBehaviourOnOverride = "err" | "ignore" | "override";
 
