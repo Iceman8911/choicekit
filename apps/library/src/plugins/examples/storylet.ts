@@ -88,9 +88,9 @@ export type StoryletEvaluation<TPassageId extends string = string> = Readonly<{
 /** Internal mutable plugin state. */
 type StoryletPluginState = {
 	/** Times each storylet has been selected through plugin APIs. */
-	selectedCounts: Record<string, number>;
+	selectedCounts: Map<string, number>;
 	/** Times each selected storylet was actually loaded as the active passage. */
-	loadedCounts: Record<string, number>;
+	loadedCounts: Map<string, number>;
 	/**
 	 * Pending selection intents waiting for a matching `passageChange` event.
 	 *
@@ -113,8 +113,8 @@ type StoryletPluginGenerics<
 	};
 	state: StoryletPluginState;
 	serializedState: {
-		selectedCounts: Record<string, number>;
-		loadedCounts: Record<string, number>;
+		selectedCounts: Map<string, number>;
+		loadedCounts: Map<string, number>;
 	};
 	api: {
 		getEligibleStorylets: () => Array<StoryletEvaluation<TPassageId>>;
@@ -243,8 +243,10 @@ export const createStoryletPlugin = <
 			const markStoryletSelected = (storyletName: string) => {
 				const storylet = getStoryletByName(storyletName);
 
-				state.selectedCounts[storyletName] =
-					(state.selectedCounts[storyletName] ?? 0) + 1;
+				state.selectedCounts.set(
+					storyletName,
+					(state.selectedCounts.get(storyletName) ?? 0) + 1,
+				);
 				state.pendingLoads.push({
 					passageId: storylet.passageId,
 					storyletName,
@@ -270,8 +272,10 @@ export const createStoryletPlugin = <
 				const { storyletName } = pending;
 
 				state.pendingLoads.splice(pendingIndex, 1);
-				state.loadedCounts[storyletName] =
-					(state.loadedCounts[storyletName] ?? 0) + 1;
+				state.loadedCounts.set(
+					storyletName,
+					(state.loadedCounts.get(storyletName) ?? 0) + 1,
+				);
 			});
 
 			return {
@@ -284,8 +288,8 @@ export const createStoryletPlugin = <
 				/** Return selection/load counters for one named storylet. */
 				getStoryletStats(storyletName) {
 					return {
-						loaded: state.loadedCounts[storyletName] ?? 0,
-						selected: state.selectedCounts[storyletName] ?? 0,
+						loaded: state.loadedCounts.get(storyletName) ?? 0,
+						selected: state.selectedCounts.get(storyletName) ?? 0,
 					};
 				},
 				/** Return the single highest-ranked eligible storylet for current state. */
@@ -314,23 +318,23 @@ export const createStoryletPlugin = <
 		/** Initialize fresh per-engine counters. */
 		initState() {
 			return {
-				loadedCounts: {},
+				loadedCounts: new Map(),
 				pendingLoads: [],
-				selectedCounts: {},
+				selectedCounts: new Map(),
 			};
 		},
 		/** Restore persisted counters; pending loads are intentionally reset. */
 		onDeserialize({ data, state }) {
-			state.selectedCounts = data.selectedCounts;
-			state.loadedCounts = data.loadedCounts;
+			state.selectedCounts = new Map(data.selectedCounts);
+			state.loadedCounts = new Map(data.loadedCounts);
 			state.pendingLoads = [];
 		},
 		serialize: {
 			/** Persist only stable counters with story save data. */
 			method({ loadedCounts, selectedCounts }) {
 				return {
-					loadedCounts,
-					selectedCounts,
+					loadedCounts: new Map(loadedCounts),
+					selectedCounts: new Map(selectedCounts),
 				};
 			},
 			/** Rewind with story saves so stats remain run-specific. */
