@@ -24,7 +24,7 @@
 - [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
 - [ ] Add framework adapters (react, vue, svelte, solidjs, etc) for reactivity, or at the very least, show examples.
-- [ ] Use maps instead of records were possible.
+- [x] Use maps instead of records where possible.
 - [ ] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
 
 ---
