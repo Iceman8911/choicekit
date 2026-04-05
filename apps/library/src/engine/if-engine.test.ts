@@ -38,6 +38,34 @@ type CombinedPluginGenerics = ValidatePluginGenerics<{
 	dependencies: [typeof counterPlugin, typeof loggerPlugin];
 }>;
 
+type TimelinePluginGenerics = ValidatePluginGenerics<{
+	id: "timeline";
+	api: {
+		getValue: () => number;
+		setValue: (value: number) => Promise<void>;
+	};
+	serializedState: {
+		value: number;
+	};
+	state: {
+		value: number;
+	};
+}>;
+
+type StoryProgressPluginGenerics = ValidatePluginGenerics<{
+	id: "storyProgress";
+	api: {
+		completeScene: (sceneId: string) => Promise<void>;
+		getCompletedScenes: () => string[];
+	};
+	serializedState: {
+		completedScenes: string[];
+	};
+	state: {
+		completedScenes: string[];
+	};
+}>;
+
 // ==================== Plugin Instances ====================
 
 const counterPlugin = definePlugin<CounterPluginGenerics>({
@@ -89,6 +117,47 @@ const combinedPlugin = definePlugin<CombinedPluginGenerics>({
 		getValue: () => engine.$.counter.getValue(),
 	}),
 	onOverride: "err",
+});
+
+const timelinePlugin = definePlugin<TimelinePluginGenerics>({
+	id: "timeline",
+	initApi: ({ state, triggerSave }) => ({
+		getValue: () => state.value,
+		setValue: async (value: number) => {
+			state.value = value;
+			await triggerSave();
+		},
+	}),
+	initState: () => ({ value: 0 }),
+	onDeserialize: ({ data, state }) => {
+		state.value = data.value;
+	},
+	serialize: {
+		method: ({ value }) => ({ value }),
+		withSave: true,
+	},
+});
+
+const storyProgressPlugin = definePlugin<StoryProgressPluginGenerics>({
+	id: "storyProgress",
+	initApi: ({ state, triggerSave }) => ({
+		completeScene: async (sceneId: string) => {
+			if (!state.completedScenes.includes(sceneId)) {
+				state.completedScenes.push(sceneId);
+			}
+
+			await triggerSave();
+		},
+		getCompletedScenes: () => [...state.completedScenes],
+	}),
+	initState: () => ({ completedScenes: [] }),
+	onDeserialize: ({ data, state }) => {
+		state.completedScenes = [...data.completedScenes];
+	},
+	serialize: {
+		method: ({ completedScenes }) => ({ completedScenes }),
+		withSave: true,
+	},
 });
 
 // ==================== Tests ====================
@@ -565,6 +634,40 @@ describe(ChoicekitEngine.name, () => {
 		expect(seen).toContainEqual({ newIndex: 0, oldIndex: 1 });
 		expect(seen).toContainEqual({ newIndex: 1, oldIndex: 0 });
 		expect(seen[seen.length - 1]).toEqual({ newIndex: 1, oldIndex: 2 });
+	});
+
+	it("should rewind and fast-forward withSave plugin state with history movement", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("PluginTimelineHistory")
+			.withVars({})
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+				{ data: "C", name: "c", tags: [] },
+			)
+			.withPlugin(timelinePlugin, undefined)
+			.build();
+
+		await engine.$.timeline.setValue(10);
+		engine.navigateTo("b");
+
+		await engine.$.timeline.setValue(20);
+		engine.navigateTo("c");
+
+		await engine.$.timeline.setValue(30);
+		expect(engine.$.timeline.getValue()).toBe(30);
+
+		engine.backward();
+		expect(engine.passageId).toBe("b");
+		expect(engine.$.timeline.getValue()).toBe(20);
+
+		engine.backward();
+		expect(engine.passageId).toBe("a");
+		expect(engine.$.timeline.getValue()).toBe(10);
+
+		engine.forward(2);
+		expect(engine.passageId).toBe("c");
+		expect(engine.$.timeline.getValue()).toBe(30);
 	});
 
 	// ==================== Events ====================
@@ -1323,6 +1426,114 @@ describe(ChoicekitEngine.name, () => {
 		expect(engine.vars.hp).toBe(6);
 		expect(engine.vars.mana).toBe(2);
 		expect(engine.passageId).toBe("dungeon");
+	});
+
+	it("should preserve plugin metadata in callback-based vars saves", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("CallbackVarsPluginMetadata")
+			.withVars(() => ({ hp: 5 }))
+			.withPassages({
+				data: "start",
+				name: "start",
+				tags: [],
+			})
+			.withConfig({ loadOnStart: false })
+			.withPlugin(timelinePlugin, undefined)
+			.build();
+
+		await engine.$.timeline.setValue(77);
+		await engine.saveToSaveSlot(0);
+
+		let saveData: ChoicekitType.SaveData | null = null;
+
+		for await (const save of engine.getSaves()) {
+			if (save.type === "normal" && save.slot === 0) {
+				saveData = save.data;
+				break;
+			}
+		}
+
+		expect(saveData).not.toBeNull();
+		expect(saveData?.intialState.$$plugins).toEqual({});
+		expect(saveData?.snapshots[0]?.$$plugins?.timeline?.data).toEqual({
+			value: 77,
+		});
+	});
+
+	it("should round-trip withSave plugin state through a story save slot", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("StoryProgressSlotRoundTrip")
+			.withVars({ chapter: 0 })
+			.withPassages(
+				{ data: "Intro", name: "intro", tags: ["start"] },
+				{ data: "Hallway", name: "hallway", tags: ["mid"] },
+				{ data: "End", name: "end", tags: ["final"] },
+			)
+			.withPlugin(storyProgressPlugin, undefined)
+			.withConfig({ loadOnStart: false })
+			.build();
+
+		await engine.$.storyProgress.completeScene("intro");
+		engine.navigateTo("hallway");
+		await engine.$.storyProgress.completeScene("hallway");
+		const historyIndexBeforeSave = engine.index;
+		await engine.saveToSaveSlot(4);
+
+		engine.navigateTo("end");
+		await engine.$.storyProgress.completeScene("end");
+
+		const reader = await new ChoicekitEngineBuilder()
+			.withName("StoryProgressSlotRoundTrip")
+			.withVars({ chapter: -1 })
+			.withPassages(
+				{ data: "Intro", name: "intro", tags: ["start"] },
+				{ data: "Hallway", name: "hallway", tags: ["mid"] },
+				{ data: "End", name: "end", tags: ["final"] },
+			)
+			.withPlugin(storyProgressPlugin, undefined)
+			.withConfig({ loadOnStart: false })
+			.build();
+
+		// Before load: fresh state should have empty scene list
+		expect(reader.$.storyProgress.getCompletedScenes()).toEqual([]);
+
+		await reader.loadFromSaveSlot(4);
+
+		// After load: vars and passages should be restored
+		expect(reader.vars.chapter).toBe(0);
+		expect(reader.passageId).toBe("hallway");
+		expect(reader.index).toBe(historyIndexBeforeSave);
+
+		// Plugin state should be fully restored from snapshot
+		expect(reader.$.storyProgress.getCompletedScenes()).toEqual([
+			"intro",
+			"hallway",
+		]);
+
+		// Passage metadata should be intact
+		const currentPassage = reader.getPassages({
+			tags: ["mid"],
+			type: "any",
+		})[0];
+		expect(currentPassage).toBeDefined();
+		expect(currentPassage?.name).toBe("hallway");
+		expect(currentPassage?.data).toBe("Hallway");
+
+		// Should be able to continue navigating from loaded state
+		reader.navigateTo("end");
+		expect(reader.passageId).toBe("end");
+		expect(reader.$.storyProgress.getCompletedScenes()).toEqual([
+			"intro",
+			"hallway",
+		]); // plugin state preserved across navigation
+
+		// Should be able to continue updating plugin state
+		await reader.$.storyProgress.completeScene("end");
+		expect(reader.$.storyProgress.getCompletedScenes()).toEqual([
+			"intro",
+			"hallway",
+			"end",
+		]);
 	});
 
 	it("should migrate old saves with registerMigrators", async () => {
