@@ -74,6 +74,62 @@ A plugin can define:
 
 Use `definePlugin` and `ValidatePluginGenerics` for strong typing and predictable inference.
 
+## Dependency config forwarding
+
+Each dependency entry in `dependencies` supports either:
+
+1. a static config object
+2. a callback `(config) => dependencyConfig` where `config` is the caller plugin config
+
+This is useful when a plugin needs to derive nested dependency config from its own config.
+
+```ts
+type CorePluginGenerics = ValidatePluginGenerics<{
+	id: "core";
+	config: { prefix: string };
+	api: {
+		format: (value: string) => string;
+	};
+}>;
+
+const corePlugin = definePlugin<CorePluginGenerics>({
+	id: "core",
+	initApi({ config }) {
+		return {
+			format: (value) => `${config.prefix}${value}`,
+		};
+	},
+});
+
+type FeaturePluginGenerics = ValidatePluginGenerics<{
+	id: "feature";
+	config: { storyPrefix: string };
+	dependencies: [typeof corePlugin];
+	api: {
+		summary: () => string;
+	};
+}>;
+
+const featurePlugin = definePlugin<FeaturePluginGenerics>({
+	id: "feature",
+	dependencies: [
+		{
+			plugin: corePlugin,
+			config: (config) => ({ prefix: config.storyPrefix }),
+		},
+	],
+	initApi({ engine }) {
+		return {
+			summary: () => engine.$.core.format("ready"),
+		};
+	},
+});
+```
+
+If the caller plugin has no config, the callback receives `{}`.
+
+If two branches request the same shared dependency with different resolved configs, Choicekit keeps the first mounted dependency config and logs a warning.
+
 ## Persistence model for plugin data
 
 Plugin persistence is opt-in via `serialize` + `onDeserialize`.
