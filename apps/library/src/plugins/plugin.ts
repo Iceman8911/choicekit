@@ -21,13 +21,35 @@ type InferApiFromPlugin<TPlugin extends ChoicekitPlugin> =
 			: never
 		: never;
 
+type ExtractDependencyPlugins<TPlugin extends ChoicekitPlugin> =
+	TPlugin["dependencies"][number]["plugin"];
+
+type ExpandPluginToIncludeDependencies<
+	TPlugin extends ChoicekitPlugin,
+	TSeen extends ChoicekitPlugin = never,
+> = TPlugin extends TSeen
+	? never
+	:
+			| TPlugin
+			| ExpandPluginsToIncludeDependencies<
+					ExtractDependencyPlugins<TPlugin>,
+					TSeen | TPlugin
+			  >;
+
+type ExpandPluginsToIncludeDependencies<
+	TPluginUnion extends ChoicekitPlugin,
+	TSeen extends ChoicekitPlugin = never,
+> = TPluginUnion extends ChoicekitPlugin
+	? ExpandPluginToIncludeDependencies<TPluginUnion, TSeen>
+	: never;
+
 /** Map a plugin tuple into the mounted API shape under `engine.$`. */
 export type MapPluginsToApiSurface<TPlugins extends ChoicekitPlugins> = {
-	[KPlugin in TPlugins[number] as KPlugin extends ChoicekitPlugin
-		? KPlugin["id"]
-		: never]: KPlugin extends ChoicekitPlugin
-		? InferApiFromPlugin<KPlugin>
-		: never;
+	[KPlugin in ExpandPluginsToIncludeDependencies<
+		TPlugins[number]
+	> as string extends KPlugin["id"]
+		? never
+		: KPlugin["id"]]: InferApiFromPlugin<KPlugin>;
 };
 
 /**
