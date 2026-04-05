@@ -12,7 +12,7 @@
 - [x] Rewrite the AI-generated test suite cus it's garbage.
 - [ ] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
 	- [ ] In fact, add tests for every config option.
-- [ ] For plugins with `withSave: true`, I should prolly store their state in the state snapshots of the engine, rather than just in the save data.
+- [x] For plugins with `withSave: true`, I should prolly store their state in the state snapshots of the engine, rather than just in the save data.
 
 ---
 
@@ -24,6 +24,8 @@
 - [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
 - [ ] Add framework adapters (react, vue, svelte, solidjs, etc) for reactivity, or at the very least, show examples.
+- [ ] Use maps instead of records were possible.
+- [ ] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
 
 ---
 
@@ -38,6 +40,8 @@
 - [ ] Allow Choicekit class instances to provide a `.clone()` method for more efficient cloning, in comparison to the more expensive way of serializing and de-serializing.
 - [ ] Make types better.
 - [ ] Use `const` over `function` for better minifcation.
+- [ ] Consider using [Craft](https://github.com/SylphxAI/craft) or [Mutative](https://github.com/unadlib/mutative) for more efficient snapshot generation via their patches.
+- [ ] Add some form of save recovery.
 
 ---
 
