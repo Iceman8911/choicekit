@@ -78,8 +78,13 @@ Use `definePlugin` and `ValidatePluginGenerics` for strong typing and predictabl
 
 Plugin persistence is opt-in via `serialize` + `onDeserialize`.
 
-1. `withSave: true`: plugin data is stored with normal story saves
+1. `withSave: true`: plugin data is stored with story snapshots, so it rewinds with history movement (`backward` / `forward`) and with save loads
 2. `withSave: false`: plugin data is stored in plugin-specific storage and included in export payloads
+
+`triggerSave()` persists plugin state according to that mode:
+
+1. for `withSave: true`, it checkpoints plugin state into the current story snapshot
+2. for `withSave: false`, it writes plugin state into the plugin's own storage partition
 
 Use `withSave: false` for cross-run systems (for example achievements/settings that should not rewind when loading old story saves).
 

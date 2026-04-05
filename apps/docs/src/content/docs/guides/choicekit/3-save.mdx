@@ -16,6 +16,15 @@ A story save contains data needed to restore narrative execution, including:
 
 Plugin-level persistence concerns (like settings/achievements) are documented in [Plugins](/choicekit/guides/choicekit/6-plugins/).
 
+## Plugin persistence and timeline behavior
+
+Plugin persistence depends on each plugin's `serialize.withSave` mode.
+
+1. `withSave: true`: plugin payloads are stored in story snapshots and therefore follow story history and save/load operations.
+2. `withSave: false`: plugin payloads are stored outside story slots and are included in export payloads.
+
+This means `withSave: true` systems rewind when players move backward or load older saves, while `withSave: false` systems can remain cross-run (for example global settings or achievements).
+
 ## Configure persistence
 
 Use a persistence adapter through engine config.

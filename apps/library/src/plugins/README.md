@@ -72,10 +72,13 @@ After mounting all plugins, the engine attempts to restore plugin data that is s
 
 Plugin persistence is opt-in (`serialize` + `onDeserialize`).
 
-- `withSave: true`: plugin data is stored with normal story save data.
+- `withSave: true`: plugin data is stored in story snapshots and rewinds with history (`backward` / `forward`), and also when loading story saves.
 - `withSave: false`: plugin data is stored in plugin-specific persistent storage and included in export data.
 
 `triggerSave()` is provided to `initApi` so plugins can explicitly persist their own state when needed.
+
+- For `withSave: true`, `triggerSave()` checkpoints plugin state into the current snapshot.
+- For `withSave: false`, `triggerSave()` writes plugin state to its dedicated storage partition.
 
 ## Dependency behavior
 

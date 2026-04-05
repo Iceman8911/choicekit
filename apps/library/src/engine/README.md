@@ -103,11 +103,13 @@ Functionality that is typically implemented via plugins includes:
 
 There are 2 types of persisted data: **story** save data and **plugin** save data.
 
-Story save data includes initial state, state snapshots, story index, save version, and plugin payloads that are configured to save with story saves.
+Story save data includes initial state, state snapshots, story index, and save version.
+
+Plugin payloads for plugins configured with `withSave: true` are stored inside story snapshots (`$$plugins`) and therefore move with history (`backward` / `forward`) and save/load.
 
 Data can be stored either in user-facing save slots (manual slots and autosave) or in plugin-specific persistent partitions that are independent from normal story save slots.
 
-There is also **export** data (`saveToExport` / `loadFromExport`), which contains story save data plus plugin save data.
+There is also **export** data (`saveToExport` / `loadFromExport`), which contains story save data plus plugin data for plugins configured with `withSave: false`.
 
 Story saves can be written to numbered slots (`saveToSaveSlot(slot)`) or to the autosave slot (`saveToSaveSlot()` with no slot). The adapter used for storage is configurable, with in-memory as the default.
 
