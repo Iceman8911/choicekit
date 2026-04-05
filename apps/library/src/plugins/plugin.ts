@@ -14,12 +14,39 @@ type ChoicekitPluginBehaviourOnOverride = "err" | "ignore" | "override";
 
 type ChoicekitPlugins = ReadonlyArray<ChoicekitPlugin>;
 
+type NormalizeDependencyResolverArg<TConfig extends GenericObject | undefined> =
+	undefined extends TConfig
+		? GenericObject
+		: TConfig extends undefined
+			? GenericObject
+			: TConfig;
+
 type InferApiFromPlugin<TPlugin extends ChoicekitPlugin> =
 	"initApi" extends keyof TPlugin
 		? TPlugin["initApi"] extends (...args: any[]) => any
 			? Awaited<ReturnType<TPlugin["initApi"]>>
 			: never
 		: never;
+
+export type ChoicekitDependencyConfigResolver<
+	TCallerConfig extends GenericObject = GenericObject,
+	TDependencyConfig extends GenericObject | undefined = GenericObject,
+> = {
+	bivarianceHack(config: TCallerConfig): TDependencyConfig;
+}["bivarianceHack"];
+
+type ChoicekitDependencyEntry<
+	TPlugin extends ChoicekitPlugin,
+	TCallerConfig extends GenericObject = GenericObject,
+> = {
+	readonly plugin: TPlugin;
+	readonly config:
+		| InferConfigFromPlugin<TPlugin>
+		| ChoicekitDependencyConfigResolver<
+				TCallerConfig,
+				InferConfigFromPlugin<TPlugin>
+		  >;
+};
 
 type ExtractDependencyPlugins<TPlugin extends ChoicekitPlugin> =
 	TPlugin["dependencies"][number]["plugin"];
@@ -65,12 +92,12 @@ export type ChoicekitEngineWithPluginApis<
 	$: TEngine["$"] & MapPluginsToApiSurface<TPlugins>;
 };
 
-type MapPluginsToPluginAndConfigTuple<TPlugins extends ChoicekitPlugins> = {
+type MapPluginsToPluginAndConfigTuple<
+	TPlugins extends ChoicekitPlugins,
+	TCallerConfig extends GenericObject = GenericObject,
+> = {
 	[K in keyof TPlugins]: TPlugins[K] extends ChoicekitPlugin
-		? {
-				readonly plugin: TPlugins[K];
-				readonly config: InferConfigFromPlugin<TPlugins[K]>;
-			}
+		? ChoicekitDependencyEntry<TPlugins[K], TCallerConfig>
 		: TPlugins[K];
 };
 
@@ -224,7 +251,8 @@ interface BaseChoicekitPlugin<TGenerics extends ChoicekitPluginInputGenerics> {
 	 * @default []
 	 */
 	readonly dependencies?: MapPluginsToPluginAndConfigTuple<
-		NormalizeDependencies<TGenerics["dependencies"]>
+		NormalizeDependencies<TGenerics["dependencies"]>,
+		NormalizeDependencyResolverArg<TGenerics["config"]>
 	>;
 
 	/** Save data version for help with migrations.

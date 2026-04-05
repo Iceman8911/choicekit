@@ -143,8 +143,18 @@ describe("ChoicekitEngineBuilder - Plugin Type Accumulation", () => {
 
 		expectTypeOf(dependentPlugin.dependencies).toExtend<
 			readonly [
-				{ plugin: typeof booleanPlugin; config: { defaultValue: boolean } },
-				{ plugin: typeof stringPlugin; config: { prefix: string } },
+				{
+					plugin: typeof booleanPlugin;
+					config:
+						| { defaultValue: boolean }
+						| ((config: { foo: boolean }) => { defaultValue: boolean });
+				},
+				{
+					plugin: typeof stringPlugin;
+					config:
+						| { prefix: string }
+						| ((config: { foo: boolean }) => { prefix: string });
+				},
 			]
 		>();
 

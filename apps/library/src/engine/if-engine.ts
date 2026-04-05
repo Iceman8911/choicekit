@@ -35,6 +35,7 @@ import {
 } from "../_internal/utils/version";
 import { InMemoryPersistenceAdapter } from "../adapters/persistence/in-memory";
 import type {
+	ChoicekitDependencyConfigResolver,
 	ChoicekitPlugin,
 	ChoicekitPluginSaveStructure,
 	MapPluginsToApiSurface,
@@ -236,7 +237,41 @@ class ChoicekitEngine<
 	#stateSnapshots: Array<typeof this._type.state.snapshot> = [];
 
 	#plugins = new Map<string, ChoicekitPlugin>();
+	#pluginConfig = new Map<string, GenericObject>();
 	#pluginState = new Map<string, GenericObject>();
+
+	#normalizePluginConfig(config?: GenericObject): GenericObject {
+		return config ?? {};
+	}
+
+	#stringifyPluginConfig(config: GenericObject): string {
+		try {
+			return JSON.stringify(config);
+		} catch {
+			return "[unserializable config]";
+		}
+	}
+
+	#isSamePluginConfig(a: GenericObject, b: GenericObject): boolean {
+		return this.#stringifyPluginConfig(a) === this.#stringifyPluginConfig(b);
+	}
+
+	#resolveDependencyConfig(
+		dependencyConfig:
+			| GenericObject
+			| ChoicekitDependencyConfigResolver<
+					GenericObject,
+					GenericObject | undefined
+			  >
+			| undefined,
+		callerPluginConfig: GenericObject,
+	): GenericObject | undefined {
+		if (typeof dependencyConfig === "function") {
+			return dependencyConfig(callerPluginConfig);
+		}
+
+		return dependencyConfig;
+	}
 
 	private constructor(args: {
 		classes: ChoicekitClassConstructorWithValidSerialization[];
@@ -1552,12 +1587,38 @@ class ChoicekitEngine<
 
 		const applyPlugin = async () => {
 			const engine = this;
+			const normalizedPluginConfig = engine.#normalizePluginConfig(config);
 
 			engine.#plugins.set(id, pluginToUse);
+			engine.#pluginConfig.set(id, normalizedPluginConfig);
 
-			for (const { config: depConfig, plugin: depPlugin } of dependencies) {
+			for (const {
+				config: depConfigInput,
+				plugin: depPlugin,
+			} of dependencies) {
+				const resolvedDepConfig = engine.#resolveDependencyConfig(
+					depConfigInput,
+					normalizedPluginConfig,
+				);
+				const normalizedResolvedDepConfig =
+					engine.#normalizePluginConfig(resolvedDepConfig);
+
+				const previousDependencyConfig = engine.#pluginConfig.get(depPlugin.id);
+
+				if (
+					previousDependencyConfig &&
+					!engine.#isSamePluginConfig(
+						previousDependencyConfig,
+						normalizedResolvedDepConfig,
+					)
+				) {
+					console.warn(
+						`Dependency '${depPlugin.id}' was already mounted with config ${engine.#stringifyPluginConfig(previousDependencyConfig)}. Ignoring later config ${engine.#stringifyPluginConfig(normalizedResolvedDepConfig)} from '${id}'.`,
+					);
+				}
+
 				try {
-					await engine.#usePlugin(depPlugin, depConfig);
+					await engine.#usePlugin(depPlugin, resolvedDepConfig);
 				} catch {
 					console.warn(
 						`Plugin ${depPlugin.id} could not be mounted, perhaps it was already mounted?`,

@@ -155,7 +155,7 @@ describe("Choicekit Plugins", () => {
 		const appPlugin = definePlugin<AppGenerics>({
 			dependencies: [
 				{ config: { level: "info" }, plugin: loggerPlugin },
-				{ config: { token: "token" }, plugin: authPlugin },
+				{ config: (config) => ({ token: config.name }), plugin: authPlugin },
 			],
 			id: "app",
 			initApi({ engine, config }) {
@@ -170,8 +170,18 @@ describe("Choicekit Plugins", () => {
 		// dependencies property exists and is a tuple matching the declared dependencies
 		expectTypeOf(appPlugin.dependencies).toExtend<
 			readonly [
-				{ plugin: LoggerType; config: { level: "info" | "debug" } },
-				{ plugin: AuthType; config: { token: string } },
+				{
+					plugin: LoggerType;
+					config:
+						| { level: "info" | "debug" }
+						| ((config: { name: string }) => { level: "info" | "debug" });
+				},
+				{
+					plugin: AuthType;
+					config:
+						| { token: string }
+						| ((config: { name: string }) => { token: string });
+				},
 			]
 		>();
 
@@ -334,7 +344,12 @@ describe("Choicekit Plugins", () => {
 		}>;
 
 		const rootPlugin = definePlugin<RootGenerics>({
-			dependencies: [{ config: { multiplier: 3 }, plugin: midPlugin }],
+			dependencies: [
+				{
+					config: (config) => ({ multiplier: config.suffix.length + 2 }),
+					plugin: midPlugin,
+				},
+			],
 			id: "root",
 			initApi({ engine, config }) {
 				return {
@@ -414,8 +429,84 @@ describe("Choicekit Plugins", () => {
 		expect(engine.$.counter.get()).toBe(9);
 	});
 
+	it("should pass an empty object to dependency config callbacks when caller plugin has no config", async () => {
+		let callbackArg: Record<string, unknown> | undefined;
+
+		type ChildGenerics = ValidatePluginGenerics<{
+			id: "child";
+			config: { marker: string };
+			api: {
+				getMarker: () => string;
+			};
+		}>;
+
+		const childPlugin = definePlugin<ChildGenerics>({
+			id: "child",
+			initApi({ config }) {
+				return {
+					getMarker: () => config.marker,
+				};
+			},
+		});
+
+		type ParentGenerics = ValidatePluginGenerics<{
+			id: "parent";
+			dependencies: [typeof childPlugin];
+			api: {
+				read: () => string;
+			};
+		}>;
+
+		const parentPlugin = definePlugin<ParentGenerics>({
+			dependencies: [
+				{
+					config: (config) => {
+						callbackArg = config;
+						return { marker: "resolved-from-empty" };
+					},
+					plugin: childPlugin,
+				},
+			],
+			id: "parent",
+			initApi({ engine }) {
+				return {
+					read: () => engine.$.child.getMarker(),
+				};
+			},
+		});
+
+		const engine = await ChoicekitEngine.init<{
+			name: string;
+			vars: Record<string, never>;
+			settings: Record<string, never>;
+			achievements: Record<string, never>;
+			passages: {
+				name: "start";
+				data: string;
+				tags: [];
+			};
+			plugins: [typeof parentPlugin];
+		}>({
+			achievements: {},
+			name: "callback-empty-config-test",
+			passages: [{ data: "", name: "start", tags: [] }],
+			plugins: [{ plugin: parentPlugin }],
+			settings: {},
+			vars: {},
+		});
+
+		expect(callbackArg).toStrictEqual({});
+		expect(engine.$.parent.read()).toBe("resolved-from-empty");
+	});
+
 	it("should mount sibling branch dependencies and initialize shared duplicate dependencies once", async () => {
 		let sharedInitApiCalls = 0;
+		const warnings: string[] = [];
+		const originalWarn = console.warn;
+
+		console.warn = (...args: unknown[]) => {
+			warnings.push(args.map((value) => String(value)).join(" "));
+		};
 
 		type SharedGenerics = ValidatePluginGenerics<{
 			id: "sharedMath";
@@ -458,7 +549,12 @@ describe("Choicekit Plugins", () => {
 		}>;
 
 		const leftPlugin = definePlugin<LeftGenerics>({
-			dependencies: [{ config: { base: 10 }, plugin: sharedPlugin }],
+			dependencies: [
+				{
+					config: (config) => ({ base: config.step * 5 }),
+					plugin: sharedPlugin,
+				},
+			],
 			id: "leftBranch",
 			initApi({ config, engine }) {
 				return {
@@ -477,7 +573,12 @@ describe("Choicekit Plugins", () => {
 		}>;
 
 		const rightPlugin = definePlugin<RightGenerics>({
-			dependencies: [{ config: { base: 999 }, plugin: sharedPlugin }],
+			dependencies: [
+				{
+					config: (config) => ({ base: config.step * 333 }),
+					plugin: sharedPlugin,
+				},
+			],
 			id: "rightBranch",
 			initApi({ config, engine }) {
 				return {
@@ -546,39 +647,51 @@ describe("Choicekit Plugins", () => {
 			};
 		}>();
 
-		const engine = await ChoicekitEngine.init<{
-			name: string;
-			vars: Record<string, never>;
-			settings: Record<string, never>;
-			achievements: Record<string, never>;
-			passages: {
-				name: "start";
-				data: string;
-				tags: [];
-			};
-			plugins: NestedTuple;
-		}>({
-			achievements: {},
-			name: "sibling-branches-shared-dep-test",
-			passages: [{ data: "", name: "start", tags: [] }],
-			plugins: [{ config: {}, plugin: rootPlugin }],
-			settings: {},
-			vars: {},
-		});
+		try {
+			const engine = await ChoicekitEngine.init<{
+				name: string;
+				vars: Record<string, never>;
+				settings: Record<string, never>;
+				achievements: Record<string, never>;
+				passages: {
+					name: "start";
+					data: string;
+					tags: [];
+				};
+				plugins: NestedTuple;
+			}>({
+				achievements: {},
+				name: "sibling-branches-shared-dep-test",
+				passages: [{ data: "", name: "start", tags: [] }],
+				plugins: [{ config: {}, plugin: rootPlugin }],
+				settings: {},
+				vars: {},
+			});
 
-		// Shared dependency should mount exactly once even when requested by both branches.
-		expect(sharedInitApiCalls).toBe(1);
-		expect(engine.$.sharedMath.getBase()).toBe(10);
-		expect(engine.$.sharedMath.get()).toBe(10);
+			// Shared dependency should mount exactly once even when requested by both branches.
+			expect(sharedInitApiCalls).toBe(1);
+			expect(engine.$.sharedMath.getBase()).toBe(10);
+			expect(engine.$.sharedMath.get()).toBe(10);
 
-		expect(engine.$.leftBranch.bumpLeft()).toBe(12);
-		expect(engine.$.rightBranch.bumpRight()).toBe(18);
+			expect(engine.$.leftBranch.bumpLeft()).toBe(12);
+			expect(engine.$.rightBranch.bumpRight()).toBe(18);
 
-		expect(engine.$.rootTree.run()).toStrictEqual({
-			base: 10,
-			left: 20,
-			right: 26,
-			value: 26,
-		});
+			expect(engine.$.rootTree.run()).toStrictEqual({
+				base: 10,
+				left: 20,
+				right: 26,
+				value: 26,
+			});
+
+			expect(
+				warnings.some((warning) =>
+					warning.includes(
+						"Dependency 'sharedMath' was already mounted with config",
+					),
+				),
+			).toBeTrue();
+		} finally {
+			console.warn = originalWarn;
+		}
 	});
 });

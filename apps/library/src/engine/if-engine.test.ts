@@ -237,8 +237,18 @@ describe(ChoicekitEngine.name, () => {
 		// Dependencies should resolve correctly
 		expectTypeOf(combinedPlugin.dependencies).toExtend<
 			readonly [
-				{ plugin: typeof counterPlugin; config: { initialValue: number } },
-				{ plugin: typeof loggerPlugin; config: { prefix: string } },
+				{
+					plugin: typeof counterPlugin;
+					config:
+						| { initialValue: number }
+						| ((config: { name: string }) => { initialValue: number });
+				},
+				{
+					plugin: typeof loggerPlugin;
+					config:
+						| { prefix: string }
+						| ((config: { name: string }) => { prefix: string });
+				},
 			]
 		>();
 	});
