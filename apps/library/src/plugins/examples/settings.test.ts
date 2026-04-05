@@ -319,7 +319,7 @@ describe("Settings Plugin", () => {
 		) as unknown as ChoicekitType.ExportData;
 
 		const persistedSettings = (
-			exportedData.plugins?.settings?.data as
+			exportedData.plugins.get("settings")?.data as
 				| { settings?: WidenedSimpleSettings }
 				| undefined
 		)?.settings;

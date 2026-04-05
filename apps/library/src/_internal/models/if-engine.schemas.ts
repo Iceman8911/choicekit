@@ -11,8 +11,8 @@ export const ChoicekitPluginSaveStructureSchema: v.GenericSchema<ChoicekitPlugin
 	});
 
 const PluginSaveDataSchema: v.GenericSchema<
-	Record<string, ChoicekitPluginSaveStructure>
-> = v.record(v.string(), ChoicekitPluginSaveStructureSchema);
+	Map<string, ChoicekitPluginSaveStructure>
+> = v.map(v.string(), ChoicekitPluginSaveStructureSchema);
 
 const StateSnapshotMetadataSchema: v.GenericSchema<
 	ChoicekitType.SaveData["intialState"]

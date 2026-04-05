@@ -1454,8 +1454,8 @@ describe(ChoicekitEngine.name, () => {
 		}
 
 		expect(saveData).not.toBeNull();
-		expect(saveData?.intialState.$$plugins).toEqual({});
-		expect(saveData?.snapshots[0]?.$$plugins?.timeline?.data).toEqual({
+		expect(saveData?.intialState.$$plugins).toEqual(new Map());
+		expect(saveData?.snapshots[0]?.$$plugins?.get("timeline")?.data).toEqual({
 			value: 77,
 		});
 	});

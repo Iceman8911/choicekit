@@ -235,8 +235,8 @@ class ChoicekitEngine<
 	 */
 	#stateSnapshots: Array<typeof this._type.state.snapshot> = [];
 
-	#plugins: Record<string, ChoicekitPlugin> = {};
-	#pluginState: Record<string, GenericObject> = {};
+	#plugins = new Map<string, ChoicekitPlugin>();
+	#pluginState = new Map<string, GenericObject>();
 
 	private constructor(args: {
 		classes: ChoicekitClassConstructorWithValidSerialization[];
@@ -260,7 +260,7 @@ class ChoicekitEngine<
 
 		const metadata = {
 			$$id: passages[0].name,
-			$$plugins: {},
+			$$plugins: new Map(),
 			$$seed: initialSeed,
 		} satisfies ChoicekitType.SnapshotMetadata;
 
@@ -829,7 +829,7 @@ class ChoicekitEngine<
 
 		if (!snapshot.$$plugins) {
 			//@ts-expect-error - Inference Limitation
-			snapshot.$$plugins = {};
+			snapshot.$$plugins = new Map();
 		}
 
 		const data: ChoicekitPluginSaveStructure = {
@@ -838,7 +838,7 @@ class ChoicekitEngine<
 		};
 
 		// When using an actual imutable lib, only store the patch instead of a new copy.
-		snapshot.$$plugins[pluginId] = data;
+		snapshot.$$plugins.set(pluginId, data);
 	}
 
 	/** Loops through all plugins and stores their serializable data (if they have any) in the snapshot at the provided index. This is useful for keeping plugin state up to date in the snapshot history, which allows for things like rewinding time while keeping plugin state consistent.
@@ -848,7 +848,7 @@ class ChoicekitEngine<
 	 * @param index
 	 */
 	#persistAllPluginSerializableDataInSnapshot(index = this.#index): void {
-		for (const pluginId in this.#plugins) {
+		for (const [pluginId] of this.#plugins) {
 			this.#persistPluginSerializableDataInSnapshot(pluginId, index);
 		}
 	}
@@ -858,17 +858,14 @@ class ChoicekitEngine<
 	 * @throws if the any plugin throws
 	 */
 	#loadAllPluginSerializableDataFromRecord(
-		pluginSaveData: Record<string, ChoicekitPluginSaveStructure>,
+		pluginSaveData: Map<string, ChoicekitPluginSaveStructure>,
 	): void {
-		for (const pluginId in pluginSaveData) {
+		for (const [pluginId, { data, version }] of pluginSaveData) {
 			const mountedPlugin = this.#assertPluginExists(pluginId);
-
-			// biome-ignore lint/style/noNonNullAssertion: <It's in a loop so it cannot be undefined>
-			const { data, version } = pluginSaveData[pluginId]!;
 
 			mountedPlugin.onDeserialize?.({
 				data,
-				state: this.#pluginState[pluginId],
+				state: this.#assertPluginState(pluginId),
 				version,
 			});
 		}
@@ -1414,7 +1411,7 @@ class ChoicekitEngine<
 	}
 
 	#assertPluginExists(pluginId: string): ChoicekitPlugin {
-		const plugin = this.#plugins[pluginId];
+		const plugin = this.#plugins.get(pluginId);
 
 		if (!plugin) throw Error(`Plugin ''${pluginId}'' has not been mounted.`);
 
@@ -1422,7 +1419,7 @@ class ChoicekitEngine<
 	}
 
 	#assertPluginState(pluginId: string): GenericObject {
-		const state = this.#pluginState[pluginId];
+		const state = this.#pluginState.get(pluginId);
 
 		if (state) return state;
 
@@ -1469,14 +1466,14 @@ class ChoicekitEngine<
 
 		plugin.onDeserialize?.({
 			data,
-			state: this.#pluginState[pluginId],
+			state: this.#assertPluginState(pluginId),
 			version,
 		});
 	}
 
 	#loadPluginSerializableDataFromStoryState(pluginId: string): void {
 		const plugin = this.#assertPluginExists(pluginId);
-		const serializedPluginState = this.vars.$$plugins?.[pluginId];
+		const serializedPluginState = this.vars.$$plugins?.get(pluginId);
 
 		if (!serializedPluginState) return;
 
@@ -1487,13 +1484,13 @@ class ChoicekitEngine<
 
 		plugin.onDeserialize?.({
 			data,
-			state: this.#pluginState[pluginId],
+			state: this.#assertPluginState(pluginId),
 			version,
 		});
 	}
 
 	#loadAllPluginSerializableDataFromStoryState(): void {
-		for (const pluginId in this.#plugins) {
+		for (const [pluginId] of this.#plugins) {
 			this.#loadPluginSerializableDataFromStoryState(pluginId);
 		}
 	}
@@ -1556,7 +1553,7 @@ class ChoicekitEngine<
 		const applyPlugin = async () => {
 			const engine = this;
 
-			engine.#plugins[id] = pluginToUse;
+			engine.#plugins.set(id, pluginToUse);
 
 			for (const { config: depConfig, plugin: depPlugin } of dependencies) {
 				try {
@@ -1569,7 +1566,7 @@ class ChoicekitEngine<
 			}
 
 			const intialPluginState = (await initState?.()) ?? {};
-			this.#pluginState[id] = intialPluginState;
+			this.#pluginState.set(id, intialPluginState);
 
 			const mutations =
 				(await initApi?.({
@@ -1651,10 +1648,10 @@ class ChoicekitEngine<
 	/** Plugin save data that should be stored with saves or outside of saves */
 	#collectPluginSerializableData(
 		shouldBeBoundToSave: boolean,
-	): Record<string, ChoicekitPluginSaveStructure> {
-		const saveData: Record<string, ChoicekitPluginSaveStructure> = {};
+	): Map<string, ChoicekitPluginSaveStructure> {
+		const saveData = new Map<string, ChoicekitPluginSaveStructure>();
 
-		for (const pluginId in this.#plugins) {
+		for (const [pluginId] of this.#plugins) {
 			const serializableData = this.#getSinglePluginSerializableData(pluginId);
 
 			if (!serializableData) continue;
@@ -1672,7 +1669,7 @@ class ChoicekitEngine<
 
 			const saveStructure = getSave();
 
-			saveData[pluginId] = saveStructure;
+			saveData.set(pluginId, saveStructure);
 		}
 
 		return saveData;

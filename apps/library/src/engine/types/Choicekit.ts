@@ -43,13 +43,13 @@ export declare namespace ChoicekitType {
 
 		/** Plugin save data, indexed by the id, that should be stored alongside story save data, and be affected when the user moves forward or backward through the history.
 		 *
-		 * This will likely be an empty object in the initial state, but then will be populated with plugin data in the first snapshot.
+		 * This will likely be an empty Map in the initial state, but then will be populated with plugin data in the first snapshot.
 		 *
 		 * Do **not** modify this property if you're using this library.
 		 *
 		 * @internal
 		 */
-		$$plugins: Record<string, ChoicekitPluginSaveStructure>;
+		$$plugins: Map<string, ChoicekitPluginSaveStructure>;
 	};
 
 	/** Cache adapter for state snapshot caching */
@@ -148,10 +148,10 @@ export declare namespace ChoicekitType {
 	> = {
 		saveData: SaveData<TSaveData>;
 
-		/** Plugin data that should be unaltered when the user saves or loads save-data
+		/** Plugin data that should be unaltered when the user saves or loads save-data.
 		 *
-		 * Indexed by the plugin's namespace */
-		plugins: Record<string, ChoicekitPluginSaveStructure>;
+		 * Indexed by the plugin's namespace. */
+		plugins: Map<string, ChoicekitPluginSaveStructure>;
 	};
 
 	/**
