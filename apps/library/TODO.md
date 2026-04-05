@@ -7,11 +7,10 @@
 - [x] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
 - [x] Make the "vars" possible callback async
 - [x] Add Storylet support
-- [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
 - [x] Rewrite the AI-generated test suite cus it's garbage.
 - [ ] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
-	- [ ] In fact, add tests for every config option.
+	- [ ] In fact, add tests for every config option, and aim for as high code coverage as we can.
 - [x] For plugins with `withSave: true`, I should prolly store their state in the state snapshots of the engine, rather than just in the save data.
 
 ---
@@ -20,12 +19,13 @@
 
 - [ ] Figure out the best way for adding passages
 - [ ] Add a turn-based event system (i.e a way to have callbacks run after a certain number of "turns")
-- [ ] Add more useful interactive fiction method helpers.
+- [ ] Add more useful interactive fiction method helpers, as plugins that is.
 - [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
 - [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
 - [ ] Add framework adapters (react, vue, svelte, solidjs, etc) for reactivity, or at the very least, show examples.
 - [x] Use maps instead of records where possible.
-- [ ] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
+- [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
+- [ ] Add an example cache adapter using an ultra lightweight lru cache library / a custom one in a seperate package. Whatever makes sense.
 
 ---
 
@@ -42,6 +42,7 @@
 - [ ] Use `const` over `function` for better minifcation.
 - [ ] Consider using [Craft](https://github.com/SylphxAI/craft) or [Mutative](https://github.com/unadlib/mutative) for more efficient snapshot generation via their patches.
 - [ ] Add some form of save recovery.
+- [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
 
 ---
 
