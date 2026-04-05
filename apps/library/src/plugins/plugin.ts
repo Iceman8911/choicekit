@@ -169,7 +169,7 @@ interface ChoicekitPluginSerializeConfig<
 	 *
 	 * DO NOT MUTATE THE `state` ARGUMENT.
 	 */
-	method(state: TNormalState): Promisable<TSerializedState>;
+	method(state: TNormalState): TSerializedState;
 }
 
 interface BaseChoicekitPlugin<TGenerics extends ChoicekitPluginInputGenerics> {
@@ -248,9 +248,7 @@ type ConditionalApiPluginExtension<
 					NormalizeDependencies<TGenerics["dependencies"]>
 				>;
 
-				/** Tells the engine to immediately try saving this plugin's data to it's isolated storage area.
-				 *
-				 * Only useful if the plugin's save data isn't bounded to the actual story data, i.e `serialize.withSave` is `false`
+				/** Tells the engine to immediately try persisting this plugin's data.
 				 */
 				triggerSave(): Promise<void>;
 			} & (undefined extends TGenerics["config"]
@@ -321,7 +319,7 @@ type ConditionalSerializedStatePluginExtension<
 						 */
 						state: TGenerics["state"];
 					}),
-		): Promisable<void>;
+		): void;
 	}
 >;
 

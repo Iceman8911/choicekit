@@ -13,12 +13,12 @@ import {
 	deserialize,
 	registerClass,
 	serialize,
+	type TransformableOrJsonSerializableType,
 } from "@packages/serializer";
 import {
 	compressStringIfApplicable,
 	decompressPossiblyCompressedJsonString,
 } from "@packages/string-compression";
-import type { Promisable } from "type-fest";
 import * as v from "valibot";
 import {
 	ChoicekitExportDataSchema,
@@ -207,7 +207,8 @@ class ChoicekitEngine<
 	 *
 	 * Will not be modified after initialization.
 	 */
-	#initialState!: Readonly<typeof this._type.state.complete>;
+	//@ts-expect-error For convenience
+	#initialState: Readonly<typeof this._type.state.complete> = {};
 
 	/** Indexed by the passage id.
 	 *
@@ -257,17 +258,19 @@ class ChoicekitEngine<
 		const initialSeed = config.initialSeed ?? getRandomInteger();
 		config.initialSeed = initialSeed;
 
+		const metadata = {
+			$$id: passages[0].name,
+			$$plugins: {},
+			$$seed: initialSeed,
+		} satisfies ChoicekitType.SnapshotMetadata;
+
 		this.name = name;
 		this.#config = config;
-		this.#stateSnapshots = [
-			{
-				$$id: passages[0].name,
-				$$seed: initialSeed,
-			},
-		];
-		this.#passages = new Map(
-			passages.map((passage) => [passage.name, passage]),
-		);
+		this.#stateSnapshots = [clone(metadata)];
+
+		for (const passage of passages) {
+			this.#passages.set(passage.name, passage);
+		}
 
 		if (config.cache) {
 			this.#stateCache = config.cache;
@@ -275,21 +278,11 @@ class ChoicekitEngine<
 
 		const isInitialStateCallback = vars instanceof Function;
 
-		/** Initialize the state with the provided initial state or an empty object if the initial state is a callback. This is to prevent circular dependencies that depend on the private variable */
-		this.#initialState = {
-			...(isInitialStateCallback ? ({} as TEngineGenerics["vars"]) : vars),
-			$$id: passages[0].name,
-			$$seed: initialSeed,
-		} as Readonly<StateWithMetadata<TEngineGenerics["vars"]>>;
-
-		if (isInitialStateCallback) {
-			// `vars` is typed as possibly a callback; call it with the engine instance
-			this.#initialState = {
-				...vars({ prng: this.random }),
-				$$id: passages[0].name,
-				$$seed: initialSeed,
-			} as Readonly<StateWithMetadata<TEngineGenerics["vars"]>>;
-		}
+		Object.assign(
+			this.#initialState,
+			metadata,
+			isInitialStateCallback ? vars({ prng: this.random }) : vars,
+		);
 
 		this.registerClasses(...classes);
 		this.registerMigrators(...migrations);
@@ -343,10 +336,7 @@ class ChoicekitEngine<
 		const { loadOnStart } = config;
 
 		// Also load the most recent save if `loadOnStart` is true
-		await Promise.allSettled([
-			engine.#loadPluginSaveDataFromStorageArea(),
-			loadOnStart ? engine.loadRecentSave() : "",
-		]);
+		await Promise.allSettled([loadOnStart ? engine.loadRecentSave() : ""]);
 
 		return engine;
 	}
@@ -400,9 +390,8 @@ class ChoicekitEngine<
 
 		if (possibleValueToUseForReplacing) {
 			this.#rewriteState({
+				...this.vars,
 				...possibleValueToUseForReplacing,
-				$$id: this.passageId,
-				$$seed: this.#currentStatePrngSeed,
 			});
 		}
 
@@ -630,10 +619,10 @@ class ChoicekitEngine<
 					deserialize(jsonString),
 				);
 
-				await this.#loadPluginSaveDataFromRecord(plugins);
+				this.#loadAllPluginSerializableDataFromRecord(plugins);
 
 				// Replace the current state
-				await this.loadSaveFromData(saveData);
+				this.loadSaveFromData(saveData);
 			},
 		);
 	}
@@ -692,10 +681,8 @@ class ChoicekitEngine<
 	 *
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	async loadSaveFromData(save: typeof this._type.saveData): Promise<void> {
-		const { intialState, snapshots, storyIndex, version, plugins } = save;
-
-		await this.#loadPluginSaveDataFromRecord(plugins);
+	loadSaveFromData(save: typeof this._type.saveData): void {
+		const { intialState, snapshots, storyIndex, version } = save;
 
 		const oldIndex = this.#index;
 		const oldPassage = this.passage;
@@ -800,6 +787,9 @@ class ChoicekitEngine<
 			}
 		}
 
+		// Load plugin data from the engine state now that it has been refreshed.
+		this.#loadAllPluginSerializableDataFromStoryState();
+
 		// Clear the state cache since the state has changed
 		this.#stateCache?.clear();
 
@@ -817,33 +807,71 @@ class ChoicekitEngine<
 		});
 	}
 
+	/** This only makes sense if the plugin state should be stored along story saves / snapshots, since otherwise it would be wasteful to serialize plugin state in snapshots that aren't meant to be stored in saves.
+	 *
+	 * If the plugin doesn't have serializable data or if `withSave` is false, this does nothing.
+	 *
+	 * @param pluginId
+	 * @param index
+	 * @returns
+	 */
+	#persistPluginSerializableDataInSnapshot(
+		pluginId: string,
+		index = this.#index,
+	): void {
+		const { serialize, version } = this.#assertPluginExists(pluginId);
+
+		if (!serialize?.withSave) return;
+
+		const { method } = serialize;
+
+		const snapshot = this.#getSnapshotAtIndex(index);
+
+		if (!snapshot.$$plugins) {
+			//@ts-expect-error - Inference Limitation
+			snapshot.$$plugins = {};
+		}
+
+		const data: ChoicekitPluginSaveStructure = {
+			data: method(this.#assertPluginState(pluginId)),
+			version,
+		};
+
+		// When using an actual imutable lib, only store the patch instead of a new copy.
+		snapshot.$$plugins[pluginId] = data;
+	}
+
+	/** Loops through all plugins and stores their serializable data (if they have any) in the snapshot at the provided index. This is useful for keeping plugin state up to date in the snapshot history, which allows for things like rewinding time while keeping plugin state consistent.
+	 *
+	 * NOTE: This will only store plugin data for plugins that have `withSave` set to true, since otherwise it would be wasteful to store plugin data in snapshots that aren't meant to be stored in saves.
+	 *
+	 * @param index
+	 */
+	#persistAllPluginSerializableDataInSnapshot(index = this.#index): void {
+		for (const pluginId in this.#plugins) {
+			this.#persistPluginSerializableDataInSnapshot(pluginId, index);
+		}
+	}
+
 	/** Using a record of serialized plugin save data, loads the mounted plugins with the save data in parallel
 	 *
 	 * @throws if the any plugin throws
 	 */
-	async #loadPluginSaveDataFromRecord(
+	#loadAllPluginSerializableDataFromRecord(
 		pluginSaveData: Record<string, ChoicekitPluginSaveStructure>,
-	): Promise<void> {
-		const loadingPromises: Promisable<void>[] = [];
-
+	): void {
 		for (const pluginId in pluginSaveData) {
-			const mountedPlugin = this.#plugins[pluginId];
-
-			if (!mountedPlugin) continue;
+			const mountedPlugin = this.#assertPluginExists(pluginId);
 
 			// biome-ignore lint/style/noNonNullAssertion: <It's in a loop so it cannot be undefined>
 			const { data, version } = pluginSaveData[pluginId]!;
 
-			loadingPromises.push(
-				mountedPlugin.onDeserialize?.({
-					data,
-					state: this.#pluginState[pluginId],
-					version,
-				}),
-			);
+			mountedPlugin.onDeserialize?.({
+				data,
+				state: this.#pluginState[pluginId],
+				version,
+			});
 		}
-
-		await Promise.all(loadingPromises);
 	}
 
 	/** Creates and moves the index over to a new snapshot with the given passage id (or the previous one) and returns a reference to it.
@@ -964,7 +992,7 @@ class ChoicekitEngine<
 		});
 	}
 
-	/** For saves the need to exported out of the browser */
+	/** For exports that need to be stored or transferred outside the current engine instance */
 	async saveToExport(): Promise<string> {
 		return this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
 			"save",
@@ -973,8 +1001,8 @@ class ChoicekitEngine<
 				const { compress } = this.#config;
 
 				const exportData: typeof this._type.exportData = {
-					plugins: await this.#getPluginSaveData(false),
-					saveData: await this.#getSaveData(),
+					plugins: this.#collectPluginSerializableData(false),
+					saveData: this.#buildSaveData(),
 				};
 
 				//@ts-expect-error Inference Limitation
@@ -1008,9 +1036,8 @@ class ChoicekitEngine<
 						? this.#getSaveSlotStorageKey(saveSlot)
 						: this.#getAutoSaveStorageKey();
 
-				const saveData = await this.#getSaveData();
+				const saveData = this.#buildSaveData();
 
-				//@ts-expect-error Inference Limitation
 				const stringifiedSaveData = serialize(saveData);
 
 				const dataToStore = await compressStringIfApplicable(
@@ -1085,16 +1112,16 @@ class ChoicekitEngine<
 
 	// Some of these could be properties instead, but I like the consistency
 	#getAutoSaveStorageKey(): ChoicekitType.AutoSaveKey {
-		return `Choicekit-${this.name}-autosave`;
+		return `choicekit-${this.name}-autosave`;
 	}
 
 	#getPluginStorageKey(pluginId: string): ChoicekitType.PluginSaveKey {
-		return `Choicekit-${this.name}-plugin-${pluginId}` as const;
+		return `choicekit-${this.name}-plugin-${pluginId}` as const;
 	}
 
 	#getSaveSlotStorageKey(saveSlot: number): ChoicekitType.NormalSaveKey {
 		this.#assertSaveSlotIsValid(saveSlot);
-		return `Choicekit-${this.name}-slot${saveSlot}` as const;
+		return `choicekit-${this.name}-slot${saveSlot}` as const;
 	}
 
 	async *#getKeysOfPresentSaves(): AsyncGenerator<ChoicekitType.SaveKey> {
@@ -1104,7 +1131,7 @@ class ChoicekitEngine<
 
 		const autosaveKey = this.#getAutoSaveStorageKey();
 
-		const saveSlotKeyPrefix = `Choicekit-${this.name}-slot` as const;
+		const saveSlotKeyPrefix = `choicekit-${this.name}-slot` as const;
 
 		if (keys) {
 			// Filter out the keys that are not save slots
@@ -1161,6 +1188,9 @@ class ChoicekitEngine<
 		const oldState = this.#shouldCloneOldState ? clone(this.vars) : this.vars;
 
 		this.#index = val;
+
+		// Keep withSave plugin state in sync when moving through history.
+		this.#loadAllPluginSerializableDataFromStoryState();
 
 		if (oldIndex !== this.#index) {
 			this.#emitCustomEvent("historyChange", {
@@ -1391,43 +1421,33 @@ class ChoicekitEngine<
 		return plugin;
 	}
 
-	async #getPluginState(pluginId: string): Promise<GenericObject | null> {
-		const plugin = this.#assertPluginExists(pluginId);
-
+	#assertPluginState(pluginId: string): GenericObject {
 		const state = this.#pluginState[pluginId];
 
 		if (state) return state;
 
-		const newState = await plugin.initState?.();
-
-		if (newState) {
-			this.#pluginState[pluginId] = newState;
-
-			return newState;
-		}
-
-		return null;
+		// In `#usePlugin`, plugin state should be initialized, even if to an empty object, so if it doesn't exist at this point, it's a sign that something went wrong during initialization
+		throw Error(
+			`State for plugin ''${pluginId}'' does not exist. Did it initialize properly?`,
+		);
 	}
 
-	/** Only useful for plguins that shouldn't store their state with story data */
+	/** Only useful for plugins that shouldn't store their state with story data */
 	async #savePluginDataToStoragePartition(pluginId: string): Promise<void> {
 		const plugin = this.#assertPluginExists(pluginId);
-		const pluginState = await this.#getPluginState(pluginId);
-
-		if (!pluginState) {
-			console.warn(
-				`Cannot save data for plugin ''${pluginId}'' since no such state exists.`,
-			);
-			return;
-		}
+		const pluginState = this.#assertPluginState(pluginId);
 
 		const { method, withSave } = plugin.serialize ?? {};
+		const { version } = plugin;
 
 		if (!method || withSave == null || withSave === true) {
 			return;
 		}
 
-		const serializableState = await method(pluginState);
+		const serializableState: TransformableOrJsonSerializableType = {
+			data: await method(pluginState),
+			version,
+		};
 
 		const key = this.#getPluginStorageKey(pluginId);
 
@@ -1447,23 +1467,35 @@ class ChoicekitEngine<
 			deserialize(stringifiedData),
 		);
 
-		await plugin.onDeserialize?.({
+		plugin.onDeserialize?.({
 			data,
 			state: this.#pluginState[pluginId],
 			version,
 		});
 	}
 
-	/** Using the plugin ids, attempts to load all plugin data from their persistent partitions
-	 *
-	 * NOTE: `this.#plugins` must be populated before hand
-	 */
-	async #loadPluginSaveDataFromStorageArea() {
-		await Promise.all(
-			Object.keys(this.#plugins).map((pluginId) =>
-				this.#loadPluginDataFromStoragePartition(pluginId),
-			),
+	#loadPluginSerializableDataFromStoryState(pluginId: string): void {
+		const plugin = this.#assertPluginExists(pluginId);
+		const serializedPluginState = this.vars.$$plugins?.[pluginId];
+
+		if (!serializedPluginState) return;
+
+		const { data, version }: ChoicekitPluginSaveStructure = v.parse(
+			ChoicekitPluginSaveStructureSchema,
+			serializedPluginState,
 		);
+
+		plugin.onDeserialize?.({
+			data,
+			state: this.#pluginState[pluginId],
+			version,
+		});
+	}
+
+	#loadAllPluginSerializableDataFromStoryState(): void {
+		for (const pluginId in this.#plugins) {
+			this.#loadPluginSerializableDataFromStoryState(pluginId);
+		}
 	}
 
 	get #currentStatePrngSeed(): number {
@@ -1487,11 +1519,13 @@ class ChoicekitEngine<
 		return this.#config.persistence;
 	}
 
-	async #getSaveData(): Promise<typeof this._type.saveData> {
+	#buildSaveData(): typeof this._type.saveData {
+		// Make sure all plugin data is up to date in the snapshot before saving
+		this.#persistAllPluginSerializableDataInSnapshot();
+
 		return {
 			intialState: this.#initialState as typeof this._type.state.complete,
 			lastPassageId: this.passageId,
-			plugins: await this.#getPluginSaveData(true),
 			savedOn: new Date(),
 			snapshots: this.#stateSnapshots,
 			storyIndex: this.#index,
@@ -1510,6 +1544,7 @@ class ChoicekitEngine<
 			initState,
 			onOverride,
 			dependencies = [],
+			serialize: { withSave } = {},
 		} = pluginToUse;
 
 		const activePluginUsingNameSpace: ChoicekitPlugin | undefined =
@@ -1542,12 +1577,21 @@ class ChoicekitEngine<
 					engine,
 					state: intialPluginState,
 					async triggerSave() {
-						await engine.#savePluginDataToStoragePartition(id);
+						if (withSave === null) return;
+
+						withSave
+							? engine.#persistPluginSerializableDataInSnapshot(id)
+							: await engine.#savePluginDataToStoragePartition(id);
 					},
 				})) ?? {};
 
 			//@ts-expect-error Type schenanigans
 			engine.$[id] = mutations;
+
+			// Load plugin data from its storage partition (withSave: false) or the story state (withSave: true)
+			withSave
+				? engine.#loadPluginSerializableDataFromStoryState(id)
+				: await engine.#loadPluginDataFromStoragePartition(id);
 
 			return engine;
 		};
@@ -1585,21 +1629,37 @@ class ChoicekitEngine<
 	}
 
 	// TODO: add tests for these
+	/** Returns the serializable data for a single plugin, if any */
+	#getSinglePluginSerializableData(
+		pluginId: string,
+	): [getSave: () => ChoicekitPluginSaveStructure, withSave: boolean] | null {
+		const { serialize, version } = this.#assertPluginExists(pluginId);
+
+		if (!serialize) return null;
+
+		const { method, withSave } = serialize;
+
+		return [
+			() => ({
+				data: method(this.#assertPluginState(pluginId)),
+				version,
+			}),
+			withSave,
+		];
+	}
+
 	/** Plugin save data that should be stored with saves or outside of saves */
-	async #getPluginSaveData(
+	#collectPluginSerializableData(
 		shouldBeBoundToSave: boolean,
-	): Promise<Record<string, ChoicekitPluginSaveStructure>> {
+	): Record<string, ChoicekitPluginSaveStructure> {
 		const saveData: Record<string, ChoicekitPluginSaveStructure> = {};
 
-		const pendingPromises: Promise<void>[] = [];
-
 		for (const pluginId in this.#plugins) {
-			// biome-ignore lint/style/noNonNullAssertion: <it's in a loop so it cannot be undefined>
-			const { serialize, version } = this.#plugins[pluginId]!;
+			const serializableData = this.#getSinglePluginSerializableData(pluginId);
 
-			if (!serialize) continue;
+			if (!serializableData) continue;
 
-			const { method, withSave } = serialize;
+			const [getSave, withSave] = serializableData;
 
 			switch (shouldBeBoundToSave) {
 				case true:
@@ -1610,17 +1670,10 @@ class ChoicekitEngine<
 					break;
 			}
 
-			pendingPromises.push(
-				(async () => {
-					saveData[pluginId] = {
-						data: await method((await this.#getPluginState(pluginId)) ?? {}),
-						version,
-					};
-				})(),
-			);
-		}
+			const saveStructure = getSave();
 
-		await Promise.all(pendingPromises);
+			saveData[pluginId] = saveStructure;
+		}
 
 		return saveData;
 	}

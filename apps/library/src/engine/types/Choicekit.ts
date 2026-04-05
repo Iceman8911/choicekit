@@ -40,6 +40,16 @@ export declare namespace ChoicekitType {
 		 * @internal
 		 */
 		$$seed: number;
+
+		/** Plugin save data, indexed by the id, that should be stored alongside story save data, and be affected when the user moves forward or backward through the history.
+		 *
+		 * This will likely be an empty object in the initial state, but then will be populated with plugin data in the first snapshot.
+		 *
+		 * Do **not** modify this property if you're using this library.
+		 *
+		 * @internal
+		 */
+		$$plugins: Record<string, ChoicekitPluginSaveStructure>;
 	};
 
 	/** Cache adapter for state snapshot caching */
@@ -88,11 +98,11 @@ export declare namespace ChoicekitType {
 	 *
 	 * Consists of the engine's name and save slot number
 	 */
-	export type NormalSaveKey = `Choicekit-${string}-slot${number}`;
+	export type NormalSaveKey = `choicekit-${string}-slot${number}`;
 
-	export type AutoSaveKey = `Choicekit-${string}-autosave`;
+	export type AutoSaveKey = `choicekit-${string}-autosave`;
 
-	export type PluginSaveKey = `Choicekit-${string}-plugin-${string}`;
+	export type PluginSaveKey = `choicekit-${string}-plugin-${string}`;
 
 	export type SaveKey = AutoSaveKey | NormalSaveKey;
 
@@ -127,11 +137,6 @@ export declare namespace ChoicekitType {
 
 		/** The version of the story associated with this save */
 		version: ChoicekitSemanticVersionString;
-
-		/** Plugin data that should be altered / sync up when the user saves or loads save-data
-		 *
-		 * Indexed by the plugin's namespace */
-		plugins: Record<string, ChoicekitPluginSaveStructure>;
 	}>;
 
 	/** Export data structure used for saving the state of the engine to disk.

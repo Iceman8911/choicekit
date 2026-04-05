@@ -4,16 +4,6 @@ import type { ChoicekitType } from "../../engine/types/Choicekit";
 import type { ChoicekitPluginSaveStructure } from "../../plugins/plugin";
 import { SemanticVersionStringSchema } from "../schemas/version.schemas";
 
-const StateSnapshotMetadataSchema: v.GenericSchema<
-	ChoicekitType.SaveData["intialState"]
-> = v.objectWithRest(
-	{
-		$$id: v.string(),
-		$$seed: v.number(),
-	},
-	TransformableOrJsonSerializableSchema,
-);
-
 export const ChoicekitPluginSaveStructureSchema: v.GenericSchema<ChoicekitPluginSaveStructure> =
 	v.object({
 		data: TransformableOrJsonSerializableSchema,
@@ -24,19 +14,37 @@ const PluginSaveDataSchema: v.GenericSchema<
 	Record<string, ChoicekitPluginSaveStructure>
 > = v.record(v.string(), ChoicekitPluginSaveStructureSchema);
 
-export const ChoicekitSaveDataSchema: v.GenericSchema<ChoicekitType.SaveData> =
-	v.pipe(
-		v.object({
-			intialState: StateSnapshotMetadataSchema,
-			lastPassageId: v.string(),
-			plugins: PluginSaveDataSchema,
-			savedOn: v.date(),
-			snapshots: v.array(StateSnapshotMetadataSchema),
-			storyIndex: v.number(),
-			version: SemanticVersionStringSchema,
-		}),
-		v.readonly(),
-	);
+const StateSnapshotMetadataSchema: v.GenericSchema<
+	ChoicekitType.SaveData["intialState"]
+> = v.objectWithRest(
+	{
+		$$id: v.string(),
+		$$plugins: PluginSaveDataSchema,
+		$$seed: v.number(),
+	},
+	TransformableOrJsonSerializableSchema,
+);
+
+const PartialStateSnapshotSchema = v.objectWithRest(
+	{
+		$$id: v.optional(v.string()),
+		$$plugins: v.optional(PluginSaveDataSchema),
+		$$seed: v.optional(v.number()),
+	},
+	TransformableOrJsonSerializableSchema,
+) as v.GenericSchema<ChoicekitType.SaveData["snapshots"][number]>;
+
+export const ChoicekitSaveDataSchema = v.pipe(
+	v.object({
+		intialState: StateSnapshotMetadataSchema,
+		lastPassageId: v.string(),
+		savedOn: v.date(),
+		snapshots: v.array(PartialStateSnapshotSchema),
+		storyIndex: v.number(),
+		version: SemanticVersionStringSchema,
+	}),
+	v.readonly(),
+) as v.GenericSchema<ChoicekitType.SaveData>;
 
 export const ChoicekitExportDataSchema: v.GenericSchema<ChoicekitType.ExportData> =
 	v.object({
