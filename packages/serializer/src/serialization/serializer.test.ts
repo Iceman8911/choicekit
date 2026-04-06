@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type {
-	ChoicekitClassConstructor,
+import {
+	type ChoicekitClassConstructor,
 	ChoicekitClassInstance,
 } from "@packages/engine-class";
 import {
@@ -109,13 +109,15 @@ describe("Serialization and Deserialization", () => {
 			weapons: ("stick" | "fist")[];
 		};
 
-		class Player implements ChoicekitClassInstance<SerializedPlayer> {
+		class Player extends ChoicekitClassInstance<SerializedPlayer> {
 			constructor(
 				public age: number,
 				public name: string,
 				public gold: number,
 				public weapons: ("stick" | "fist")[],
-			) {}
+			) {
+				super();
+			}
 
 			toJSON() {
 				return { ...this };

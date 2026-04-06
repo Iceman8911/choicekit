@@ -1,4 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
+import { ChoicekitClassInstance } from "@packages/engine-class";
 import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
 import { ChoicekitEngineBuilder } from "./builder";
 import { ChoicekitEngine } from "./if-engine";
@@ -2314,13 +2315,15 @@ describe(ChoicekitEngine.name, () => {
 	it("should register story classes for save and load round-trips", async () => {
 		type HeroSerialized = { hp: number; name: string };
 
-		class StoryHero {
+		class StoryHero extends ChoicekitClassInstance<HeroSerialized> {
 			static readonly classId = "StoryHeroForEngineTest";
 
 			constructor(
 				public hp: number,
 				public name: string,
-			) {}
+			) {
+				super();
+			}
 
 			toJSON(): HeroSerialized {
 				return { hp: this.hp, name: this.name };
