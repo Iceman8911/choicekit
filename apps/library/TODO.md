@@ -4,45 +4,36 @@
 
 ## HIGH PRIORITY
 
-- [x] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
-- [x] Make the "vars" possible callback async
-- [x] Add Storylet support
-- [x] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
-- [x] Rewrite the AI-generated test suite cus it's garbage.
-- [x] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
-	- [x] In fact, add tests for every config option, and aim for as high code coverage as we can.
-- [x] For plugins with `withSave: true`, I should prolly store their state in the state snapshots of the engine, rather than just in the save data.
+- [ ] Add validation around story state initialization and mutation.
+- [ ] Add save recovery for corrupted or incompatible saves.
+- [ ] Add clearer choice and branch helpers for interactive fiction UI layers.
+- [ ] Detect and surface plugin dependency cycles during plugin mounting.
+- [ ] Add regression tests for save/load, passage navigation, and large-history performance.
 
 ---
 
 ## MEDIUM PRIORITY
 
-- [ ] Figure out the best way for adding passages
-- [ ] Add a turn-based event system (i.e a way to have callbacks run after a certain number of "turns")
-- [ ] Add more useful interactive fiction method helpers, as plugins that is.
+- [ ] Define a passage authoring and registration workflow.
+- [ ] Add a turn-based event system for delayed callbacks.
 - [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
-- [ ] To save memory with large story state, maybe I should semi regularly flush caches??? Or smth.
-- [ ] Add framework adapters (react, vue, svelte, solidjs, etc) for reactivity, or at the very least, show examples.
+- [ ] Add a focused set of interactive fiction helper plugins.
+	- [ ] Add examples for conditional passages, branch filtering, and stat checks.
+	- [ ] Document passage data types and custom serialization constraints.
+- [ ] Add framework adapters or example bindings for react, vue, svelte, and solidjs.
 - [x] Use maps instead of records where possible.
 - [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
-- [ ] Add an example cache adapter using an ultra lightweight lru cache library / a custom one in a seperate package. Whatever makes sense.
+- [ ] Add an example cache adapter or lightweight cache package.
 
 ---
 
 ## LOW PRIORITY
 
-- [ ] maybe tie autosaving to a custom setting instead of at the engine level
-- [ ] introduce `has` for the persistence adapter
-- [ ] Maybe some simple text templating? (i.e converting `You have {{ player.gold }} gold` to `You have 100 gold).
 - [x] Add tags to passages and query methods for passages based off their properties.
-- [ ] Consider a complementary **module-scoped** api in addition to the present **class-based** api. 
-	- Functions internally and export them at the module scope as well as a class wrapper for those who prefer the ergonomics. Similar to how valibot and formisch work.
-- [ ] Allow Choicekit class instances to provide a `.clone()` method for more efficient cloning, in comparison to the more expensive way of serializing and de-serializing.
-- [ ] Make types better.
-- [ ] Use `const` over `function` for better minifcation.
-- [ ] Consider using [Craft](https://github.com/SylphxAI/craft) or [Mutative](https://github.com/unadlib/mutative) for more efficient snapshot generation via their patches.
-- [ ] Add some form of save recovery.
-- [ ] Add external validation support via Standard Schema compatible solutions like zod, valibot, arktype, typebox, etc
+- [ ] Add external validation support via Standard Schema-compatible libraries such as zod, valibot, arktype, or typebox.
+- [ ] Consider a complementary module-scoped API alongside the class-based API.
+- [ ] Evaluate patch-based snapshot generation only if profiling shows a real bottleneck.
+- [ ] Define the right persistence adapter surface before adding more methods like `has`.
 
 ---
 
