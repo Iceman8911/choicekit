@@ -1089,8 +1089,8 @@ describe(ChoicekitEngine.name, () => {
 			.withVars({
 				player: {
 					flags: {
-						isArmed: false as boolean,
-						hasKey: false as boolean,
+						hasKey: false,
+						isArmed: false,
 					},
 					inventory: {
 						gold: 0,

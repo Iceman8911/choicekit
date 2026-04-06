@@ -1,3 +1,4 @@
+import type { ExpandType } from "../_internal/models/shared";
 import type { ChoicekitPlugin } from "../plugins/plugin";
 import type {
 	ChoicekitEngineArguments,
@@ -63,7 +64,7 @@ export class ChoicekitEngineBuilder<
 	/** Set an object containing the variables to be used in the story via the engine */
 	withVars<TVars extends TGenerics["vars"]>(
 		vars: TVars | ((init: ChoicekitEngineVariableInitData) => TVars),
-	): ChoicekitEngineBuilder<TGenerics & { [sbVars]: TVars }> {
+	): ChoicekitEngineBuilder<TGenerics & { [sbVars]: ExpandType<TVars> }> {
 		this.#forceAddProp(sbVars, vars);
 
 		return this.#returnThis();
