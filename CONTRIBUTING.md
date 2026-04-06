@@ -20,7 +20,7 @@ Thank you for your interest in contributing to our project! This guide will help
 
 1. Create a new branch: `git checkout -b feature/your-feature-name`
 2. Make your changes
-3. Fix linting and formatting: `bun run lint:fix`
+3. Fix linting and formatting: `bun run lint && bun run format`
 4. Run tests: `bun run test`
 5. Build the project: `bun run build`
 6. Commit your changes using the conventions below
@@ -53,6 +53,6 @@ Please be respectful and constructive in all interactions within our community.
 
 ## Questions?
 
-If you have any questions, please [open an issue](https://github.com/Iceman8911/Choicekit/issues/new) for discussion.
+If you have any questions, please [open an issue](https://github.com/Iceman8911/choicekit/issues/new) for discussion.
 
 Thank you for contributing to Choicekit!
