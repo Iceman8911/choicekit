@@ -1,3 +1,10 @@
-# `@packages/engine-class`
+# `@packages/string-compression`
 
-Exports useful types describing how custom classes must be implemented in order to be serializable and cloneable by Choicekit's engine.
+String and JSON compression utilities built on the browser-native `CompressionStream` and `DecompressionStream` APIs.
+
+Exports:
+
+- `compressString`
+- `decompressString`
+- `compressStringIfApplicable`
+- `decompressPossiblyCompressedJsonString`
