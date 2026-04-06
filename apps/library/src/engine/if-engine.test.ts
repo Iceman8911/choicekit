@@ -477,7 +477,7 @@ describe(ChoicekitEngine.name, () => {
 			})
 			.build();
 
-		engine.addPassage({
+		engine.addPassages({
 			data: "New Room",
 			name: "new",
 			tags: ["dynamic"],

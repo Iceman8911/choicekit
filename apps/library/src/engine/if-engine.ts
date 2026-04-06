@@ -449,20 +449,20 @@ class ChoicekitEngine<
 		}
 	}
 
-	/** Adds a new passage to the engine.
+	/** Adds new passages to the engine.
 	 *
 	 * The passage id should be unique, and the data can be anything that you want to store for the passage.
 	 *
 	 * If the passage already exists, it will be overwritten.
+	 *
+	 * @throws if a passage with the same name already exists
 	 */
-	addPassage(passageData: typeof this._type.passage): void {
-		this.#passages.set(passageData.name, passageData);
-	}
-
-	/** Like `addPassage`, but takes in a collection */
 	addPassages(...passageData: ReadonlyArray<typeof this._type.passage>): void {
 		for (const passageDatum of passageData) {
-			this.addPassage(passageDatum);
+			if (this.#passages.has(passageDatum.name))
+				throw Error(`Passage with name ${passageDatum.name} already exists`);
+
+			this.#passages.set(passageDatum.name, passageDatum);
 		}
 	}
 
@@ -925,7 +925,7 @@ class ChoicekitEngine<
 	): typeof this._type.state.snapshot {
 		if (!this.#isPassageIdValid(passageId))
 			throw Error(
-				`Cannot navigate: Passage with ID '${passageId}' not found. Add it using addPassage().`,
+				`Cannot navigate: Passage with ID '${passageId}' not found. Add it using addPassages().`,
 			);
 
 		const newSnapshot = this.#addNewSnapshot();
