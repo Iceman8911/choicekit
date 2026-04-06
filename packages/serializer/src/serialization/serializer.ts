@@ -1,5 +1,5 @@
-import type {
-	ChoicekitClassConstructor,
+import {
+	type ChoicekitClassConstructor,
 	ChoicekitClassInstance,
 } from "@packages/engine-class";
 
@@ -249,26 +249,25 @@ const transformForSerialization = (
 			$$t: TYPE_SET,
 			$$v: arrayFrom(data, (v) => transformForSerialization(v, seen)),
 		};
-	} else {
-		/** Custom Class or Plain Object */
-
-		//@ts-expect-error I'll check whether this is actually registered, since there's no concise, typesafe way of proving that this may be a class
-		const possibleClass: ChoicekitClassInstanceWithValidSerialization = data;
+	} else if (data instanceof ChoicekitClassInstance) {
 		const possibleClassId = classRegistrybyConstructor.get(
-			possibleClass.constructor as ChoicekitClassConstructorWithValidSerialization,
+			data.constructor as ChoicekitClassConstructorWithValidSerialization,
 		);
 
-		if (possibleClassId != null) {
-			return {
-				$$r: newRefId,
-				$$t: TYPE_CLASS,
-				$$v: {
-					data: transformForSerialization(possibleClass.toJSON(), seen),
-					id: possibleClassId,
-				},
-			};
-		}
+		if (possibleClassId == null)
+			throw Error(
+				`Class ${data.constructor.name} not registered for serialization`,
+			);
 
+		return {
+			$$r: newRefId,
+			$$t: TYPE_CLASS,
+			$$v: {
+				data: transformForSerialization(data.toJSON(), seen),
+				id: possibleClassId,
+			},
+		};
+	} else {
 		const transformedObject: Record<string, JsonSerializableType> = {};
 
 		for (const key in data) {

@@ -7,7 +7,7 @@
 - [x] Split up engine into minimal core (history, state, prng) + plugins (settings, achievements, storylet, persistence, etc)
 - [x] Make the "vars" possible callback async
 - [x] Add Storylet support
-- [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
+- [x] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
 - [x] Rewrite the AI-generated test suite cus it's garbage.
 - [x] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
 	- [x] In fact, add tests for every config option, and aim for as high code coverage as we can.

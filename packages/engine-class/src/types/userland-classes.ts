@@ -1,16 +1,16 @@
 type Serialized = unknown;
 
 /** All userland custom classes need to implement this if they must be part of the story's state */
-type ChoicekitClassInstance<TSerializedStructure extends Serialized> = {
+abstract class ChoicekitClassInstance<TSerializedStructure extends Serialized> {
 	/** Must return a serializable plain object that when deserialized, can be reinitialized into an identical clone of the class.
 	 *
 	 * Is required for persistence.
 	 */
-	toJSON: () => TSerializedStructure;
+	abstract toJSON(): TSerializedStructure;
 
 	// Typescript will keep saying that this sin't assignable to `Function` or smth
 	// constructor: ChoicekitClassConstructor<TSerializedStructure>
-};
+}
 
 /** All userland custom class constructors need to implement this if they must be part of the story's state */
 type ChoicekitClassConstructor<TSerializedStructure extends Serialized> = {
@@ -27,13 +27,16 @@ type ChoicekitClassConstructor<TSerializedStructure extends Serialized> = {
 	prototype: ChoicekitClassInstance<TSerializedStructure>;
 };
 
-export type { ChoicekitClassConstructor, ChoicekitClassInstance };
+export type { ChoicekitClassConstructor };
+export { ChoicekitClassInstance };
 
 /**
- * (class PlayerAccount {
+ * (class PlayerAccount extends ChoicekitClassInstance<{ name: string }> {
     static readonly classId = "player_v1";
     
-    constructor(public name: string) {}
+	constructor(public name: string) {
+		super();
+	}
 
     toJSON() {
         return { name: this.name };
