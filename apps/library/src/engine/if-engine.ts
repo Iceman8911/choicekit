@@ -360,8 +360,14 @@ class ChoicekitEngine<
 			vars,
 		});
 
-		// Mount plugins that were provided during initialization (if any).
-		const initPlugins = args.plugins ?? [];
+		// Mount plugins provided via builder/plugin args, or fallback to config.plugins.
+		const initPlugins =
+			args.plugins ??
+			mergedConfig.plugins?.map((plugin) => ({
+				config: undefined,
+				plugin,
+			})) ??
+			[];
 		for (const entry of initPlugins) {
 			const { plugin: pluginToUse, config: pluginConfig } = entry;
 

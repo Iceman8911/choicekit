@@ -991,6 +991,645 @@ describe(ChoicekitEngine.name, () => {
 		expect(loader.vars.value).toBe(100);
 	});
 
+	// ==================== Configuration & Compaction ====================
+
+	it("should compact state snapshots while preserving state and history over 500 navigations", async () => {
+		const maxStates = 16;
+
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("Compaction500History")
+			.withVars({ counter: 0 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+				{ data: "C", name: "c", tags: [] },
+			)
+			.withConfig({
+				loadOnStart: false,
+				maxStates,
+				stateMergeCount: 3,
+			})
+			.build();
+
+		for (let i = 1; i <= 500; i++) {
+			engine.setVars((state) => {
+				state.counter = i;
+			});
+
+			engine.navigateTo(i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a");
+		}
+
+		expect(engine.vars.counter).toBe(500);
+		expect(engine.passageId).toBe("b");
+
+		const indexBeforeBack = engine.index;
+		engine.backward(5);
+		expect(engine.index).toBeLessThan(indexBeforeBack);
+		expect(engine.vars.counter).toBeLessThan(500);
+
+		engine.forward(5);
+		expect(engine.index).toBe(indexBeforeBack);
+		expect(engine.vars.counter).toBe(500);
+
+		await engine.saveToSaveSlot(0);
+
+		let saveData: ChoicekitType.SaveData | null = null;
+		for await (const save of engine.getSaves()) {
+			if (save.type === "normal" && save.slot === 0) {
+				saveData = save.data;
+				break;
+			}
+		}
+
+		expect(saveData).not.toBeNull();
+		expect(saveData?.storyIndex).toBe(engine.index);
+		expect(saveData?.snapshots.length).toBeLessThanOrEqual(maxStates);
+	});
+
+	it("should preserve withSave plugin state while compacting snapshots", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("CompactionTimeline")
+			.withVars({ marker: 0 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({
+				loadOnStart: false,
+				maxStates: 12,
+				stateMergeCount: 2,
+			})
+			.withPlugin(timelinePlugin, undefined)
+			.build();
+
+		for (let i = 1; i <= 160; i++) {
+			await engine.$.timeline.setValue(i);
+			engine.setVars((state) => {
+				state.marker = i;
+			});
+			engine.navigateTo(i % 2 === 0 ? "b" : "a");
+		}
+
+		expect(engine.$.timeline.getValue()).toBe(160);
+		expect(engine.vars.marker).toBe(160);
+
+		engine.backward(10);
+		const rewoundPluginValue = engine.$.timeline.getValue();
+		expect(rewoundPluginValue).toBeLessThan(160);
+
+		engine.forward(10);
+		expect(engine.$.timeline.getValue()).toBe(160);
+		expect(engine.vars.marker).toBe(160);
+	});
+
+	it("should support a 500-navigation compaction with consistent speed", async () => {
+		const maxStates = 32;
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("Compaction500")
+			.withVars({
+				player: {
+					flags: {
+						isArmed: false as boolean,
+						hasKey: false as boolean,
+					},
+					inventory: {
+						gold: 0,
+						items: [] as string[],
+					},
+					stats: {
+						health: 100,
+						stamina: 50,
+					},
+				},
+				points: 0,
+				recentEvents: [] as Array<{ passage: string; step: number }>,
+				world: {
+					chapter: 1,
+					lastPassage: "a",
+					visited: 0,
+				},
+			})
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+				{ data: "C", name: "c", tags: [] },
+			)
+			.withConfig({
+				loadOnStart: false,
+				maxStates,
+				stateMergeCount: 4,
+			})
+			.build();
+
+		const firstChunkStartedAt = performance.now();
+
+		for (let i = 1; i <= 250; i++) {
+			engine.setVars((state) => {
+				state.points = i;
+				state.player.flags.isArmed = i % 2 === 0;
+				state.player.flags.hasKey = i % 5 === 0;
+				state.player.inventory.gold += i % 7;
+				state.player.inventory.items.push(`item-${i % 4}`);
+				if (state.player.inventory.items.length > 8) {
+					state.player.inventory.items.shift();
+				}
+				state.player.stats.health = Math.max(0, 100 - (i % 13));
+				state.player.stats.stamina = (state.player.stats.stamina + 3) % 100;
+				state.recentEvents.push({
+					passage: i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a",
+					step: i,
+				});
+				if (state.recentEvents.length > 12) {
+					state.recentEvents.shift();
+				}
+				state.world.chapter = 1 + Math.floor(i / 2500);
+				state.world.lastPassage = i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a";
+				state.world.visited++;
+			});
+
+			engine.navigateTo(i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a");
+		}
+
+		const firstChunkElapsed = performance.now() - firstChunkStartedAt;
+
+		const secondChunkStartedAt = performance.now();
+
+		for (let i = 251; i <= 500; i++) {
+			engine.setVars((state) => {
+				state.points = i;
+				state.player.flags.isArmed = i % 2 === 0;
+				state.player.flags.hasKey = i % 5 === 0;
+				state.player.inventory.gold += i % 7;
+				state.player.inventory.items.push(`item-${i % 4}`);
+				if (state.player.inventory.items.length > 8) {
+					state.player.inventory.items.shift();
+				}
+				state.player.stats.health = Math.max(0, 100 - (i % 13));
+				state.player.stats.stamina = (state.player.stats.stamina + 3) % 100;
+				state.recentEvents.push({
+					passage: i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a",
+					step: i,
+				});
+				if (state.recentEvents.length > 12) {
+					state.recentEvents.shift();
+				}
+				state.world.chapter = 1 + Math.floor(i / 2500);
+				state.world.lastPassage = i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a";
+				state.world.visited++;
+			});
+
+			engine.navigateTo(i % 3 === 0 ? "c" : i % 2 === 0 ? "b" : "a");
+		}
+
+		const secondChunkElapsed = performance.now() - secondChunkStartedAt;
+
+		expect(engine.vars.points).toBe(500);
+		await engine.saveToSaveSlot(0);
+
+		let saveData: ChoicekitType.SaveData | null = null;
+		for await (const save of engine.getSaves()) {
+			if (save.type === "normal" && save.slot === 0) {
+				saveData = save.data;
+				break;
+			}
+		}
+
+		expect(saveData?.snapshots.length).toBeLessThanOrEqual(maxStates);
+		expect(secondChunkElapsed / firstChunkElapsed).toBeLessThan(2.5);
+	});
+
+	it("should regenerate random seed according to regenSeed mode", async () => {
+		const getCurrentSeed = async (engine: ChoicekitEngine, slot: number) => {
+			await engine.saveToSaveSlot(slot);
+
+			for await (const save of engine.getSaves()) {
+				if (save.type === "normal" && save.slot === slot) {
+					return save.data.snapshots[save.data.storyIndex]?.$$seed;
+				}
+			}
+
+			throw Error(`Unable to read save data from slot ${slot}`);
+		};
+
+		const baseConfig = {
+			initialSeed: 12345,
+			loadOnStart: false,
+			saveVersion: "1.0.0" as const,
+		};
+
+		const noRegen = await new ChoicekitEngineBuilder()
+			.withName("RegenSeedFalse")
+			.withVars({})
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({ ...baseConfig, regenSeed: false })
+			.build();
+
+		const noRegenSeedBefore = await getCurrentSeed(noRegen, 0);
+		void noRegen.random;
+		void noRegen.random;
+		void noRegen.random;
+		const noRegenSeedAfter = await getCurrentSeed(noRegen, 1);
+
+		expect(noRegenSeedAfter).toBe(noRegenSeedBefore);
+
+		const eachCall = await new ChoicekitEngineBuilder()
+			.withName("RegenSeedEachCall")
+			.withVars({})
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({ ...baseConfig, regenSeed: "eachCall" })
+			.build();
+
+		const eachCallSeedBefore = await getCurrentSeed(eachCall, 0);
+		void eachCall.random;
+		void eachCall.random;
+		void eachCall.random;
+		const eachCallSeedAfter = await getCurrentSeed(eachCall, 1);
+
+		expect(eachCallSeedAfter).not.toBe(eachCallSeedBefore);
+
+		const onPassage = await new ChoicekitEngineBuilder()
+			.withName("RegenSeedPassage")
+			.withVars({})
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ ...baseConfig, regenSeed: "passage" })
+			.build();
+
+		const onPassageSeedBefore = await getCurrentSeed(onPassage, 0);
+		void onPassage.random;
+		const onPassageSeedAfterRandomCall = await getCurrentSeed(onPassage, 1);
+
+		onPassage.navigateTo("b");
+		const onPassageSeedAfterNavigation = await getCurrentSeed(onPassage, 2);
+
+		expect(onPassageSeedAfterRandomCall).toBe(onPassageSeedBefore);
+		expect(onPassageSeedAfterNavigation).not.toBe(onPassageSeedBefore);
+	});
+
+	it("should respect emitMode when creating oldState for stateChange events", async () => {
+		const accEngine = await new ChoicekitEngineBuilder()
+			.withName("EmitModeAcc")
+			.withVars({ nested: { value: 1 } })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({ emitMode: "acc", loadOnStart: false })
+			.build();
+
+		const beforeAcc = accEngine.vars;
+		let oldStateFromAccEvent: unknown = null;
+
+		accEngine.once("stateChange", ({ oldState }) => {
+			oldStateFromAccEvent = oldState;
+		});
+
+		accEngine.setVars((state) => {
+			state.nested.value = 2;
+		});
+
+		expect(oldStateFromAccEvent).not.toBeNull();
+		expect(oldStateFromAccEvent).not.toBe(beforeAcc);
+
+		const perfEngine = await new ChoicekitEngineBuilder()
+			.withName("EmitModePerf")
+			.withVars({ nested: { value: 1 } })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({ emitMode: "perf", loadOnStart: false })
+			.build();
+
+		const beforePerf = perfEngine.vars;
+		let oldStateFromPerfEvent: unknown = null;
+
+		perfEngine.once("stateChange", ({ oldState }) => {
+			oldStateFromPerfEvent = oldState;
+		});
+
+		perfEngine.setVars((state) => {
+			state.nested.value = 2;
+		});
+
+		expect(oldStateFromPerfEvent).not.toBeNull();
+		expect(oldStateFromPerfEvent as unknown as typeof beforePerf).toEqual(
+			beforePerf,
+		);
+	});
+
+	it("should use cache adapter methods when cache config is provided", async () => {
+		const backingStore = new Map<
+			number,
+			{
+				value: number;
+				$$id: string;
+				$$seed: number;
+				$$plugins: Map<string, ChoicekitType.PluginSaveStructure>;
+			}
+		>();
+
+		let clearCalls = 0;
+		let deleteCalls = 0;
+		let getCalls = 0;
+		let setCalls = 0;
+
+		const cache: ChoicekitType.CacheAdapter<{ value: number }> = {
+			clear() {
+				clearCalls++;
+				backingStore.clear();
+			},
+			delete(key) {
+				deleteCalls++;
+				backingStore.delete(key);
+			},
+			get(key) {
+				getCalls++;
+				return backingStore.get(key) as
+					| ({ value: number } & ChoicekitType.SnapshotMetadata)
+					| undefined;
+			},
+			set(key, data) {
+				setCalls++;
+				backingStore.set(key, data);
+			},
+		};
+
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("CacheAdapter")
+			.withVars({ value: 0 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({
+				cache,
+				loadOnStart: false,
+				maxStates: 5,
+				stateMergeCount: 2,
+			})
+			.build();
+
+		void engine.vars;
+		void engine.vars;
+
+		for (let i = 1; i <= 20; i++) {
+			engine.setVars((state) => {
+				state.value = i;
+			});
+			engine.navigateTo(i % 2 === 0 ? "b" : "a");
+		}
+
+		expect(engine.vars.value).toBe(20);
+		expect(getCalls).toBeGreaterThan(0);
+		expect(setCalls).toBeGreaterThan(0);
+		expect(deleteCalls).toBeGreaterThan(0);
+		expect(clearCalls).toBeGreaterThan(0);
+	});
+
+	it("should load most recent save by default when loadOnStart is true", async () => {
+		const writer = await new ChoicekitEngineBuilder()
+			.withName("LoadOnStartDefault")
+			.withVars({ score: 0 })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({ loadOnStart: false })
+			.build();
+
+		writer.setVars((state) => {
+			state.score = 99;
+		});
+		await writer.saveToSaveSlot(0);
+
+		const loader = await new ChoicekitEngineBuilder()
+			.withName("LoadOnStartDefault")
+			.withVars({ score: -1 })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.build();
+
+		expect(loader.vars.score).toBe(99);
+	});
+
+	it("should persist saveVersion in save payloads", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("ConfiguredSaveVersion")
+			.withVars({ hp: 10 })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({
+				loadOnStart: false,
+				saveVersion: "3.1.4",
+			})
+			.build();
+
+		await engine.saveToSaveSlot(2);
+
+		let saveData: ChoicekitType.SaveData | null = null;
+		for await (const save of engine.getSaves()) {
+			if (save.type === "normal" && save.slot === 2) {
+				saveData = save.data;
+				break;
+			}
+		}
+
+		expect(saveData?.version).toBe("3.1.4");
+	});
+
+	it("should honor strict vs liberal saveCompat rules", async () => {
+		const strictEngine = await new ChoicekitEngineBuilder()
+			.withName("StrictCompat")
+			.withVars({ hp: 10 })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({
+				loadOnStart: false,
+				saveCompat: "strict",
+				saveVersion: "1.2.0",
+			})
+			.build();
+
+		await strictEngine.saveToSaveSlot(0);
+
+		let strictSaveData: ChoicekitType.SaveData<{ hp: number }> | null = null;
+		for await (const save of strictEngine.getSaves()) {
+			if (save.type === "normal" && save.slot === 0) {
+				strictSaveData = save.data;
+				break;
+			}
+		}
+
+		expect(strictSaveData).not.toBeNull();
+
+		expect(() =>
+			// @ts-expect-error Intentionally tampering with save version to test runtime compatibility mode handling
+			strictEngine.loadSaveFromData({
+				...(strictSaveData as ChoicekitType.SaveData<{ hp: number }>),
+				version: "1.1.0",
+			}),
+		).toThrow();
+
+		const liberalEngine = await new ChoicekitEngineBuilder()
+			.withName("LiberalCompat")
+			.withVars({ hp: 1 })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({
+				loadOnStart: false,
+				saveCompat: "liberal",
+				saveVersion: "1.2.0",
+			})
+			.build();
+
+		liberalEngine.loadSaveFromData({
+			intialState: {
+				$$id: "main",
+				$$plugins: new Map(),
+				$$seed: 123,
+				hp: 42,
+			},
+			lastPassageId: "main",
+			savedOn: new Date(),
+			snapshots: [
+				{
+					$$id: "main",
+					$$plugins: new Map(),
+					$$seed: 123,
+					hp: 42,
+				},
+			],
+			storyIndex: 0,
+			version: "1.1.0",
+		});
+
+		expect(liberalEngine.vars.hp).toBe(42);
+	});
+
+	it("should toggle compression behavior based on compress config", async () => {
+		const largeValue = "x".repeat(4000);
+
+		const compressedStore = new Map<string, string>();
+		const compressedPersistence = {
+			async delete(key: string) {
+				compressedStore.delete(key);
+			},
+			async get(key: string) {
+				return compressedStore.get(key);
+			},
+			async keys() {
+				return compressedStore.keys();
+			},
+			async set(key: string, data: string) {
+				compressedStore.set(key, data);
+			},
+		};
+
+		const compressedEngine = await new ChoicekitEngineBuilder()
+			.withName("CompressionOn")
+			.withVars({ blob: largeValue })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({
+				compress: true,
+				loadOnStart: false,
+				persistence: compressedPersistence,
+			})
+			.build();
+
+		await compressedEngine.saveToSaveSlot(0);
+
+		expect(
+			compressedStore.get("choicekit-CompressionOn-slot0")?.startsWith('{"'),
+		).toBe(false);
+
+		const uncompressedStore = new Map<string, string>();
+		const uncompressedPersistence = {
+			async delete(key: string) {
+				uncompressedStore.delete(key);
+			},
+			async get(key: string) {
+				return uncompressedStore.get(key);
+			},
+			async keys() {
+				return uncompressedStore.keys();
+			},
+			async set(key: string, data: string) {
+				uncompressedStore.set(key, data);
+			},
+		};
+
+		const uncompressedEngine = await new ChoicekitEngineBuilder()
+			.withName("CompressionOff")
+			.withVars({ blob: largeValue })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({
+				compress: false,
+				loadOnStart: false,
+				persistence: uncompressedPersistence,
+			})
+			.build();
+
+		await uncompressedEngine.saveToSaveSlot(0);
+
+		expect(
+			uncompressedStore.get("choicekit-CompressionOff-slot0")?.startsWith('{"'),
+		).toBe(true);
+	});
+
+	it("should autosave on passage changes when autoSave is passage", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("AutosavePassage")
+			.withVars({ value: 1 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ autoSave: "passage", loadOnStart: false })
+			.build();
+
+		const autosaved = new Promise<void>((resolve) => {
+			const unsubscribe = engine.on("saveEnd", (event) => {
+				if (event.slot === "autosave" && event.type === "success") {
+					unsubscribe();
+					resolve();
+				}
+			});
+		});
+
+		engine.navigateTo("b");
+		await autosaved;
+
+		const loader = await new ChoicekitEngineBuilder()
+			.withName("AutosavePassage")
+			.withVars({ value: -1 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ loadOnStart: false })
+			.build();
+
+		await loader.loadFromSaveSlot();
+		expect(loader.passageId).toBe("b");
+	});
+
+	it("should mount plugins passed via config.plugins", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("ConfigPlugins")
+			.withVars({ marker: 0 })
+			.withPassages({ data: "main", name: "main", tags: [] })
+			.withConfig({
+				loadOnStart: false,
+				plugins: [timelinePlugin],
+			})
+			.build();
+
+		const timelineApi = (
+			engine.$ as {
+				timeline?: {
+					getValue: () => number;
+					setValue: (value: number) => Promise<void>;
+				};
+			}
+		).timeline;
+
+		expect(timelineApi).toBeDefined();
+		expect(timelineApi?.getValue()).toBe(0);
+
+		await timelineApi?.setValue(42);
+		expect(timelineApi?.getValue()).toBe(42);
+	});
+
 	// ==================== Complex Scenarios ====================
 
 	it("should handle complex nested state with plugins and passage navigation", async () => {

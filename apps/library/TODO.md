@@ -9,8 +9,8 @@
 - [x] Add Storylet support
 - [ ] Consider exporting a base abstract class instead of an interface for all userland-compatible classes to extend from.
 - [x] Rewrite the AI-generated test suite cus it's garbage.
-- [ ] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
-	- [ ] In fact, add tests for every config option, and aim for as high code coverage as we can.
+- [x] Add explicit tests for state compaction / engine state after 100s to 1000s / 10000s of navigations. The engine should support as much as possible without horrible perf degradation.
+	- [x] In fact, add tests for every config option, and aim for as high code coverage as we can.
 - [x] For plugins with `withSave: true`, I should prolly store their state in the state snapshots of the engine, rather than just in the save data.
 
 ---
