@@ -1,3 +1,17 @@
+const BINARY_STRING_CHUNK_SIZE = 0x8000;
+
+const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
+	const binaryParts: string[] = [];
+
+	for (let i = 0; i < bytes.length; i += BINARY_STRING_CHUNK_SIZE) {
+		binaryParts.push(
+			String.fromCharCode(...bytes.subarray(i, i + BINARY_STRING_CHUNK_SIZE)),
+		);
+	}
+
+	return btoa(binaryParts.join(""));
+};
+
 /**
  * Compress a string with browser native APIs into a base64 string
  */
@@ -13,7 +27,7 @@ export async function compressString(
 		await new Response(compressedStream).arrayBuffer(),
 	);
 
-	return btoa(String.fromCharCode(...compressedBuffer));
+	return uint8ArrayToBase64(compressedBuffer);
 }
 
 /**
@@ -24,10 +38,11 @@ export async function decompressString(
 	encoding: CompressionFormat,
 ): Promise<string> {
 	const binaryString = atob(base64);
+	const compressedBytes = new Uint8Array(binaryString.length);
 
-	const compressedBytes = Uint8Array.from(binaryString, (char) =>
-		char.charCodeAt(0),
-	);
+	for (let i = 0; i < binaryString.length; i++) {
+		compressedBytes[i] = binaryString.charCodeAt(i);
+	}
 
 	const decompressedStream = new Blob([compressedBytes])
 		.stream()
