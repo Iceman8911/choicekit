@@ -35,8 +35,6 @@ export type ChoicekitSaveMigrationMap<
 export interface ChoicekitEngineGenerics {
 	passages: ChoicekitType.Passage<unknown, string, string>;
 	vars: GenericSerializableObject;
-	settings: GenericSerializableObject;
-	achievements: GenericSerializableObject;
 	name: string;
 	plugins: ChoicekitPlugin[];
 }
@@ -69,12 +67,6 @@ export interface ChoicekitEngineArguments<
 
 	/** So you don't have to manually register classes for proper serialization / deserialization */
 	classes: ChoicekitClassConstructorWithValidSerialization[];
-
-	/** Achievements that should persist across saves */
-	achievements: TEngineGenerics["achievements"];
-
-	/** Settings data that is not tied to save data, like audio volume, font size, etc */
-	settings: TEngineGenerics["settings"];
 
 	config: Partial<ChoicekitType.Config<TEngineGenerics["vars"]>>;
 

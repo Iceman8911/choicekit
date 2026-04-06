@@ -18,13 +18,11 @@ type BuilderMethods = Record<
 	(...args: any) => ChoicekitEngineBuilder<any>
 >;
 
-const sbAchievements: "achievements" = "achievements";
 const sbClasses: "classes" = "classes";
 const sbConfig: "config" = "config";
 const sbMigrations: "migrations" = "migrations";
 const sbName: "name" = "name";
 const sbPassages: "passages" = "passages";
-const sbSettings: "settings" = "settings";
 const sbVars: "vars" = "vars";
 const sbPlugins: "plugins" = "plugins";
 
@@ -83,30 +81,6 @@ export class ChoicekitEngineBuilder<
 		...passages: [TPassage, ...TPassage[]]
 	): ChoicekitEngineBuilder<TGenerics & { [sbPassages]: TPassage }> {
 		this.#forceAddProp(sbPassages, passages);
-
-		return this.#returnThis();
-	}
-
-	/** Set an object containing the achievements to be used in the story via the engine.
-	 *
-	 * Unlike the story variables, this is persisted seperately from saved states.
-	 */
-	withAchievements<TAchievements extends TGenerics["achievements"]>(
-		achievements: TAchievements,
-	): ChoicekitEngineBuilder<TGenerics & { [sbAchievements]: TAchievements }> {
-		this.#forceAddProp(sbAchievements, achievements);
-
-		return this.#returnThis();
-	}
-
-	/** Set an object containing the settings to be used in the story via the engine.
-	 *
-	 * Unlike the story variables, this is persisted seperately from saved states.
-	 */
-	withSettings<TSettings extends TGenerics["settings"]>(
-		settings: TSettings,
-	): ChoicekitEngineBuilder<TGenerics & { [sbSettings]: TSettings }> {
-		this.#forceAddProp(sbSettings, settings);
 
 		return this.#returnThis();
 	}
