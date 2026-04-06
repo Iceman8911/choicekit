@@ -239,21 +239,12 @@ class ChoicekitEngine<
 	#plugins = new Map<string, ChoicekitPlugin>();
 	#pluginConfig = new Map<string, GenericObject>();
 	#pluginState = new Map<string, GenericObject>();
-
-	#normalizePluginConfig(config?: GenericObject): GenericObject {
-		return config ?? {};
-	}
-
 	#stringifyPluginConfig(config: GenericObject): string {
 		try {
 			return JSON.stringify(config);
 		} catch {
 			return "[unserializable config]";
 		}
-	}
-
-	#isSamePluginConfig(a: GenericObject, b: GenericObject): boolean {
-		return this.#stringifyPluginConfig(a) === this.#stringifyPluginConfig(b);
 	}
 
 	#resolveDependencyConfig(
@@ -265,12 +256,12 @@ class ChoicekitEngine<
 			  >
 			| undefined,
 		callerPluginConfig: GenericObject,
-	): GenericObject | undefined {
-		if (typeof dependencyConfig === "function") {
-			return dependencyConfig(callerPluginConfig);
-		}
-
-		return dependencyConfig;
+	): GenericObject {
+		return (
+			(dependencyConfig instanceof Function
+				? dependencyConfig(callerPluginConfig)
+				: dependencyConfig) ?? {}
+		);
 	}
 
 	private constructor(args: {
@@ -1593,7 +1584,7 @@ class ChoicekitEngine<
 
 		const applyPlugin = async () => {
 			const engine = this;
-			const normalizedPluginConfig = engine.#normalizePluginConfig(config);
+			const normalizedPluginConfig = config ?? {};
 
 			engine.#plugins.set(id, pluginToUse);
 			engine.#pluginConfig.set(id, normalizedPluginConfig);
@@ -1606,20 +1597,12 @@ class ChoicekitEngine<
 					depConfigInput,
 					normalizedPluginConfig,
 				);
-				const normalizedResolvedDepConfig =
-					engine.#normalizePluginConfig(resolvedDepConfig);
 
 				const previousDependencyConfig = engine.#pluginConfig.get(depPlugin.id);
 
-				if (
-					previousDependencyConfig &&
-					!engine.#isSamePluginConfig(
-						previousDependencyConfig,
-						normalizedResolvedDepConfig,
-					)
-				) {
+				if (previousDependencyConfig) {
 					console.warn(
-						`Dependency '${depPlugin.id}' was already mounted with config ${engine.#stringifyPluginConfig(previousDependencyConfig)}. Ignoring later config ${engine.#stringifyPluginConfig(normalizedResolvedDepConfig)} from '${id}'.`,
+						`Dependency '${depPlugin.id}' was already mounted with config ${engine.#stringifyPluginConfig(previousDependencyConfig)}. Ignoring later config ${engine.#stringifyPluginConfig(resolvedDepConfig)} from '${id}'.`,
 					);
 				}
 
