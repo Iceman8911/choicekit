@@ -30,6 +30,7 @@ Requirements:
 - `static readonly classId: string` (stable identifier stored in saves)
 - `toJSON(): TSerialized` (serialized shape)
 - `static fromJSON(data: TSerialized): Instance` (revival)
+- If your class has a `constructor`, call `super()`.
 
 Round trip: `instance → toJSON() → save → load → fromJSON() → instance`
 
@@ -38,7 +39,10 @@ Round trip: `instance → toJSON() → save → load → fromJSON() → instance
 ## Example
 
 ```ts
-import type { ChoicekitClassConstructor, ChoicekitClassInstance } from "choicekit";
+import {
+	type ChoicekitClassConstructor,
+	ChoicekitClassInstance,
+} from "choicekit";
 
 type PlayerSerialized = {
 	name: string;
@@ -53,7 +57,7 @@ type PlayerSerialized = {
 	};
 };
 
-class Player implements ChoicekitClassInstance<PlayerSerialized> {
+class Player extends ChoicekitClassInstance<PlayerSerialized> {
 	static readonly classId = "Player";
 
 	name = "Dave";
