@@ -27,6 +27,10 @@ export async function compressString(
 		await new Response(compressedStream).arrayBuffer(),
 	);
 
+	if ("toBase64" in compressedBuffer) {
+		return compressedBuffer.toBase64();
+	}
+
 	return uint8ArrayToBase64(compressedBuffer);
 }
 
@@ -38,10 +42,18 @@ export async function decompressString(
 	encoding: CompressionFormat,
 ): Promise<string> {
 	const binaryString = atob(base64);
-	const compressedBytes = new Uint8Array(binaryString.length);
+	let compressedBytes: Uint8Array<ArrayBuffer>;
 
-	for (let i = 0; i < binaryString.length; i++) {
-		compressedBytes[i] = binaryString.charCodeAt(i);
+	if ("fromBase64" in Uint8Array) {
+		compressedBytes = Uint8Array.fromBase64(base64);
+	} else {
+		compressedBytes = new (Uint8Array as Uint8ArrayConstructor)(
+			binaryString.length,
+		);
+
+		for (let i = 0; i < binaryString.length; i++) {
+			compressedBytes[i] = binaryString.charCodeAt(i);
+		}
 	}
 
 	const decompressedStream = new Blob([compressedBytes])
