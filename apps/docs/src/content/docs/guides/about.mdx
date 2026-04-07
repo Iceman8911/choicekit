@@ -4,9 +4,9 @@ title: About
 
 Choicekit is a small, headless interactive fiction engine inspired by Twine SugarCube.
 
-It provides a few core pieces you usually end up rebuilding in every story project:
+It provides core pieces you usually end up rebuilding in every story project:
 
-- **Passages and navigation**: you register passages up front (or add them later) and move between them by id.
+- **Passages and navigation**: register passages up front (or add them later) and move between them by passage name.
 - **State with history**: state updates are recorded as snapshots, so you can support rewind/redo flows and keep saves small.
 - **Saving and loading**: saves are versioned, can be migrated as your data model changes, and can be compressed for storage or export.
 - **Deterministic randomness**: a built-in PRNG lets you make outcomes reproducible when you want them to be.
@@ -15,15 +15,34 @@ Plugin and extension features are documented separately so the core engine docs 
 
 ## What Choicekit is (and isn't)
 
-Choicekit is **not** a renderer, UI framework, or Twine runtime. It does not parse Twine markup or ship a UI. Your app decides how passages are represented (string, Markdown, components, etc.) and how they get displayed.
+Choicekit is **not** a renderer, UI framework, or Twine runtime. It does not parse Twine markup or ship a UI. Your app decides how passages are represented (string, Markdown, components, and so on) and how they are displayed.
 
-The engine’s job is to manage story flow and state cleanly, while staying out of the way of your UI choices.
+The engine's job is to manage story flow and state cleanly while staying out of the way of your UI choices.
+
+## Why Choicekit? (Compared with Twine story formats like SugarCube and other web-based IF tools)
+
+Many interactive fiction tools are aimed at non-developers like writers, which is valuable. For teams that prefer code-first workflows, that can come with tradeoffs:
+
+- **Poor developer tooling**: Custom markup and domain-specific languages (DSLs) can be difficult to work with and often lack strong type safety, autocompletion, debugging, and refactoring support.
+- **Limited extensibility**: When the engine handles both story logic and rendering, it can be hard to customize or extend without forking / working around the whole thing.
+- **Scalability issues**: As stories grow in complexity, some engines become harder to maintain or optimize.
+- **Comparatively heavy**: Some engines include many built-in systems, which can speed up early development but feel heavy for projects that want tighter control.
+
+Choicekit takes a different approach by being:
+
+- **Headless**: It focuses on story flow and state management, without dictating how you build your UI or structure your data.
+- **Framework-agnostic**: You can use it with any framework (for example React, Solid, Vue, or Svelte), any renderer of your choice, or just vanilla JS.
+- **TypeScript-first**: The API is designed to be type-safe and ergonomic for developers, with features like autocompletion and compile-time checks.
+- **Extensible**: The core engine is focused on foundational features, but you can build plugins or adapters to add functionality as needed without modifying the core.
+- **Lightweight**: The core engine is a couple of KB.
+- **An npm library**: You can pull it into nearly any project without restructuring your app around it.
 
 ## Repository layout
 
 This repo includes:
 
 - `apps/library`: the Choicekit engine package.
-- `apps/docs`: the documentation site you’re reading now.
+- `apps/docs`: the documentation site you're reading now.
+- `packages/`: shared supporting packages for compression, serialization, events, and polyfills.
 
-If you want to contribute, start by looking at how the library is structured and keep changes focused. The engine tries to stay lightweight and predictable, so additions should be deliberate and well scoped.
+If you want to contribute, start by looking at how the library is structured and keep changes focused. The engine aims to stay lightweight and predictable, so additions should be deliberate and well scoped.
