@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import { ChoicekitClassInstance } from "@packages/engine-class";
+import { createLruCacheAdapter } from "../adapters/cache/lru";
 import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
 import { ChoicekitEngineBuilder } from "./builder";
 import { ChoicekitEngine } from "./if-engine";
@@ -1971,6 +1972,31 @@ describe(ChoicekitEngine.name, () => {
 		expect(setCalls).toBeGreaterThan(0);
 		expect(deleteCalls).toBeGreaterThan(0);
 		expect(clearCalls).toBeGreaterThan(0);
+	});
+
+	it("should integrate with the built-in LRU cache adapter", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("LruCacheAdapterIntegration")
+			.withVars({ value: 0 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({
+				cache: createLruCacheAdapter<{ value: number }>({ maxEntries: 2 }),
+				loadOnStart: false,
+			})
+			.build();
+
+		for (let i = 1; i <= 8; i++) {
+			engine.setVars((state) => {
+				state.value = i;
+			});
+			engine.navigateTo(i % 2 === 0 ? "b" : "a");
+		}
+
+		expect(engine.vars.value).toBe(8);
+		expect(engine.passage?.name).toBe("b");
 	});
 
 	it("should load most recent save by default when loadOnStart is true", async () => {

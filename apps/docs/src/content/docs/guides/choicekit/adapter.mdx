@@ -62,6 +62,34 @@ type CacheAdapter<TValue> = {
 
 Use cache adapters when your IF has deep history and frequent `engine.vars` reads.
 
+## Built-in example: LRU cache adapter
+
+Choicekit ships with `createLruCacheAdapter(...)`, backed by [`tiny-lru`](https://www.npmjs.com/package/tiny-lru), for bounded in-memory snapshot caching.
+
+```ts
+import { ChoicekitEngineBuilder } from "choicekit";
+import {
+	LocalStoragePersistenceAdapter,
+	createLruCacheAdapter,
+} from "choicekit/adapters";
+
+const engine = await new ChoicekitEngineBuilder()
+	.withName("my-story")
+	.withPassages({ name: "Start", data: "..." })
+	.withVars({ gold: 0 })
+	.withConfig({
+		persistence: LocalStoragePersistenceAdapter,
+		cache: createLruCacheAdapter({ maxEntries: 250 }),
+	})
+	.build();
+```
+
+Adapter options:
+
+1. `maxEntries` (default: `100`) controls max snapshot count before LRU eviction.
+2. `ttlMs` (default: `0`) enables optional expiration.
+3. `resetTtlOnSet` (default: `false`) resets TTL when overwriting an existing key.
+
 ## Custom adapters
 
 Use custom adapters when built-ins are not enough, such as cloud save, encrypted storage, remote sync, or special cache behavior.

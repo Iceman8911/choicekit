@@ -23,7 +23,7 @@
 - [ ] Add framework adapters or example bindings for react, vue, svelte, and solidjs.
 - [x] Use maps instead of records where possible.
 - [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
-- [ ] Add an example cache adapter or lightweight cache package.
+- [x] Add an example cache adapter or lightweight cache package.
 
 ---
 

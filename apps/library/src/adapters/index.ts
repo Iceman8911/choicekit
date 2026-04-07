@@ -1,3 +1,4 @@
+export * from "./cache/lru";
 export * from "./persistence/in-memory";
 export * from "./persistence/indexed-db";
 export * from "./persistence/local-storage";
