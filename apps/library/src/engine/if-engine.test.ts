@@ -1199,6 +1199,595 @@ describe(ChoicekitEngine.name, () => {
 		expect(secondChunkElapsed / firstChunkElapsed).toBeLessThan(2.5);
 	});
 
+	it("should keep complex vars and withSave plugin state responsive across 500 navigations", async () => {
+		type VisitRecord = {
+			branch: string;
+			focus: string[];
+			passage: string;
+			turn: number;
+		};
+
+		type TravelLogPluginGenerics = ValidatePluginGenerics<{
+			id: "travelLog";
+			api: {
+				appendVisit: (visit: VisitRecord) => Promise<void>;
+				getSummary: () => {
+					byBranch: Record<string, number>;
+					byPassage: Record<string, number>;
+					lastVisit: VisitRecord | null;
+					total: number;
+				};
+				getVisits: () => VisitRecord[];
+			};
+			serializedState: {
+				lastVisit: VisitRecord | null;
+				summary: {
+					byBranch: Record<string, number>;
+					byPassage: Record<string, number>;
+					lastVisit: VisitRecord | null;
+					total: number;
+				};
+				visits: VisitRecord[];
+			};
+			state: {
+				lastVisit: VisitRecord | null;
+				summary: {
+					byBranch: Record<string, number>;
+					byPassage: Record<string, number>;
+					lastVisit: VisitRecord | null;
+					total: number;
+				};
+				visits: VisitRecord[];
+			};
+		}>;
+
+		type ArtifactRecord = {
+			id: string;
+			metadata: {
+				importance: number;
+				labels: string[];
+			};
+			passage: string;
+		};
+
+		type ArtifactVaultPluginGenerics = ValidatePluginGenerics<{
+			id: "artifactVault";
+			api: {
+				captureArtifact: (artifact: ArtifactRecord) => Promise<void>;
+				getArtifacts: () => ArtifactRecord[];
+				getSummary: () => {
+					lastPassage: string;
+					recentIds: string[];
+					total: number;
+					byPassage: Record<string, number>;
+				};
+			};
+			serializedState: {
+				artifacts: ArtifactRecord[];
+				summary: {
+					lastPassage: string;
+					recentIds: string[];
+					total: number;
+					byPassage: Record<string, number>;
+				};
+			};
+			state: {
+				artifacts: ArtifactRecord[];
+				summary: {
+					lastPassage: string;
+					recentIds: string[];
+					total: number;
+					byPassage: Record<string, number>;
+				};
+			};
+		}>;
+
+		type HeavyVars = {
+			player: {
+				flags: {
+					hasCompass: boolean;
+					isAlert: boolean;
+					knowsRoute: boolean;
+				};
+				inventory: {
+					keys: string[];
+					notes: string[];
+					supplies: string[];
+				};
+				stats: {
+					focus: number;
+					hp: number;
+					stamina: number;
+				};
+			};
+			session: {
+				breadcrumbs: Array<{ passage: string; turn: number }>;
+				lastDecision: {
+					branch: string;
+					passage: string;
+				};
+				turn: number;
+			};
+			world: {
+				chapter: number;
+				contacts: string[];
+				danger: number;
+				lastPassage: string;
+				weather: string;
+			};
+		};
+
+		const travelLogPlugin = definePlugin<TravelLogPluginGenerics>({
+			id: "travelLog",
+			initApi: ({ state, triggerSave }) => ({
+				appendVisit: async (visit) => {
+					state.visits.push(visit);
+					state.summary.total++;
+					state.summary.byBranch[visit.branch] =
+						(state.summary.byBranch[visit.branch] ?? 0) + 1;
+					state.summary.byPassage[visit.passage] =
+						(state.summary.byPassage[visit.passage] ?? 0) + 1;
+					state.summary.lastVisit = { ...visit, focus: [...visit.focus] };
+					state.lastVisit = state.summary.lastVisit;
+
+					if (state.visits.length > 48) {
+						state.visits.shift();
+					}
+
+					await triggerSave();
+				},
+				getSummary: () => ({
+					byBranch: { ...state.summary.byBranch },
+					byPassage: { ...state.summary.byPassage },
+					lastVisit: state.summary.lastVisit
+						? {
+								...state.summary.lastVisit,
+								focus: [...state.summary.lastVisit.focus],
+							}
+						: null,
+					total: state.summary.total,
+				}),
+				getVisits: () =>
+					state.visits.map((visit) => ({
+						...visit,
+						focus: [...visit.focus],
+					})),
+			}),
+			initState: () => ({
+				lastVisit: null,
+				summary: {
+					byBranch: { alpha: 0, beta: 0, delta: 0, gamma: 0 },
+					byPassage: { a: 0, b: 0, c: 0, d: 0 },
+					lastVisit: null,
+					total: 0,
+				},
+				visits: [],
+			}),
+			onDeserialize: ({ data, state }) => {
+				state.lastVisit = data.lastVisit
+					? {
+							...data.lastVisit,
+							focus: [...data.lastVisit.focus],
+						}
+					: null;
+				state.summary = {
+					byBranch: { ...data.summary.byBranch },
+					byPassage: { ...data.summary.byPassage },
+					lastVisit: data.summary.lastVisit
+						? {
+								...data.summary.lastVisit,
+								focus: [...data.summary.lastVisit.focus],
+							}
+						: null,
+					total: data.summary.total,
+				};
+				state.visits = data.visits.map((visit) => ({
+					...visit,
+					focus: [...visit.focus],
+				}));
+			},
+			serialize: {
+				method: ({ lastVisit, summary, visits }) => ({
+					lastVisit: lastVisit
+						? {
+								...lastVisit,
+								focus: [...lastVisit.focus],
+							}
+						: null,
+					summary: {
+						byBranch: { ...summary.byBranch },
+						byPassage: { ...summary.byPassage },
+						lastVisit: summary.lastVisit
+							? {
+									...summary.lastVisit,
+									focus: [...summary.lastVisit.focus],
+								}
+							: null,
+						total: summary.total,
+					},
+					visits: visits.map((visit) => ({
+						...visit,
+						focus: [...visit.focus],
+					})),
+				}),
+				withSave: true,
+			},
+		});
+
+		const artifactVaultPlugin = definePlugin<ArtifactVaultPluginGenerics>({
+			id: "artifactVault",
+			initApi: ({ state, triggerSave }) => ({
+				captureArtifact: async (artifact) => {
+					state.artifacts.push(artifact);
+					state.summary.total++;
+					state.summary.lastPassage = artifact.passage;
+					state.summary.byPassage[artifact.passage] =
+						(state.summary.byPassage[artifact.passage] ?? 0) + 1;
+					state.summary.recentIds.push(artifact.id);
+					if (state.summary.recentIds.length > 16) {
+						state.summary.recentIds.shift();
+					}
+
+					if (state.artifacts.length > 64) {
+						state.artifacts.shift();
+					}
+
+					await triggerSave();
+				},
+				getArtifacts: () =>
+					state.artifacts.map((artifact) => ({
+						...artifact,
+						metadata: {
+							...artifact.metadata,
+							labels: [...artifact.metadata.labels],
+						},
+					})),
+				getSummary: () => ({
+					byPassage: { ...state.summary.byPassage },
+					lastPassage: state.summary.lastPassage,
+					recentIds: [...state.summary.recentIds],
+					total: state.summary.total,
+				}),
+			}),
+			initState: () => ({
+				artifacts: [],
+				summary: {
+					byPassage: { a: 0, b: 0, c: 0, d: 0 },
+					lastPassage: "",
+					recentIds: [],
+					total: 0,
+				},
+			}),
+			onDeserialize: ({ data, state }) => {
+				state.artifacts = data.artifacts.map((artifact) => ({
+					...artifact,
+					metadata: {
+						...artifact.metadata,
+						labels: [...artifact.metadata.labels],
+					},
+				}));
+				state.summary = {
+					byPassage: { ...data.summary.byPassage },
+					lastPassage: data.summary.lastPassage,
+					recentIds: [...data.summary.recentIds],
+					total: data.summary.total,
+				};
+			},
+			serialize: {
+				method: ({ artifacts, summary }) => ({
+					artifacts: artifacts.map((artifact) => ({
+						...artifact,
+						metadata: {
+							...artifact.metadata,
+							labels: [...artifact.metadata.labels],
+						},
+					})),
+					summary: {
+						byPassage: { ...summary.byPassage },
+						lastPassage: summary.lastPassage,
+						recentIds: [...summary.recentIds],
+						total: summary.total,
+					},
+				}),
+				withSave: true,
+			},
+		});
+
+		const routes = ["a", "b", "c", "d"] as const;
+		const branches = ["alpha", "beta", "gamma", "delta"] as const;
+		const maxStates = 500;
+		const backingStore = new Map<
+			number,
+			HeavyVars & {
+				$$id: string;
+				$$plugins: Map<string, ChoicekitType.PluginSaveStructure>;
+				$$seed: number;
+			}
+		>();
+
+		let clearCalls = 0;
+		let deleteCalls = 0;
+		let getCalls = 0;
+		let setCalls = 0;
+
+		const cache: ChoicekitType.CacheAdapter<HeavyVars> = {
+			clear() {
+				clearCalls++;
+				backingStore.clear();
+			},
+			delete(key) {
+				deleteCalls++;
+				backingStore.delete(key);
+			},
+			get(key) {
+				getCalls++;
+				return backingStore.get(key) as
+					| ({
+							player: {
+								flags: {
+									hasCompass: boolean;
+									isAlert: boolean;
+									knowsRoute: boolean;
+								};
+								inventory: {
+									keys: string[];
+									notes: string[];
+									supplies: string[];
+								};
+								stats: {
+									focus: number;
+									hp: number;
+									stamina: number;
+								};
+							};
+							session: {
+								breadcrumbs: Array<{ passage: string; turn: number }>;
+								lastDecision: {
+									branch: string;
+									passage: string;
+								};
+								turn: number;
+							};
+							world: {
+								chapter: number;
+								contacts: string[];
+								danger: number;
+								lastPassage: string;
+								weather: string;
+							};
+					  } & ChoicekitType.SnapshotMetadata)
+					| undefined;
+			},
+			set(key, data) {
+				setCalls++;
+				backingStore.set(key, data);
+			},
+		};
+
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("HeavyStateCacheInvalidation")
+			.withVars({
+				player: {
+					flags: {
+						hasCompass: false,
+						isAlert: false,
+						knowsRoute: false,
+					},
+					inventory: {
+						keys: [],
+						notes: [],
+						supplies: ["rope", "lamp"],
+					},
+					stats: {
+						focus: 12,
+						hp: 20,
+						stamina: 8,
+					},
+				},
+				session: {
+					breadcrumbs: [],
+					lastDecision: {
+						branch: "alpha",
+						passage: "a",
+					},
+					turn: 0,
+				},
+				world: {
+					chapter: 1,
+					contacts: [],
+					danger: 0,
+					lastPassage: "a",
+					weather: "clear",
+				},
+			} as HeavyVars)
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+				{ data: "C", name: "c", tags: [] },
+				{ data: "D", name: "d", tags: [] },
+			)
+			.withConfig({
+				cache,
+				loadOnStart: false,
+				maxStates,
+				stateMergeCount: 8,
+			})
+			.withPlugin(travelLogPlugin, undefined)
+			.withPlugin(artifactVaultPlugin, undefined)
+			.build();
+
+		for (let i = 1; i <= 500; i++) {
+			const passageIndex = (i - 1) % routes.length;
+			const branchIndex = (i - 1) % branches.length;
+			const passage = routes[passageIndex];
+			const branch = branches[branchIndex];
+
+			if (!passage || !branch) {
+				throw new Error("Unable to resolve passage or branch for stress test");
+			}
+
+			engine.setVars((state) => {
+				state.player.flags.hasCompass = i % 4 === 0;
+				state.player.flags.isAlert = i % 3 === 0;
+				state.player.flags.knowsRoute = i > 250;
+				state.player.inventory.keys.push(`key-${i % 6}`);
+				state.player.inventory.notes.push(`note-${branch}-${i % 11}`);
+				state.player.inventory.supplies.push(`supply-${i % 8}`);
+				state.player.stats.focus = 12 + (i % 9);
+				state.player.stats.hp = Math.max(1, 20 - (i % 7));
+				state.player.stats.stamina = (state.player.stats.stamina + 2) % 20;
+				state.session.turn = i;
+				state.session.lastDecision = {
+					branch,
+					passage,
+				};
+				state.session.breadcrumbs.push({ passage, turn: i });
+				if (state.session.breadcrumbs.length > 40) {
+					state.session.breadcrumbs.shift();
+				}
+				state.world.chapter = 1 + Math.floor(i / 125);
+				state.world.contacts.push(`contact-${i % 12}`);
+				if (state.world.contacts.length > 24) {
+					state.world.contacts.shift();
+				}
+				state.world.danger = (state.world.danger + i) % 13;
+				state.world.lastPassage = passage;
+				state.world.weather = i % 2 === 0 ? "clear" : "foggy";
+			});
+
+			await engine.$.travelLog.appendVisit({
+				branch,
+				focus: [`focus-${i % 5}`, `focus-${i % 7}`],
+				passage,
+				turn: i,
+			});
+
+			if (i % 3 === 0) {
+				await engine.$.artifactVault.captureArtifact({
+					id: `artifact-${i}`,
+					metadata: {
+						importance: i % 10,
+						labels: [`branch-${branch}`, `turn-${i % 6}`],
+					},
+					passage,
+				});
+			}
+
+			engine.navigateTo(passage);
+		}
+
+		const coalescedReadStartedAt = performance.now();
+		const coalescedVars = engine.vars;
+		const coalescedReadElapsed = performance.now() - coalescedReadStartedAt;
+
+		expect(coalescedVars.session.turn).toBe(500);
+		expect(coalescedVars.session.lastDecision).toEqual({
+			branch: "delta",
+			passage: "d",
+		});
+		expect(coalescedVars.world.lastPassage).toBe("d");
+		expect(coalescedVars.player.inventory.keys.length).toBeLessThanOrEqual(500);
+		expect(coalescedReadElapsed).toBeLessThan(100);
+
+		expect(engine.$.travelLog.getSummary().total).toBe(500);
+		expect(engine.$.travelLog.getVisits().length).toBeLessThanOrEqual(48);
+		expect(engine.$.artifactVault.getSummary().total).toBe(166);
+		expect(engine.$.artifactVault.getArtifacts().length).toBeLessThanOrEqual(
+			64,
+		);
+
+		const deleteCallsBeforeMutation = deleteCalls;
+		const invalidateStartedAt = performance.now();
+
+		engine.setVars((state) => {
+			state.player.flags.hasCompass = true;
+			state.player.flags.knowsRoute = true;
+			state.player.inventory.notes.push("post-coalesce-note");
+			if (state.player.inventory.notes.length > 32) {
+				state.player.inventory.notes.shift();
+			}
+			state.session.turn += 1;
+			state.session.lastDecision = {
+				branch: "alpha",
+				passage: "c",
+			};
+			state.session.breadcrumbs.push({
+				passage: "c",
+				turn: state.session.turn,
+			});
+			if (state.session.breadcrumbs.length > 40) {
+				state.session.breadcrumbs.shift();
+			}
+			state.world.lastPassage = "c";
+			state.world.weather = "stormy";
+		});
+
+		engine.navigateTo("c");
+
+		const postMutationVars = engine.vars;
+		const invalidateElapsed = performance.now() - invalidateStartedAt;
+
+		expect(postMutationVars.session.turn).toBe(501);
+		expect(postMutationVars.session.lastDecision).toEqual({
+			branch: "alpha",
+			passage: "c",
+		});
+		expect(postMutationVars.world.lastPassage).toBe("c");
+		expect(postMutationVars.world.weather).toBe("stormy");
+		expect(deleteCalls).toBeGreaterThan(deleteCallsBeforeMutation);
+		expect(invalidateElapsed).toBeLessThan(50);
+
+		await engine.$.travelLog.appendVisit({
+			branch: "alpha",
+			focus: ["post", "invalidate"],
+			passage: "c",
+			turn: 501,
+		});
+		await engine.$.artifactVault.captureArtifact({
+			id: "artifact-post-invalidate",
+			metadata: {
+				importance: 1,
+				labels: ["post", "invalidate"],
+			},
+			passage: "c",
+		});
+
+		expect(engine.$.travelLog.getSummary().total).toBe(501);
+		expect(engine.$.artifactVault.getSummary().total).toBe(167);
+		expect(getCalls).toBeGreaterThan(0);
+		expect(setCalls).toBeGreaterThan(0);
+		expect(clearCalls).toBeGreaterThan(0);
+
+		await engine.saveToSaveSlot(0);
+
+		let saveData: ChoicekitType.SaveData<HeavyVars> | null = null;
+		for await (const save of engine.getSaves()) {
+			if (save.type === "normal" && save.slot === 0) {
+				saveData = save.data;
+				break;
+			}
+		}
+
+		expect(saveData).not.toBeNull();
+		expect(saveData?.snapshots.length).toBeLessThanOrEqual(maxStates);
+		expect(
+			saveData?.snapshots[saveData.storyIndex]?.$$plugins?.get("travelLog")
+				?.data,
+		).toMatchObject({
+			summary: {
+				total: 501,
+			},
+		});
+		expect(
+			saveData?.snapshots[saveData.storyIndex]?.$$plugins?.get("artifactVault")
+				?.data,
+		).toMatchObject({
+			summary: {
+				total: 167,
+			},
+		});
+	});
+
 	it("should regenerate random seed according to regenSeed mode", async () => {
 		const getCurrentSeed = async (engine: ChoicekitEngine, slot: number) => {
 			await engine.saveToSaveSlot(slot);
@@ -2358,5 +2947,274 @@ describe(ChoicekitEngine.name, () => {
 		expect(engine.vars.hero).toBeInstanceOf(StoryHero);
 		expect(engine.vars.hero.name).toBe("Mira");
 		expect(engine.vars.hero.hp).toBe(30);
+	});
+
+	it("should maintain correctness and responsiveness through worst-case heavy navigation with multiple withSave plugins and cache invalidation cycles", async () => {
+		const MAX_TIME_BUDGET_MS = 4;
+
+		type TimelineEntry = { id: number; passage: string; turn: number };
+		type TimelinePluginState = { events: TimelineEntry[] };
+		type TimelinePluginGenerics = ValidatePluginGenerics<{
+			id: "timeline";
+			api: {
+				recordEvent: (passage: string, turn: number) => Promise<void>;
+				getRecentEvents: () => TimelineEntry[];
+			};
+			state: TimelinePluginState;
+			dependencies: [];
+		}>;
+
+		const timelinePlugin = definePlugin<TimelinePluginGenerics>({
+			id: "timeline",
+			initApi: ({ state, triggerSave }) => ({
+				getRecentEvents: () => [...state.events],
+				recordEvent: async (passage: string, turn: number) => {
+					state.events.push({ id: state.events.length, passage, turn });
+					if (state.events.length > 50) {
+						state.events.shift();
+					}
+
+					await triggerSave();
+				},
+			}),
+			initState: () => ({ events: [] as TimelineEntry[] }),
+			onDeserialize: ({ data, state }) => {
+				state.events = [...data.events];
+			},
+			serialize: {
+				method: ({ events }) => ({ events: [...events] }),
+				withSave: true,
+			},
+		});
+
+		type ProgressPluginState = {
+			visitedRoutes: Set<string>;
+			completedBranches: Record<string, boolean>;
+			questsActive: number;
+		};
+		type ProgressPluginGenerics = ValidatePluginGenerics<{
+			id: "progress";
+			api: {
+				recordRoute: (route: string) => Promise<void>;
+				completeBranch: (branch: string) => Promise<void>;
+				updateQuests: (delta: number) => Promise<void>;
+				getProgress: () => {
+					routes: string[];
+					branches: string[];
+					quests: number;
+				};
+			};
+			state: ProgressPluginState;
+			dependencies: [];
+		}>;
+
+		const progressPlugin = definePlugin<ProgressPluginGenerics>({
+			id: "progress",
+			initApi: ({ state, triggerSave }) => ({
+				completeBranch: async (branch: string) => {
+					state.completedBranches[branch] = true;
+					await triggerSave();
+				},
+				getProgress: () => ({
+					branches: Object.keys(state.completedBranches).filter(
+						(branch) => state.completedBranches[branch],
+					),
+					quests: state.questsActive,
+					routes: Array.from(state.visitedRoutes),
+				}),
+				recordRoute: async (route: string) => {
+					state.visitedRoutes.add(route);
+					await triggerSave();
+				},
+				updateQuests: async (delta: number) => {
+					state.questsActive = Math.max(0, state.questsActive + delta);
+					await triggerSave();
+				},
+			}),
+			initState: () => ({
+				completedBranches: {},
+				questsActive: 0,
+				visitedRoutes: new Set<string>(),
+			}),
+			onDeserialize: ({ data, state }) => {
+				state.visitedRoutes = new Set(data.visitedRoutes);
+				state.completedBranches = { ...data.completedBranches };
+				state.questsActive = data.questsActive;
+			},
+			serialize: {
+				method: ({ visitedRoutes, completedBranches, questsActive }) => ({
+					completedBranches,
+					questsActive,
+					visitedRoutes: Array.from(visitedRoutes),
+				}),
+				withSave: true,
+			},
+		});
+
+		type HeavyVars = {
+			player: {
+				health: number;
+				inventory: { items: string[]; gold: number };
+				stats: { maxHealth: number; level: number };
+			};
+			world: {
+				chapter: number;
+				tension: number;
+				passagePath: string[];
+			};
+			session: {
+				turnCount: number;
+				eventLog: Array<{ msg: string; turn: number }>;
+			};
+		};
+
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("HeavyStressTest")
+			.withVars({
+				player: {
+					health: 100,
+					inventory: { gold: 0, items: [] },
+					stats: { level: 1, maxHealth: 100 },
+				},
+				session: {
+					eventLog: [],
+					turnCount: 0,
+				},
+				world: {
+					chapter: 0,
+					passagePath: [],
+					tension: 0,
+				},
+			} as HeavyVars)
+			.withPassages(
+				{ data: "Route A", name: "a", tags: ["route"] },
+				{ data: "Route B", name: "b", tags: ["route"] },
+				{ data: "Route C", name: "c", tags: ["route"] },
+				{ data: "Route D", name: "d", tags: ["route"] },
+			)
+			.withConfig({
+				loadOnStart: false,
+				maxStates: 500,
+			})
+			.withPlugin(timelinePlugin, undefined)
+			.withPlugin(progressPlugin, undefined)
+			.build();
+
+		const routes = ["a", "b", "c", "d"] as const;
+
+		for (let i = 1; i <= 500; i++) {
+			const route = routes[(i - 1) % routes.length] ?? "a";
+
+			engine.setVars((state) => {
+				state.player.health = Math.max(1, 100 - (i % 37));
+				state.player.inventory.gold += i % 13;
+				if (i % 5 === 0) {
+					state.player.inventory.items.push(`item-${i}`);
+				}
+				if (state.player.inventory.items.length > 25) {
+					state.player.inventory.items.shift();
+				}
+				state.player.stats.level = 1 + Math.floor(i / 250);
+				state.world.chapter = Math.floor((i - 1) / 125);
+				state.world.tension = (state.world.tension + (i % 7)) % 100;
+				state.world.passagePath.push(route);
+				if (state.world.passagePath.length > 40) {
+					state.world.passagePath.shift();
+				}
+				state.session.turnCount = i;
+				if (i % 11 === 0) {
+					state.session.eventLog.push({
+						msg: `Event at turn ${i}`,
+						turn: i,
+					});
+				}
+				if (state.session.eventLog.length > 30) {
+					state.session.eventLog.shift();
+				}
+			});
+
+			await engine.$.timeline.recordEvent(route, i);
+			if (i % 2 === 0) {
+				await engine.$.progress.recordRoute(route);
+			}
+			if (i % 3 === 0) {
+				await engine.$.progress.completeBranch(`branch-${i % 8}`);
+			}
+			if (i % 4 === 0) {
+				await engine.$.progress.updateQuests(1);
+			}
+
+			engine.navigateTo(route);
+		}
+
+		await engine.saveToSaveSlot(0);
+
+		let saveData: ChoicekitType.SaveData<HeavyVars> | null = null;
+		for await (const save of engine.getSaves()) {
+			if (save.type === "normal" && save.slot === 0) {
+				saveData = save.data;
+				break;
+			}
+		}
+
+		expect(saveData).not.toBeNull();
+		expect(saveData?.snapshots.length).toBeLessThanOrEqual(500);
+		expect(engine.vars.session.turnCount).toBe(500);
+
+		void engine.vars;
+		const coalescingStart = performance.now();
+		const stateAfterHeavyNav = engine.vars;
+		const coalescingElapsed = performance.now() - coalescingStart;
+
+		expect(coalescingElapsed).toBeLessThan(MAX_TIME_BUDGET_MS);
+		expect(stateAfterHeavyNav.player.health).toBeGreaterThan(0);
+		expect(stateAfterHeavyNav.player.health).toBeLessThanOrEqual(100);
+		expect(stateAfterHeavyNav.session.turnCount).toBe(500);
+		expect(stateAfterHeavyNav.world.chapter).toBe(3);
+
+		expect(engine.$.timeline.getRecentEvents().length).toBeGreaterThan(0);
+		expect(engine.$.timeline.getRecentEvents().length).toBeLessThanOrEqual(50);
+
+		const progress = engine.$.progress.getProgress();
+		expect(progress.routes).toContain("b");
+		expect(progress.routes).toContain("d");
+		expect(progress.quests).toBeGreaterThanOrEqual(0);
+
+		engine.setVars((state) => {
+			state.player.health = 75;
+			state.session.turnCount = 501;
+		});
+
+		expect(engine.vars.player.health).toBe(75);
+
+		engine.navigateTo("d");
+
+		await engine.$.timeline.recordEvent("d", 501);
+		await engine.$.progress.recordRoute("d");
+
+		const invalidationStart = performance.now();
+		const stateAfterInvalidation = engine.vars;
+		const invalidationElapsed = performance.now() - invalidationStart;
+
+		expect(invalidationElapsed).toBeLessThan(MAX_TIME_BUDGET_MS);
+		expect(stateAfterInvalidation.player.health).toBe(75);
+		expect(stateAfterInvalidation.session.turnCount).toBe(501);
+		expect(
+			stateAfterInvalidation.world.passagePath[
+				stateAfterInvalidation.world.passagePath.length - 1
+			],
+		).toBe("d");
+
+		engine.backward(10);
+		const backState = engine.vars;
+		expect(backState.session.turnCount).toBeLessThan(501);
+
+		engine.forward(5);
+		const forwardState = engine.vars;
+		expect(forwardState.session.turnCount).toBeGreaterThan(
+			backState.session.turnCount,
+		);
+
+		expect(engine.$.timeline.getRecentEvents().length).toBeGreaterThan(0);
 	});
 });
