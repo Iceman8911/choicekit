@@ -1528,7 +1528,7 @@ class ChoicekitEngine<
 	}
 
 	get #currentStatePrngSeed(): number {
-		return this.vars.$$seed as number;
+		return this.vars.$$seed;
 	}
 
 	/** Since the seed is stored in each snapshot and reinitializing the class isn't expensive, there's not much use in having a dedicated prng prop */
