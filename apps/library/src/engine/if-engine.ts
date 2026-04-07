@@ -534,7 +534,7 @@ class ChoicekitEngine<
 		}
 	}
 
-	/** Returns an object containing the data of all present saves */
+	/** Returns an async generator containing the data of all present saves */
 	async *getSaves(): AsyncGenerator<
 		| {
 				type: "autosave";
