@@ -1675,7 +1675,6 @@ class ChoicekitEngine<
 		}
 	}
 
-	// TODO: add tests for these
 	/** Returns the serializable data for a single plugin, if any */
 	#getSinglePluginSerializableData(
 		pluginId: string,

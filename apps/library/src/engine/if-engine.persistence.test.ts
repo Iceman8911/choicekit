@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { ChoicekitClassInstance } from "@packages/engine-class";
+import { deserialize } from "@packages/serializer";
 import { definePlugin, type ValidatePluginGenerics } from "../plugins/plugin";
 import { ChoicekitEngineBuilder } from "./builder";
 import type { ChoicekitType } from "./types/Choicekit";
@@ -70,6 +71,39 @@ const storyProgressPlugin = definePlugin<StoryProgressPluginGenerics>({
 	serialize: {
 		method: ({ completedScenes }) => ({ completedScenes }),
 		withSave: true,
+	},
+});
+
+type GlobalSettingsPluginGenerics = ValidatePluginGenerics<{
+	id: "globalSettings";
+	api: {
+		getVolume: () => number;
+		setVolume: (value: number) => Promise<void>;
+	};
+	serializedState: {
+		volume: number;
+	};
+	state: {
+		volume: number;
+	};
+}>;
+
+const globalSettingsPlugin = definePlugin<GlobalSettingsPluginGenerics>({
+	id: "globalSettings",
+	initApi: ({ state, triggerSave }) => ({
+		getVolume: () => state.volume,
+		setVolume: async (value: number) => {
+			state.volume = value;
+			await triggerSave();
+		},
+	}),
+	initState: () => ({ volume: 50 }),
+	onDeserialize: ({ data, state }) => {
+		state.volume = data.volume;
+	},
+	serialize: {
+		method: ({ volume }) => ({ volume }),
+		withSave: false,
 	},
 });
 
@@ -949,5 +983,81 @@ describe("ChoicekitEngine persistence", () => {
 		expect(engine.vars.hero).toBeInstanceOf(StoryHero);
 		expect(engine.vars.hero.name).toBe("Mira");
 		expect(engine.vars.hero.hp).toBe(30);
+	});
+
+	it("should split plugin serialization by withSave in export payloads", async () => {
+		const engine = await new ChoicekitEngineBuilder()
+			.withName("ExportPluginPartitioning")
+			.withVars({ score: 0 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ compress: false, loadOnStart: false })
+			.withPlugin(timelinePlugin, undefined)
+			.withPlugin(globalSettingsPlugin, undefined)
+			.build();
+
+		await engine.$.timeline.setValue(11);
+		await engine.$.globalSettings.setVolume(77);
+		engine.navigateTo("b");
+
+		const exported = await engine.saveToExport();
+		const exportData = deserialize(
+			exported,
+		) as unknown as ChoicekitType.ExportData<{
+			score: number;
+		}>;
+
+		expect(exportData.plugins.get("globalSettings")?.data).toEqual({
+			volume: 77,
+		});
+		expect(exportData.plugins.has("timeline")).toBe(false);
+
+		const snapshot =
+			exportData.saveData.snapshots[exportData.saveData.storyIndex];
+		expect(snapshot?.$$plugins?.get("timeline")?.data).toEqual({ value: 11 });
+		expect(snapshot?.$$plugins?.has("globalSettings")).toBe(false);
+	});
+
+	it("should restore withSave and non-withSave plugin state from export", async () => {
+		const writer = await new ChoicekitEngineBuilder()
+			.withName("ExportPluginRoundTrip")
+			.withVars({ score: 1 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ compress: false, loadOnStart: false })
+			.withPlugin(timelinePlugin, undefined)
+			.withPlugin(globalSettingsPlugin, undefined)
+			.build();
+
+		await writer.$.timeline.setValue(29);
+		await writer.$.globalSettings.setVolume(83);
+		writer.navigateTo("b");
+
+		const exported = await writer.saveToExport();
+
+		const reader = await new ChoicekitEngineBuilder()
+			.withName("ExportPluginRoundTripReader")
+			.withVars({ score: -1 })
+			.withPassages(
+				{ data: "A", name: "a", tags: [] },
+				{ data: "B", name: "b", tags: [] },
+			)
+			.withConfig({ compress: false, loadOnStart: false })
+			.withPlugin(timelinePlugin, undefined)
+			.withPlugin(globalSettingsPlugin, undefined)
+			.build();
+
+		expect(reader.$.timeline.getValue()).toBe(0);
+		expect(reader.$.globalSettings.getVolume()).toBe(50);
+
+		await reader.loadFromExport(exported);
+
+		expect(reader.$.timeline.getValue()).toBe(29);
+		expect(reader.$.globalSettings.getVolume()).toBe(83);
+		expect(reader.passageId).toBe("b");
 	});
 });

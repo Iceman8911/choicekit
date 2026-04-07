@@ -8,7 +8,7 @@
 - [ ] Add save recovery for corrupted or incompatible saves.
 - [ ] Add clearer choice and branch helpers for interactive fiction UI layers.
 - [ ] Detect and surface plugin dependency cycles during plugin mounting.
-- [ ] Add regression tests for save/load, passage navigation, and large-history performance.
+- [x] Add regression tests for save/load, passage navigation, and large-history performance.
 
 ---
 
