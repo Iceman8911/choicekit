@@ -308,7 +308,7 @@ describe("ChoicekitEngine persistence", () => {
 			.build();
 
 		liberalEngine.loadSaveFromData({
-			intialState: {
+			initialState: {
 				$$id: "main",
 				$$plugins: new Map(),
 				$$seed: 123,
@@ -735,7 +735,7 @@ describe("ChoicekitEngine persistence", () => {
 		}
 
 		expect(saveData).not.toBeNull();
-		expect(saveData?.intialState.$$plugins).toEqual(new Map());
+		expect(saveData?.initialState.$$plugins).toEqual(new Map());
 		expect(saveData?.snapshots[0]?.$$plugins?.get("timeline")?.data).toEqual({
 			value: 77,
 		});

@@ -116,7 +116,7 @@ export declare namespace ChoicekitType {
 		TChoicekitVariables extends
 			GenericSerializableObject = GenericSerializableObject,
 	> = Readonly<{
-		intialState: TChoicekitVariables & SnapshotMetadata;
+		initialState: TChoicekitVariables & SnapshotMetadata;
 
 		snapshots: Partial<TChoicekitVariables & SnapshotMetadata>[];
 

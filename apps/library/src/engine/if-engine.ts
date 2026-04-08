@@ -514,7 +514,7 @@ class ChoicekitEngine<
 					tags: [...TEngineGenerics["passages"]["tags"]];
 			  },
 	): ReadonlyArray<typeof this._type.passage> {
-		const matchedPasages: (typeof this._type.passage)[] = [];
+		const matchedPassages: (typeof this._type.passage)[] = [];
 
 		const doesMatchPassageDataTags = (
 			tag: TEngineGenerics["passages"]["tags"][number],
@@ -526,16 +526,16 @@ class ChoicekitEngine<
 		for (const [_, passageData] of this.#passages) {
 			if (type === "any") {
 				if (tags.some((tag) => doesMatchPassageDataTags(tag, passageData))) {
-					matchedPasages.push(passageData);
+					matchedPassages.push(passageData);
 				}
 			} else {
 				if (tags.every((tag) => doesMatchPassageDataTags(tag, passageData))) {
-					matchedPasages.push(passageData);
+					matchedPassages.push(passageData);
 				}
 			}
 		}
 
-		return matchedPasages;
+		return matchedPassages;
 	}
 
 	/** Gets all the times the passage has been visited by looping through each snapshot and initial state.
@@ -678,7 +678,7 @@ class ChoicekitEngine<
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
 	loadSaveFromData(save: typeof this._type.saveData): void {
-		const { intialState, snapshots, storyIndex, version } = save;
+		const { initialState, snapshots, storyIndex, version } = save;
 
 		const oldIndex = this.#index;
 		const oldPassage = this.passage;
@@ -697,7 +697,7 @@ class ChoicekitEngine<
 		switch (saveCompatibility) {
 			case "compat": {
 				// Replace the current state
-				this.#initialState = intialState;
+				this.#initialState = initialState;
 				this.#stateSnapshots = snapshots;
 				this.#index = storyIndex;
 
@@ -710,7 +710,7 @@ class ChoicekitEngine<
 				const originalStateSnapshots = this.#stateSnapshots;
 				const originalIndex = this.#index;
 
-				this.#initialState = intialState;
+				this.#initialState = initialState;
 				this.#stateSnapshots = snapshots;
 				this.#index = storyIndex;
 
@@ -884,15 +884,15 @@ class ChoicekitEngine<
 
 			return deleted;
 		} catch (e) {
-			const sanitizedError = sanitiseError(e);
+			const sanitisedError = sanitiseError(e);
 
 			this.#emitCustomEvent("deleteEnd", {
-				error: sanitizedError,
+				error: sanitisedError,
 				slot,
 				type: "error",
 			});
 
-			throw sanitizedError;
+			throw sanitisedError;
 		}
 	}
 
@@ -1295,7 +1295,7 @@ class ChoicekitEngine<
 		return state;
 	}
 
-	/** **WARNING:** This will **replace** the intialState and **empty** all the snapshots. */
+	/** **WARNING:** This will **replace** the initialState and **empty** all the snapshots. */
 	#rewriteState(
 		stateToReplaceTheCurrentOne: Readonly<typeof this._type.state.complete>,
 	): void {
@@ -1569,7 +1569,7 @@ class ChoicekitEngine<
 		this.#persistAllPluginSerializableDataInSnapshot();
 
 		return {
-			intialState: this.#initialState as typeof this._type.state.complete,
+			initialState: this.#initialState as typeof this._type.state.complete,
 			lastPassageId: this.passageId,
 			savedOn: new Date(),
 			snapshots: this.#stateSnapshots,
@@ -1631,14 +1631,14 @@ class ChoicekitEngine<
 				}
 			}
 
-			const intialPluginState = (await initState?.()) ?? {};
-			this.#pluginState.set(id, intialPluginState);
+			const initialPluginState = (await initState?.()) ?? {};
+			this.#pluginState.set(id, initialPluginState);
 
 			const mutations =
 				(await initApi?.({
 					config,
 					engine,
-					state: intialPluginState,
+					state: initialPluginState,
 					async triggerSave() {
 						if (withSave === null) return;
 

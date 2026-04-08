@@ -15,7 +15,7 @@ const PluginSaveDataSchema: v.GenericSchema<
 > = v.map(v.string(), ChoicekitPluginSaveStructureSchema);
 
 const StateSnapshotMetadataSchema: v.GenericSchema<
-	ChoicekitType.SaveData["intialState"]
+	ChoicekitType.SaveData["initialState"]
 > = v.objectWithRest(
 	{
 		$$id: v.string(),
@@ -36,7 +36,7 @@ const PartialStateSnapshotSchema = v.objectWithRest(
 
 export const ChoicekitSaveDataSchema = v.pipe(
 	v.object({
-		intialState: StateSnapshotMetadataSchema,
+		initialState: StateSnapshotMetadataSchema,
 		lastPassageId: v.string(),
 		savedOn: v.date(),
 		snapshots: v.array(PartialStateSnapshotSchema),
