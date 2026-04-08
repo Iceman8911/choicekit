@@ -203,7 +203,8 @@ describe("Storylet Plugin", () => {
 
 		engine.$.storylet.markStoryletSelected("forest-encounter");
 		engine.navigateTo("forest");
-		await engine.saveToSaveSlot(1);
+		const saveResult = await engine.saveToSaveSlot(1);
+		expect(saveResult.success).toBe(true);
 
 		const newEngine = await new ChoicekitEngineBuilder()
 			.withName("storylet-persistence-1")
@@ -220,7 +221,8 @@ describe("Storylet Plugin", () => {
 			})
 			.build();
 
-		await newEngine.loadFromSaveSlot(1);
+		const loadResult = await newEngine.loadFromSaveSlot(1);
+		expect(loadResult.success).toBe(true);
 
 		expect(newEngine.$.storylet.getStoryletStats("forest-encounter")).toEqual({
 			loaded: 1,

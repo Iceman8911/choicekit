@@ -75,7 +75,8 @@ describe("ChoicekitEngine performance", () => {
 		expect(engine.index).toBe(indexBeforeBack);
 		expect(engine.vars.counter).toBe(500);
 
-		await engine.saveToSaveSlot(0);
+		const saveResult = await engine.saveToSaveSlot(0);
+		expect(saveResult.success).toBe(true);
 
 		let saveData: ChoicekitType.SaveData | null = null;
 		for await (const save of engine.getSaves()) {
@@ -228,7 +229,8 @@ describe("ChoicekitEngine performance", () => {
 		const secondChunkElapsed = performance.now() - secondChunkStartedAt;
 
 		expect(engine.vars.points).toBe(500);
-		await engine.saveToSaveSlot(0);
+		const saveResult2 = await engine.saveToSaveSlot(0);
+		expect(saveResult2.success).toBe(true);
 
 		let saveData: ChoicekitType.SaveData | null = null;
 		for await (const save of engine.getSaves()) {

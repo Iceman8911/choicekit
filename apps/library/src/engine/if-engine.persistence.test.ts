@@ -123,18 +123,22 @@ describe("ChoicekitEngine persistence", () => {
 		});
 		engine.navigateTo("end");
 
-		const exported = await engine.saveToExport();
+		const exportResult = await engine.saveToExport();
 
-		expect(typeof exported).toBe("string");
-		expect(exported.length).toBeGreaterThan(0);
+		expect(exportResult.success).toBe(true);
+		if (!exportResult.success) {
+			throw exportResult.err;
+		}
+		expect(exportResult.data.length).toBeGreaterThan(0);
 
 		engine.setVars((v) => {
 			v.score = -1;
 		});
 		engine.navigateTo("start");
 
-		await engine.loadFromExport(exported);
+		const loadResult = await engine.loadFromExport(exportResult.data);
 
+		expect(loadResult.success).toBe(true);
 		expect(engine.vars.score).toBe(9999);
 		expect(engine.passageId).toBe("end");
 	});
@@ -154,7 +158,8 @@ describe("ChoicekitEngine persistence", () => {
 			v.data = 456;
 		});
 
-		await expect(engine.saveToSaveSlot(1)).resolves.toBeUndefined();
+		const saveResult = await engine.saveToSaveSlot(1);
+		expect(saveResult.success).toBe(true);
 
 		const reader = await new ChoicekitEngineBuilder()
 			.withName("PersistSave")
@@ -167,7 +172,8 @@ describe("ChoicekitEngine persistence", () => {
 			.withConfig({ loadOnStart: false })
 			.build();
 
-		await reader.loadFromSaveSlot(1);
+		const loadResult = await reader.loadFromSaveSlot(1);
+		expect(loadResult.success).toBe(true);
 		expect(reader.vars.data).toBe(456);
 	});
 
@@ -301,7 +307,13 @@ describe("ChoicekitEngine persistence", () => {
 			},
 		} as unknown as Parameters<typeof strictEngine.loadFromObject>[0];
 
-		expect(() => strictEngine.loadFromObject(tamperedStrictRecord)).toThrow();
+		const strictResult = strictEngine.loadFromObject(tamperedStrictRecord);
+
+		expect(strictResult.success).toBe(false);
+		if (strictResult.success) {
+			throw Error("Expected strict compatibility load to fail");
+		}
+		expect(strictResult.err).toBeDefined();
 
 		const liberalEngine = await new ChoicekitEngineBuilder()
 			.withName("LiberalCompat")
@@ -314,7 +326,7 @@ describe("ChoicekitEngine persistence", () => {
 			})
 			.build();
 
-		liberalEngine.loadFromObject({
+		const liberalResult = liberalEngine.loadFromObject({
 			data: {
 				initialState: {
 					$$id: "main",
@@ -339,6 +351,7 @@ describe("ChoicekitEngine persistence", () => {
 			},
 		});
 
+		expect(liberalResult.success).toBe(true);
 		expect(liberalEngine.vars.hp).toBe(42);
 	});
 
@@ -539,8 +552,9 @@ describe("ChoicekitEngine persistence", () => {
 			.withConfig({ loadOnStart: false })
 			.build();
 
-		await expect(engineB.loadFromSaveSlot(2)).rejects.toThrow();
+		const loadResult = await engineB.loadFromSaveSlot(2);
 
+		expect(loadResult.success).toBe(false);
 		expect(engineB.vars.flag).toBe("B");
 		expect(engineB.vars.score).toBe(0);
 	});
@@ -591,8 +605,10 @@ describe("ChoicekitEngine persistence", () => {
 		).toBe(true);
 
 		await engine.deleteSaveSlot(1);
-		await expect(engine.loadFromSaveSlot(1)).rejects.toThrow();
-		await expect(engine.loadFromSaveSlot(2)).resolves.toBeUndefined();
+		const failResult = await engine.loadFromSaveSlot(1);
+		expect(failResult.success).toBe(false);
+		const successResult = await engine.loadFromSaveSlot(2);
+		expect(successResult.success).toBe(true);
 	});
 
 	it("should reject invalid save slot indexes on save and load", async () => {
@@ -606,9 +622,14 @@ describe("ChoicekitEngine persistence", () => {
 			})
 			.build();
 
-		expect(engine.saveToSaveSlot(-1)).rejects.toThrow();
-		expect(engine.saveToSaveSlot(99)).rejects.toThrow();
-		expect(engine.loadFromSaveSlot(99)).rejects.toThrow();
+		const saveNegOne = await engine.saveToSaveSlot(-1);
+		expect(saveNegOne.success).toBe(false);
+
+		const save99 = await engine.saveToSaveSlot(99);
+		expect(save99.success).toBe(false);
+
+		const load99 = await engine.loadFromSaveSlot(99);
+		expect(load99.success).toBe(false);
 	});
 
 	it("should delete all save slots including autosave", async () => {
@@ -637,14 +658,19 @@ describe("ChoicekitEngine persistence", () => {
 		});
 		await autosaved;
 
-		await engine.saveToSaveSlot(0);
-		await engine.saveToSaveSlot(2);
+		const save0Result = await engine.saveToSaveSlot(0);
+		expect(save0Result.success).toBe(true);
+		const save2Result = await engine.saveToSaveSlot(2);
+		expect(save2Result.success).toBe(true);
 
 		await engine.deleteAllSaveSlots();
 
-		await expect(engine.loadFromSaveSlot()).rejects.toThrow();
-		await expect(engine.loadFromSaveSlot(0)).rejects.toThrow();
-		await expect(engine.loadFromSaveSlot(2)).rejects.toThrow();
+		const loadDefaultResult = await engine.loadFromSaveSlot();
+		expect(loadDefaultResult.success).toBe(false);
+		const load0Result = await engine.loadFromSaveSlot(0);
+		expect(load0Result.success).toBe(false);
+		const load2Result = await engine.loadFromSaveSlot(2);
+		expect(load2Result.success).toBe(false);
 	});
 
 	it("should load the latest save with loadRecentSave", async () => {
@@ -661,7 +687,8 @@ describe("ChoicekitEngine persistence", () => {
 		engine.setVars((v) => {
 			v.chapter = 1;
 		});
-		await engine.saveToSaveSlot(0);
+		const save0Result = await engine.saveToSaveSlot(0);
+		expect(save0Result.success).toBe(true);
 
 		await new Promise((resolve) => setTimeout(resolve, 2));
 
@@ -669,7 +696,8 @@ describe("ChoicekitEngine persistence", () => {
 		engine.setVars((v) => {
 			v.chapter = 2;
 		});
-		await engine.saveToSaveSlot(1);
+		const save1Result = await engine.saveToSaveSlot(1);
+		expect(save1Result.success).toBe(true);
 
 		const loader = await new ChoicekitEngineBuilder()
 			.withName("RecentSave")
@@ -681,7 +709,8 @@ describe("ChoicekitEngine persistence", () => {
 			.withConfig({ loadOnStart: false })
 			.build();
 
-		await loader.loadRecentSave();
+		const loadRecentResult = await loader.loadRecentSave();
+		expect(loadRecentResult.success).toBe(true);
 
 		expect(loader.vars.chapter).toBe(2);
 		expect(loader.passageId).toBe("boss");
@@ -703,7 +732,8 @@ describe("ChoicekitEngine persistence", () => {
 			v.hp = 6;
 			v.mana = 2;
 		});
-		await engine.saveToSaveSlot(0);
+		const saveResult = await engine.saveToSaveSlot(0);
+		expect(saveResult.success).toBe(true);
 
 		let saveData: ChoicekitType.SaveData | undefined;
 		let saveMeta: ChoicekitType.SaveMetadata | undefined;
@@ -972,7 +1002,8 @@ describe("ChoicekitEngine persistence", () => {
 		expect(seen).toContain("deleteEnd:success:0");
 		expect(historyChangeSeen).toBe(true);
 
-		await expect(engine.loadFromSaveSlot(9)).rejects.toThrow();
+		const invalidLoadResult = await engine.loadFromSaveSlot(9);
+		expect(invalidLoadResult.success).toBe(false);
 		expect(seen).toContain("loadEnd:error:9");
 	});
 
@@ -1011,13 +1042,18 @@ describe("ChoicekitEngine persistence", () => {
 
 		engine.registerClasses(StoryHero);
 
-		const exported = await engine.saveToExport();
+		const exportedResult = await engine.saveToExport();
+		expect(exportedResult.success).toBe(true);
+		if (!exportedResult.success) {
+			throw exportedResult.err;
+		}
 
 		engine.setVars((v) => {
 			v.hero = new StoryHero(1, "Temp");
 		});
 
-		await engine.loadFromExport(exported);
+		const loadResult = await engine.loadFromExport(exportedResult.data);
+		expect(loadResult.success).toBe(true);
 
 		expect(engine.vars.hero).toBeInstanceOf(StoryHero);
 		expect(engine.vars.hero.name).toBe("Mira");
@@ -1041,9 +1077,13 @@ describe("ChoicekitEngine persistence", () => {
 		await engine.$.globalSettings.setVolume(77);
 		engine.navigateTo("b");
 
-		const exported = await engine.saveToExport();
+		const exportedResult = await engine.saveToExport();
+		expect(exportedResult.success).toBe(true);
+		if (!exportedResult.success) {
+			throw exportedResult.err;
+		}
 		const exportData = deserialize(
-			exported,
+			exportedResult.data,
 		) as unknown as ChoicekitType.ExportData<{
 			score: number;
 		}>;
@@ -1076,7 +1116,11 @@ describe("ChoicekitEngine persistence", () => {
 		await writer.$.globalSettings.setVolume(83);
 		writer.navigateTo("b");
 
-		const exported = await writer.saveToExport();
+		const exportedResult = await writer.saveToExport();
+		expect(exportedResult.success).toBe(true);
+		if (!exportedResult.success) {
+			throw exportedResult.err;
+		}
 
 		const reader = await new ChoicekitEngineBuilder()
 			.withName("ExportPluginRoundTripReader")
@@ -1093,7 +1137,8 @@ describe("ChoicekitEngine persistence", () => {
 		expect(reader.$.timeline.getValue()).toBe(0);
 		expect(reader.$.globalSettings.getVolume()).toBe(50);
 
-		await reader.loadFromExport(exported);
+		const loadResult = await reader.loadFromExport(exportedResult.data);
+		expect(loadResult.success).toBe(true);
 
 		expect(reader.$.timeline.getValue()).toBe(29);
 		expect(reader.$.globalSettings.getVolume()).toBe(83);

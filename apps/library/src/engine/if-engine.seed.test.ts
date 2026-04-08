@@ -5,7 +5,8 @@ import { ChoicekitEngine } from "./if-engine";
 describe(ChoicekitEngine.name, () => {
 	it("should regenerate random seed according to regenSeed mode", async () => {
 		const getCurrentSeed = async (engine: ChoicekitEngine, slot: number) => {
-			await engine.saveToSaveSlot(slot);
+			const saveResult = await engine.saveToSaveSlot(slot);
+			expect(saveResult.success).toBe(true);
 
 			for await (const save of engine.getSaves()) {
 				if (save.type === "normal" && save.slot === slot) {

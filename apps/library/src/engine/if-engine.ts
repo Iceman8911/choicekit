@@ -157,6 +157,10 @@ type ChoicekitEvents<TPassageData, TStateVariables> = {
 	>;
 };
 
+type SaveOrLoadReturnType<TSuccessVal = void> =
+	| { success: true; data: TSuccessVal }
+	| { success: false; err: Error };
+
 /** The main engine for Choicekit that provides headless interface to basic utilities required for Interactive Fiction
  *
  * Dispatches custom events that can be listened to with "addEventListener"
@@ -635,11 +639,9 @@ class ChoicekitEngine<
 	}
 
 	/** Can be used when directly loading a save from an exported save on disk
-	 *
-	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	async loadFromExport(data: string): Promise<void> {
-		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
+	async loadFromExport(data: string): Promise<SaveOrLoadReturnType> {
+		return this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
 			"load",
 			"export",
 			async () => {
@@ -652,8 +654,12 @@ class ChoicekitEngine<
 
 				this.#loadAllPluginSerializableDataFromRecord(plugins);
 
-				// Replace the current state
-				this.loadFromObject(saveData);
+				// Replace the current state and propagate any load failures
+				const loadResult = this.loadFromObject(saveData);
+
+				if (!loadResult.success) {
+					throw loadResult.err;
+				}
 			},
 		);
 	}
@@ -661,11 +667,9 @@ class ChoicekitEngine<
 	/**
 	 *
 	 * @param saveSlot if not provided, defaults to the autosave slot
-	 *
-	 * @throws if the save slot is invalid or if the persistence adapter is not available
 	 */
-	async loadFromSaveSlot(saveSlot?: number): Promise<void> {
-		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
+	async loadFromSaveSlot(saveSlot?: number): Promise<SaveOrLoadReturnType> {
+		return this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
 			"load",
 			saveSlot,
 			async () => {
@@ -697,23 +701,35 @@ class ChoicekitEngine<
 					),
 				]);
 
-				this.loadFromObject({
+				const loadResult = this.loadFromObject({
 					data,
 					meta,
 				});
+
+				if (!loadResult.success) {
+					throw loadResult.err;
+				}
 			},
 		);
 	}
 
 	/** Loads the most recent save, if any. Doesn't throw */
-	async loadRecentSave(): Promise<void> {
-		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
+	async loadRecentSave(): Promise<SaveOrLoadReturnType> {
+		return this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
 			"load",
 			"recent",
 			async () => {
 				const mostRecentSave = await this.#getMostRecentSave();
 
-				if (mostRecentSave) this.loadFromObject(mostRecentSave);
+				if (mostRecentSave) {
+					const loadResult = this.loadFromObject(mostRecentSave);
+
+					if (!loadResult.success) {
+						throw loadResult.err;
+					}
+				} else {
+					throw Error("No recent save found");
+				}
 			},
 		);
 	}
@@ -723,10 +739,10 @@ class ChoicekitEngine<
 	 * This is used to load saves from the `getSaves()` method.
 	 *
 	 * @param save The save data to load
-	 *
-	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	loadFromObject(save: (typeof this._type.exportData)["saveData"]): void {
+	loadFromObject(
+		save: (typeof this._type.exportData)["saveData"],
+	): SaveOrLoadReturnType {
 		const {
 			data: { initialState, snapshots, storyIndex },
 			meta: { version },
@@ -774,9 +790,22 @@ class ChoicekitEngine<
 					while (currentSaveVersion !== engineVersion) {
 						const migratorData = this.#saveMigrationMap.get(currentSaveVersion);
 						if (!migratorData) {
-							throw Error(
+							const sanitisedErr = Error(
 								`No migrator function found for save version ${currentSaveVersion}. Required to migrate to engine version ${engineVersion}.`,
 							);
+
+							this.#emitCustomEvent("migrationEnd", {
+								error: sanitisedErr,
+								fromVersion: currentSaveVersion,
+								toVersion: engineVersion,
+								type: "error",
+							});
+
+							this.#initialState = originalInitialState;
+							this.#stateSnapshots = originalStateSnapshots;
+							this.#index = originalIndex;
+
+							return { err: sanitisedErr, success: false };
 						}
 
 						const { migrater, to } = migratorData;
@@ -795,14 +824,17 @@ class ChoicekitEngine<
 								toVersion: to,
 								type: "success",
 							});
-						} catch (error) {
+						} catch (err) {
+							const sanitisedErr = sanitiseError(err);
+
 							this.#emitCustomEvent("migrationEnd", {
-								error: sanitiseError(error),
+								error: sanitisedErr,
 								fromVersion: currentSaveVersion,
 								toVersion: to,
 								type: "error",
 							});
-							throw error;
+
+							return { err: sanitisedErr, success: false };
 						}
 
 						currentSaveVersion = to;
@@ -815,9 +847,12 @@ class ChoicekitEngine<
 						break;
 					}
 
-					throw Error(
-						`Save with version ${currentSaveVersion} returned null during migration`,
-					);
+					return {
+						err: Error(
+							`Save with version ${currentSaveVersion} returned null during migration`,
+						),
+						success: false,
+					};
 				} catch (e) {
 					// Reset any changes since the migration failed
 					this.#initialState = originalInitialState;
@@ -829,9 +864,12 @@ class ChoicekitEngine<
 				}
 			}
 			case "new": {
-				throw Error(
-					`Save with version ${version} is too new for the engine with version ${engineVersion}`,
-				);
+				return {
+					err: Error(
+						`Save with version ${version} is too new for the engine with version ${engineVersion}`,
+					),
+					success: false,
+				};
 			}
 		}
 
@@ -853,10 +891,12 @@ class ChoicekitEngine<
 			newPassage: this.passage,
 			oldPassage,
 		});
+
+		return { data: void 0, success: true };
 	}
 
 	/** For exports that need to be stored or transferred outside the current engine instance */
-	async saveToExport(): Promise<string> {
+	async saveToExport(): Promise<SaveOrLoadReturnType<string>> {
 		return this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
 			"save",
 			"export",
@@ -882,11 +922,9 @@ class ChoicekitEngine<
 	/** Using the provided persistence adapter, this saves all vital data for the combined state, metadata, and current index
 	 *
 	 * @param saveSlot if not provided, defaults to the autosave slot
-	 *
-	 * @throws if the persistence adapter is not available
 	 */
-	async saveToSaveSlot(saveSlot?: number): Promise<void> {
-		await this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
+	async saveToSaveSlot(saveSlot?: number): Promise<SaveOrLoadReturnType> {
+		return this.#emitSaveOrLoadEventWhenAttemptingToSaveOrLoadInCallback(
 			"save",
 			saveSlot,
 			async () => {
@@ -1197,10 +1235,10 @@ class ChoicekitEngine<
 
 		for await (const { getData, meta } of this.getSaves()) {
 			const data = await getData();
-			const saveRecord = {
+			const saveRecord: (typeof this._type.exportData)["saveData"] = {
 				data,
 				meta,
-			} as (typeof this._type.exportData)["saveData"];
+			};
 
 			if (!mostRecentSave) {
 				mostRecentSave = saveRecord;
@@ -1429,7 +1467,7 @@ class ChoicekitEngine<
 		operation: "save" | "load",
 		saveSlot: number | "autosave" | "export" | "recent" | undefined,
 		callback: () => Promise<TCallBackReturnValue>,
-	): Promise<TCallBackReturnValue> {
+	): Promise<SaveOrLoadReturnType<TCallBackReturnValue>> {
 		const slot = saveSlot ?? "autosave";
 
 		this.#emitCustomEvent(operation === "save" ? "saveStart" : "loadStart", {
@@ -1446,15 +1484,17 @@ class ChoicekitEngine<
 				type: "success",
 			});
 
-			return result;
+			return { data: result, success: true };
 		} catch (e) {
+			const sanitisedErr = sanitiseError(e);
+
 			this.#emitCustomEvent(endEvent, {
-				error: sanitiseError(e),
+				error: sanitisedErr,
 				slot,
 				type: "error",
 			});
 
-			throw e;
+			return { err: sanitisedErr, success: false };
 		}
 	}
 

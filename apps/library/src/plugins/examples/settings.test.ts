@@ -312,7 +312,9 @@ describe("Settings Plugin", () => {
 
 		await engine.$.settings.save();
 
-		const exportedStr = await engine.saveToExport();
+		const exportResult = await engine.saveToExport();
+		expect(exportResult.success).toBe(true);
+		const exportedStr = exportResult.data;
 
 		const exportedData = deserialize(
 			await decompressPossiblyCompressedJsonString(exportedStr),
@@ -340,7 +342,8 @@ describe("Settings Plugin", () => {
 			})
 			.build();
 
-		await newEngine.loadFromExport(exportedStr);
+		const loadResult = await newEngine.loadFromExport(exportedStr);
+		expect(loadResult.success).toBe(true);
 
 		expect(newEngine.$.settings.get()).toStrictEqual({
 			musicEnabled: false,

@@ -284,7 +284,9 @@ describe("Achievements Plugin", () => {
 
 		await engine.$.achievements.save();
 
-		const exportedStr = await engine.saveToExport();
+		const exportResult = await engine.saveToExport();
+		expect(exportResult.success).toBe(true);
+		const exportedStr = exportResult.data;
 
 		const deserializedExport = deserialize(
 			await decompressPossiblyCompressedJsonString(exportedStr),
@@ -316,7 +318,8 @@ describe("Achievements Plugin", () => {
 			})
 			.build();
 
-		await newEngine.loadFromExport(exportedStr);
+		const loadResult = await newEngine.loadFromExport(exportedStr);
+		expect(loadResult.success).toBe(true);
 
 		expect(newEngine.$.achievements.get()).toStrictEqual({
 			foundKey: true,
