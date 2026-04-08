@@ -565,36 +565,42 @@ class ChoicekitEngine<
 
 	// Persistence: load, save, list, delete
 
-	/** Returns an async generator containing the data of all present saves */
+	/** Returns an async generator containing the data of all present saves.
+	 *
+	 * Save data is a lazy callback to prevent wasteful deserialization and decompression of save data that may not be used.
+	 */
 	async *getSaves(): AsyncGenerator<
-		| {
-				type: "autosave";
-				data: ChoicekitType.SaveData<TEngineGenerics["vars"]>;
-		  }
-		| {
-				type: "normal";
-				slot: number;
-				data: ChoicekitType.SaveData<TEngineGenerics["vars"]>;
-		  }
+		(
+			| {
+					type: "autosave";
+			  }
+			| {
+					type: "normal";
+					slot: number;
+			  }
+		) & {
+			getData(): Promise<ChoicekitType.SaveData<TEngineGenerics["vars"]>>;
+		}
 	> {
 		for await (const key of this.#getKeysOfPresentSaves()) {
 			const serializedSaveData = await this.#persistenceAdapter.get(key);
 
 			if (!serializedSaveData) continue;
 
-			const saveData: typeof this._type.saveData = v.parse(
-				ChoicekitSaveDataSchema,
-				deserialize(
-					await decompressPossiblyCompressedJsonString(serializedSaveData),
-				),
-			);
+			const getData = async (): Promise<typeof this._type.saveData> =>
+				v.parse(
+					ChoicekitSaveDataSchema,
+					deserialize(
+						await decompressPossiblyCompressedJsonString(serializedSaveData),
+					),
+				);
 
 			if (key === this.#getAutoSaveStorageKey()) {
-				yield { data: saveData, type: "autosave" };
+				yield { getData, type: "autosave" };
 			} else {
 				const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
 
-				yield { data: saveData, slot: slotNumber, type: "normal" };
+				yield { getData, slot: slotNumber, type: "normal" };
 			}
 		}
 	}
@@ -1108,7 +1114,9 @@ class ChoicekitEngine<
 	async #getMostRecentSave(): Promise<typeof this._type.saveData | null> {
 		let mostRecentSave: typeof this._type.saveData | null = null;
 
-		for await (const { data } of this.getSaves()) {
+		for await (const { getData } of this.getSaves()) {
+			const data = await getData();
+
 			if (!mostRecentSave) {
 				mostRecentSave = data;
 			} else {
