@@ -20,9 +20,6 @@
 - [ ] Add framework adapters or example bindings for react, vue, svelte, and solidjs.
 - [ ] Detect and surface plugin dependency cycles during plugin mounting.
 	- [ ] Keep this warning-based for now; revisit strict failure once `onOverride` semantics are cleaner.
-- [ ] Add save recovery for corrupted or incompatible saves.
-	- [ ] Keep strict load methods throwing by default.
-	- [ ] Make recovery explicit and opt-in so repaired data is visible to the caller.
 - [x] Use maps instead of records where possible.
 - [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
 - [x] Add an example cache adapter or lightweight cache package.
