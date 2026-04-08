@@ -25,7 +25,6 @@ import {
 	ChoicekitPluginSaveStructureSchema,
 	ChoicekitSaveDataSchema,
 	ChoicekitSaveMetadataSchema,
-	ChoicekitStoredSaveDataSchema,
 } from "../_internal/models/if-engine.schemas";
 import type {
 	GenericObject,
@@ -578,10 +577,14 @@ class ChoicekitEngine<
 			  }
 			| {
 					type: "normal";
+					/** Save slot number */
 					slot: number;
 			  }
 		) & {
+			/** Lightweight metadata about the save */
 			meta: ChoicekitType.SaveMetadata;
+
+			/** Callback for getting the bulk of the actual save data */
 			getData(): Promise<ChoicekitType.SaveData<TEngineGenerics["vars"]>>;
 		}
 	> {
@@ -594,7 +597,9 @@ class ChoicekitEngine<
 
 			const meta = v.parse(
 				ChoicekitSaveMetadataSchema,
-				deserialize(serializedSaveMeta),
+				deserialize(
+					await decompressPossiblyCompressedJsonString(serializedSaveMeta),
+				),
 			);
 
 			const isAutoSaveKey = key === engineAutoSaveKey;
@@ -616,9 +621,7 @@ class ChoicekitEngine<
 				return v.parse(
 					ChoicekitSaveDataSchema,
 					deserialize(
-						await decompressPossiblyCompressedJsonString(
-							v.parse(ChoicekitStoredSaveDataSchema, serializedSaveData),
-						),
+						await decompressPossiblyCompressedJsonString(serializedSaveData),
 					),
 				);
 			};
@@ -685,18 +688,17 @@ class ChoicekitEngine<
 					throw Error(`No save data found for slot ${saveSlot}`);
 				}
 
-				const meta = v.parse(
-					ChoicekitSaveMetadataSchema,
-					deserialize(serializedSaveMeta),
-				);
-
-				const data = v.parse(ChoicekitStoredSaveDataSchema, serializedSaveData);
+				const [meta, data] = await Promise.all([
+					decompressPossiblyCompressedJsonString(serializedSaveMeta).then(
+						(str) => v.parse(ChoicekitSaveMetadataSchema, deserialize(str)),
+					),
+					decompressPossiblyCompressedJsonString(serializedSaveData).then(
+						(str) => v.parse(ChoicekitSaveDataSchema, deserialize(str)),
+					),
+				]);
 
 				this.loadFromObject({
-					data: v.parse(
-						ChoicekitSaveDataSchema,
-						deserialize(await decompressPossiblyCompressedJsonString(data)),
-					),
+					data,
 					meta,
 				});
 			},
@@ -861,7 +863,7 @@ class ChoicekitEngine<
 			async () => {
 				const exportData: typeof this._type.exportData = {
 					plugins: this.#collectPluginSerializableData(false),
-					saveData: await this.#buildSaveRecord(),
+					saveData: this.#buildSaveRecord(),
 				};
 
 				//@ts-expect-error Inference Limitation
@@ -888,7 +890,7 @@ class ChoicekitEngine<
 			"save",
 			saveSlot,
 			async () => {
-				const { persistence } = this.#config;
+				const { persistence, compress: canCompress } = this.#config;
 
 				const saveMetaKey =
 					typeof saveSlot === "number"
@@ -900,16 +902,21 @@ class ChoicekitEngine<
 						? this.#getSaveSlotDataStorageKey(saveSlot)
 						: this.#getAutoSaveDataStorageKey();
 
-				const saveData = this.#buildSaveData();
-				const serializedSaveData = serialize(saveData);
-				const dataToStore = await compressStringIfApplicable(
-					serializedSaveData,
-					this.#config.compress,
-				);
-				const metaToStore = serialize(this.#buildSaveMetadata());
+				const [dataToStore, metaToStore] = await Promise.all([
+					compressStringIfApplicable(
+						serialize(this.#buildSaveData()),
+						canCompress,
+					),
+					compressStringIfApplicable(
+						serialize(this.#buildSaveMetadata()),
+						canCompress,
+					),
+				]);
 
-				await persistence.set(saveDataKey, dataToStore);
-				await persistence.set(saveMetaKey, metaToStore);
+				await Promise.all([
+					persistence.set(saveDataKey, dataToStore),
+					persistence.set(saveMetaKey, metaToStore),
+				]);
 			},
 		);
 	}
@@ -1609,10 +1616,7 @@ class ChoicekitEngine<
 
 		if (!serializedPluginState) return;
 
-		const { data, version }: ChoicekitPluginSaveStructure = v.parse(
-			ChoicekitPluginSaveStructureSchema,
-			serializedPluginState,
-		);
+		const { data, version } = serializedPluginState;
 
 		plugin.onDeserialize?.({
 			data,
@@ -1660,11 +1664,11 @@ class ChoicekitEngine<
 	}
 
 	#buildSaveMetadata(): ChoicekitType.SaveMetadata {
-		return v.parse(ChoicekitSaveMetadataSchema, {
+		return {
 			lastPassageId: this.passageId,
 			savedOn: new Date(),
 			version: this.#config.saveVersion,
-		});
+		};
 	}
 
 	#buildSaveRecord(): (typeof this._type.exportData)["saveData"] {

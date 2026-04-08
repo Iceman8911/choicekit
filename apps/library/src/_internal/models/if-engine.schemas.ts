@@ -56,9 +56,6 @@ export const ChoicekitSaveRecordSchema: v.GenericSchema<ChoicekitType.SaveRecord
 		meta: ChoicekitSaveMetadataSchema,
 	});
 
-export const ChoicekitStoredSaveDataSchema: v.GenericSchema<string> =
-	v.string();
-
 export const ChoicekitExportDataSchema: v.GenericSchema<ChoicekitType.ExportData> =
 	v.object({
 		plugins: PluginSaveDataSchema,
