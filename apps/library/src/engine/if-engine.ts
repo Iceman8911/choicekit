@@ -942,9 +942,7 @@ class ChoicekitEngine<
 	registerClasses(
 		...customClasses: ChoicekitClassConstructorWithValidSerialization[]
 	): void {
-		customClasses.forEach((customClass) => {
-			registerClass(customClass);
-		});
+		customClasses.forEach(registerClass);
 	}
 
 	/** Use this to register custom callbacks for migrating outdated save data
