@@ -48,14 +48,14 @@ Use `setVars` for all state writes. Avoid direct mutation of `engine.vars`.
 6. `getSaves()`
 7. `deleteSaveSlot(slot?)`
 8. `deleteAllSaveSlots()`
-9. `loadSaveFromData(save)`
+9. `loadFromObject(saveRecord)`
 
 `getSaves()` is an async generator and works well for rendering save menus.
 
 ```ts
 for await (const save of engine.getSaves()) {
-	if (save.type === "autosave") console.log("autosave", save.data.savedOn);
-	else console.log("slot", save.slot, save.data.savedOn);
+	if (save.type === "autosave") console.log("autosave", save.meta.savedOn);
+	else console.log("slot", save.slot, save.meta.savedOn);
 }
 ```
 

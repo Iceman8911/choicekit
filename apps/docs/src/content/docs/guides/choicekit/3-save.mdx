@@ -81,10 +81,19 @@ Build save UIs with `getSaves()`:
 ```ts
 for await (const save of engine.getSaves()) {
 	if (save.type === "autosave") {
-		console.log("autosave", save.data.savedOn);
+		console.log("autosave", save.meta.savedOn);
 	} else {
-		console.log("slot", save.slot, save.data.savedOn);
+		console.log("slot", save.slot, save.meta.savedOn);
 	}
+}
+```
+
+When the full story payload is needed (heavy), load it lazily:
+
+```ts
+for await (const save of engine.getSaves()) {
+	const data = await save.getData();
+	console.log(data.storyIndex, data.snapshots.length);
 }
 ```
 
