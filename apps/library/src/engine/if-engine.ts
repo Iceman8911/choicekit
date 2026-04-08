@@ -618,7 +618,7 @@ class ChoicekitEngine<
 				this.#loadAllPluginSerializableDataFromRecord(plugins);
 
 				// Replace the current state
-				this.loadSaveFromData(saveData);
+				this.loadFromObject(saveData);
 			},
 		);
 	}
@@ -649,7 +649,7 @@ class ChoicekitEngine<
 				const jsonString =
 					await decompressPossiblyCompressedJsonString(serializedSaveData);
 
-				await this.loadSaveFromData(
+				this.loadFromObject(
 					v.parse(ChoicekitSaveDataSchema, deserialize(jsonString)),
 				);
 			},
@@ -664,7 +664,7 @@ class ChoicekitEngine<
 			async () => {
 				const mostRecentSave = await this.#getMostRecentSave();
 
-				if (mostRecentSave) await this.loadSaveFromData(mostRecentSave);
+				if (mostRecentSave) this.loadFromObject(mostRecentSave);
 			},
 		);
 	}
@@ -677,7 +677,7 @@ class ChoicekitEngine<
 	 *
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	loadSaveFromData(save: typeof this._type.saveData): void {
+	loadFromObject(save: typeof this._type.saveData): void {
 		const { initialState, snapshots, storyIndex, version } = save;
 
 		const oldIndex = this.#index;
