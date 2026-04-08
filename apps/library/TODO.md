@@ -4,7 +4,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] Add clearer choice and branch helpers for interactive fiction UI layers.
 - [x] Add regression tests for save/load, passage navigation, and large-history performance.
 
 ---
@@ -24,6 +23,7 @@
 - [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
 - [x] Add an example cache adapter or lightweight cache package.
 - [ ] See if bundle size reductions can be achieved without losing functionality or ergonomics.
+- [ ] Add clearer choice and branch helpers for interactive fiction UI layers.
 
 ---
 
