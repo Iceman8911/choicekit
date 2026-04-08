@@ -9,7 +9,8 @@ describe(ChoicekitEngine.name, () => {
 
 			for await (const save of engine.getSaves()) {
 				if (save.type === "normal" && save.slot === slot) {
-					return save.data.snapshots[save.data.storyIndex]?.$$seed;
+					const saveData = await save.getData();
+					return saveData.snapshots[saveData.storyIndex]?.$$seed;
 				}
 			}
 

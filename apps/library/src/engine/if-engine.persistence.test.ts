@@ -256,7 +256,7 @@ describe("ChoicekitEngine persistence", () => {
 		let saveData: ChoicekitType.SaveData | null = null;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 2) {
-				saveData = save.data;
+				saveData = await save.getData();
 				break;
 			}
 		}
@@ -281,7 +281,7 @@ describe("ChoicekitEngine persistence", () => {
 		let strictSaveData: ChoicekitType.SaveData<{ hp: number }> | null = null;
 		for await (const save of strictEngine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				strictSaveData = save.data;
+				strictSaveData = await save.getData();
 				break;
 			}
 		}
@@ -290,7 +290,7 @@ describe("ChoicekitEngine persistence", () => {
 
 		expect(() =>
 			// @ts-expect-error Intentionally tampering with save version to test runtime compatibility mode handling
-			strictEngine.loadSaveFromData({
+			strictEngine.loadFromObject({
 				...(strictSaveData as ChoicekitType.SaveData<{ hp: number }>),
 				version: "1.1.0",
 			}),
@@ -307,7 +307,7 @@ describe("ChoicekitEngine persistence", () => {
 			})
 			.build();
 
-		liberalEngine.loadSaveFromData({
+		liberalEngine.loadFromObject({
 			initialState: {
 				$$id: "main",
 				$$plugins: new Map(),
@@ -668,7 +668,7 @@ describe("ChoicekitEngine persistence", () => {
 		expect(loader.passageId).toBe("boss");
 	});
 
-	it("should restore state from loadSaveFromData", async () => {
+	it("should restore state from loadFromObject", async () => {
 		const engine = await new ChoicekitEngineBuilder()
 			.withName("LoadFromData")
 			.withVars({ hp: 10, mana: 5 })
@@ -689,7 +689,7 @@ describe("ChoicekitEngine persistence", () => {
 		let saveData: ChoicekitType.SaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				saveData = save.data;
+				saveData = await save.getData();
 			}
 		}
 
@@ -702,7 +702,7 @@ describe("ChoicekitEngine persistence", () => {
 		engine.navigateTo("town");
 
 		//@ts-expect-error Can't be bothered to copy out the full type :p
-		await engine.loadSaveFromData(saveData);
+		await engine.loadFromObject(saveData);
 
 		expect(engine.vars.hp).toBe(6);
 		expect(engine.vars.mana).toBe(2);
@@ -729,7 +729,7 @@ describe("ChoicekitEngine persistence", () => {
 
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				saveData = save.data;
+				saveData = await save.getData();
 				break;
 			}
 		}
@@ -853,14 +853,14 @@ describe("ChoicekitEngine persistence", () => {
 		let saveData: ChoicekitType.SaveData | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				saveData = save.data;
+				saveData = await save.getData();
 			}
 		}
 
 		expect(saveData).toBeDefined();
 
 		//@ts-expect-error Can't be bothered to copy out the full type :p
-		await engine.loadSaveFromData({
+		await engine.loadFromObject({
 			...saveData,
 			version: "1.0.0",
 		});

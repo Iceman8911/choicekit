@@ -889,7 +889,7 @@ describe(ChoicekitEngine.name, () => {
 		let saveData: ChoicekitType.SaveData | null = null;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				saveData = save.data;
+				saveData = await save.getData();
 				break;
 			}
 		}
@@ -1042,7 +1042,7 @@ describe(ChoicekitEngine.name, () => {
 		let saveData: ChoicekitType.SaveData | null = null;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				saveData = save.data;
+				saveData = await save.getData();
 				break;
 			}
 		}
@@ -1615,7 +1615,7 @@ describe(ChoicekitEngine.name, () => {
 		let saveData: ChoicekitType.SaveData<HeavyVars> | null = null;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
-				saveData = save.data;
+				saveData = await save.getData();
 				break;
 			}
 		}
