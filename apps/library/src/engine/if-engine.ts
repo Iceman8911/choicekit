@@ -24,6 +24,8 @@ import {
 	ChoicekitExportDataSchema,
 	ChoicekitPluginSaveStructureSchema,
 	ChoicekitSaveDataSchema,
+	ChoicekitSaveMetadataSchema,
+	ChoicekitStoredSaveDataSchema,
 } from "../_internal/models/if-engine.schemas";
 import type {
 	GenericObject,
@@ -79,7 +81,7 @@ const MINIMUM_SAVE_SLOT_INDEX = 0;
 
 const MINIMUM_SAVE_SLOTS = 1;
 
-const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)/;
+const SAVE_SLOT_NUMBER_REGEX = /slot(\d+)-meta$/;
 
 type StateWithMetadata<TVariables extends GenericSerializableObject> =
 	TVariables & ChoicekitType.SnapshotMetadata;
@@ -579,28 +581,52 @@ class ChoicekitEngine<
 					slot: number;
 			  }
 		) & {
+			meta: ChoicekitType.SaveMetadata;
 			getData(): Promise<ChoicekitType.SaveData<TEngineGenerics["vars"]>>;
 		}
 	> {
-		for await (const key of this.#getKeysOfPresentSaves()) {
-			const serializedSaveData = await this.#persistenceAdapter.get(key);
+		const engineAutoSaveKey = this.#getAutoSaveMetaStorageKey();
 
-			if (!serializedSaveData) continue;
+		for await (const key of this.#getMetaKeysOfPresentSaves()) {
+			const serializedSaveMeta = await this.#persistenceAdapter.get(key);
 
-			const getData = async (): Promise<typeof this._type.saveData> =>
-				v.parse(
+			if (!serializedSaveMeta) continue;
+
+			const meta = v.parse(
+				ChoicekitSaveMetadataSchema,
+				deserialize(serializedSaveMeta),
+			);
+
+			const isAutoSaveKey = key === engineAutoSaveKey;
+			const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
+			const saveDataKey = isAutoSaveKey
+				? this.#getAutoSaveDataStorageKey()
+				: this.#getSaveSlotDataStorageKey(slotNumber);
+
+			const getData = async (): Promise<typeof this._type.saveData> => {
+				const serializedSaveData =
+					await this.#persistenceAdapter.get(saveDataKey);
+
+				if (!serializedSaveData) {
+					throw Error(
+						`No save data found for ${isAutoSaveKey ? "autosave" : `slot ${slotNumber}`}`,
+					);
+				}
+
+				return v.parse(
 					ChoicekitSaveDataSchema,
 					deserialize(
-						await decompressPossiblyCompressedJsonString(serializedSaveData),
+						await decompressPossiblyCompressedJsonString(
+							v.parse(ChoicekitStoredSaveDataSchema, serializedSaveData),
+						),
 					),
 				);
+			};
 
-			if (key === this.#getAutoSaveStorageKey()) {
-				yield { getData, type: "autosave" };
+			if (isAutoSaveKey) {
+				yield { getData, meta, type: "autosave" };
 			} else {
-				const slotNumber = Number(key.match(SAVE_SLOT_NUMBER_REGEX)?.[1] ?? -1);
-
-				yield { getData, slot: slotNumber, type: "normal" };
+				yield { getData, meta, slot: slotNumber, type: "normal" };
 			}
 		}
 	}
@@ -640,24 +666,39 @@ class ChoicekitEngine<
 			"load",
 			saveSlot,
 			async () => {
-				const saveSlotKey =
+				const saveMetaKey =
 					typeof saveSlot === "number"
-						? this.#getSaveSlotStorageKey(saveSlot)
-						: this.#getAutoSaveStorageKey();
+						? this.#getSaveSlotMetaStorageKey(saveSlot)
+						: this.#getAutoSaveMetaStorageKey();
 
+				const saveDataKey =
+					typeof saveSlot === "number"
+						? this.#getSaveSlotDataStorageKey(saveSlot)
+						: this.#getAutoSaveDataStorageKey();
+
+				const serializedSaveMeta =
+					await this.#persistenceAdapter.get(saveMetaKey);
 				const serializedSaveData =
-					await this.#persistenceAdapter.get(saveSlotKey);
+					await this.#persistenceAdapter.get(saveDataKey);
 
-				if (!serializedSaveData) {
+				if (!serializedSaveMeta || !serializedSaveData) {
 					throw Error(`No save data found for slot ${saveSlot}`);
 				}
 
-				const jsonString =
-					await decompressPossiblyCompressedJsonString(serializedSaveData);
-
-				this.loadFromObject(
-					v.parse(ChoicekitSaveDataSchema, deserialize(jsonString)),
+				const meta = v.parse(
+					ChoicekitSaveMetadataSchema,
+					deserialize(serializedSaveMeta),
 				);
+
+				const data = v.parse(ChoicekitStoredSaveDataSchema, serializedSaveData);
+
+				this.loadFromObject({
+					data: v.parse(
+						ChoicekitSaveDataSchema,
+						deserialize(await decompressPossiblyCompressedJsonString(data)),
+					),
+					meta,
+				});
 			},
 		);
 	}
@@ -683,8 +724,11 @@ class ChoicekitEngine<
 	 *
 	 * @throws if the save was made on a later version than the engine or if a save migration throws
 	 */
-	loadFromObject(save: typeof this._type.saveData): void {
-		const { initialState, snapshots, storyIndex, version } = save;
+	loadFromObject(save: (typeof this._type.exportData)["saveData"]): void {
+		const {
+			data: { initialState, snapshots, storyIndex },
+			meta: { version },
+		} = save;
 
 		const oldIndex = this.#index;
 		const oldPassage = this.passage;
@@ -815,11 +859,9 @@ class ChoicekitEngine<
 			"save",
 			"export",
 			async () => {
-				const { compress } = this.#config;
-
 				const exportData: typeof this._type.exportData = {
 					plugins: this.#collectPluginSerializableData(false),
-					saveData: this.#buildSaveData(),
+					saveData: await this.#buildSaveRecord(),
 				};
 
 				//@ts-expect-error Inference Limitation
@@ -827,7 +869,7 @@ class ChoicekitEngine<
 
 				const finalDataToExport = await compressStringIfApplicable(
 					stringifiedExportData,
-					compress,
+					this.#config.compress,
 				);
 
 				return finalDataToExport;
@@ -846,23 +888,28 @@ class ChoicekitEngine<
 			"save",
 			saveSlot,
 			async () => {
-				const { persistence, compress: shouldCompressSave } = this.#config;
+				const { persistence } = this.#config;
 
-				const saveKey =
+				const saveMetaKey =
 					typeof saveSlot === "number"
-						? this.#getSaveSlotStorageKey(saveSlot)
-						: this.#getAutoSaveStorageKey();
+						? this.#getSaveSlotMetaStorageKey(saveSlot)
+						: this.#getAutoSaveMetaStorageKey();
+
+				const saveDataKey =
+					typeof saveSlot === "number"
+						? this.#getSaveSlotDataStorageKey(saveSlot)
+						: this.#getAutoSaveDataStorageKey();
 
 				const saveData = this.#buildSaveData();
-
-				const stringifiedSaveData = serialize(saveData);
-
+				const serializedSaveData = serialize(saveData);
 				const dataToStore = await compressStringIfApplicable(
-					stringifiedSaveData,
-					shouldCompressSave,
+					serializedSaveData,
+					this.#config.compress,
 				);
+				const metaToStore = serialize(this.#buildSaveMetadata());
 
-				await persistence.set(saveKey, dataToStore);
+				await persistence.set(saveDataKey, dataToStore);
+				await persistence.set(saveMetaKey, metaToStore);
 			},
 		);
 	}
@@ -879,12 +926,20 @@ class ChoicekitEngine<
 		this.#emitCustomEvent("deleteStart", { slot });
 
 		try {
-			const saveSlotKey =
+			const saveMetaKey =
 				typeof saveSlot === "number"
-					? this.#getSaveSlotStorageKey(saveSlot)
-					: this.#getAutoSaveStorageKey();
+					? this.#getSaveSlotMetaStorageKey(saveSlot)
+					: this.#getAutoSaveMetaStorageKey();
 
-			const deleted = await this.#persistenceAdapter.delete(saveSlotKey);
+			const saveDataKey =
+				typeof saveSlot === "number"
+					? this.#getSaveSlotDataStorageKey(saveSlot)
+					: this.#getAutoSaveDataStorageKey();
+
+			const deleted = await Promise.all([
+				this.#persistenceAdapter.delete(saveMetaKey),
+				this.#persistenceAdapter.delete(saveDataKey),
+			]);
 
 			this.#emitCustomEvent("deleteEnd", { slot, type: "success" });
 
@@ -913,7 +968,7 @@ class ChoicekitEngine<
 			}
 		}
 
-		return Promise.allSettled(deletePromises);
+		return Promise.all(deletePromises);
 	}
 
 	// Events
@@ -1065,44 +1120,60 @@ class ChoicekitEngine<
 	}
 
 	// Some of these could be properties instead, but I like the consistency
-	#getAutoSaveStorageKey(): ChoicekitType.AutoSaveKey {
-		return `choicekit-${this.name}-autosave`;
+	#getAutoSaveMetaStorageKey(): ChoicekitType.AutoSaveMetaKey {
+		return `choicekit-${this.name}-autosave-meta`;
+	}
+
+	#getAutoSaveDataStorageKey(): ChoicekitType.AutoSaveDataKey {
+		return `choicekit-${this.name}-autosave-data`;
 	}
 
 	#getPluginStorageKey(pluginId: string): ChoicekitType.PluginSaveKey {
 		return `choicekit-${this.name}-plugin-${pluginId}` as const;
 	}
 
-	#getSaveSlotStorageKey(saveSlot: number): ChoicekitType.NormalSaveKey {
+	#getSaveSlotMetaStorageKey(
+		saveSlot: number,
+	): ChoicekitType.NormalSaveMetaKey {
 		this.#assertSaveSlotIsValid(saveSlot);
-		return `choicekit-${this.name}-slot${saveSlot}` as const;
+		return `choicekit-${this.name}-slot${saveSlot}-meta` as const;
 	}
 
-	async *#getKeysOfPresentSaves(): AsyncGenerator<ChoicekitType.SaveKey> {
+	#getSaveSlotDataStorageKey(
+		saveSlot: number,
+	): ChoicekitType.NormalSaveDataKey {
+		this.#assertSaveSlotIsValid(saveSlot);
+		return `choicekit-${this.name}-slot${saveSlot}-data` as const;
+	}
+
+	async *#getMetaKeysOfPresentSaves(): AsyncGenerator<ChoicekitType.SaveMetaKey> {
 		const persistence = this.#persistenceAdapter;
 
 		const keys = await persistence.keys?.();
 
-		const autosaveKey = this.#getAutoSaveStorageKey();
+		const autosaveMetaKey = this.#getAutoSaveMetaStorageKey();
 
-		const saveSlotKeyPrefix = `choicekit-${this.name}-slot` as const;
+		const saveSlotMetaKeyPrefix = `choicekit-${this.name}-slot` as const;
 
 		if (keys) {
-			// Filter out the keys that are not save slots
+			// Filter out keys that are not save metadata keys
 			for (const key of keys) {
-				if (key.startsWith(saveSlotKeyPrefix) || key === autosaveKey) {
-					//@ts-expect-error TS doesn't know that the key is a ChoicekitType.SaveKey
+				if (
+					key === autosaveMetaKey ||
+					(key.startsWith(saveSlotMetaKeyPrefix) && key.endsWith("-meta"))
+				) {
+					//@ts-expect-error TS doesn't know that the key is a ChoicekitType.SaveMetaKey
 					yield key;
 				}
 			}
 		} else {
 			// Fallback to using get() to get the keys
-			if (await persistence.get(autosaveKey)) {
-				yield autosaveKey;
+			if (await persistence.get(autosaveMetaKey)) {
+				yield autosaveMetaKey;
 			}
 
 			for (let i = 0; i < this.#config.saveSlots; i++) {
-				const key = this.#getSaveSlotStorageKey(i);
+				const key = this.#getSaveSlotMetaStorageKey(i);
 
 				if (await persistence.get(key)) {
 					yield key;
@@ -1111,17 +1182,24 @@ class ChoicekitEngine<
 		}
 	}
 
-	async #getMostRecentSave(): Promise<typeof this._type.saveData | null> {
-		let mostRecentSave: typeof this._type.saveData | null = null;
+	async #getMostRecentSave(): Promise<
+		(typeof this._type.exportData)["saveData"] | null
+	> {
+		let mostRecentSave: (typeof this._type.exportData)["saveData"] | null =
+			null;
 
-		for await (const { getData } of this.getSaves()) {
+		for await (const { getData, meta } of this.getSaves()) {
 			const data = await getData();
+			const saveRecord = {
+				data,
+				meta,
+			} as (typeof this._type.exportData)["saveData"];
 
 			if (!mostRecentSave) {
-				mostRecentSave = data;
+				mostRecentSave = saveRecord;
 			} else {
-				if (data.savedOn > mostRecentSave.savedOn) {
-					mostRecentSave = data;
+				if (meta.savedOn > mostRecentSave.meta.savedOn) {
+					mostRecentSave = saveRecord;
 				}
 			}
 		}
@@ -1576,11 +1654,23 @@ class ChoicekitEngine<
 
 		return {
 			initialState: this.#initialState as typeof this._type.state.complete,
-			lastPassageId: this.passageId,
-			savedOn: new Date(),
 			snapshots: this.#stateSnapshots,
 			storyIndex: this.#index,
+		};
+	}
+
+	#buildSaveMetadata(): ChoicekitType.SaveMetadata {
+		return v.parse(ChoicekitSaveMetadataSchema, {
+			lastPassageId: this.passageId,
+			savedOn: new Date(),
 			version: this.#config.saveVersion,
+		});
+	}
+
+	#buildSaveRecord(): (typeof this._type.exportData)["saveData"] {
+		return {
+			data: this.#buildSaveData(),
+			meta: this.#buildSaveMetadata(),
 		};
 	}
 

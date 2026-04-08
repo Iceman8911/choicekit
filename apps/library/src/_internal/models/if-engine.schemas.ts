@@ -34,20 +34,33 @@ const PartialStateSnapshotSchema = v.objectWithRest(
 	TransformableOrJsonSerializableSchema,
 ) as v.GenericSchema<ChoicekitType.SaveData["snapshots"][number]>;
 
+export const ChoicekitSaveMetadataSchema: v.GenericSchema<ChoicekitType.SaveMetadata> =
+	v.object({
+		lastPassageId: v.string(),
+		savedOn: v.date(),
+		version: SemanticVersionStringSchema,
+	});
+
 export const ChoicekitSaveDataSchema = v.pipe(
 	v.object({
 		initialState: StateSnapshotMetadataSchema,
-		lastPassageId: v.string(),
-		savedOn: v.date(),
 		snapshots: v.array(PartialStateSnapshotSchema),
 		storyIndex: v.number(),
-		version: SemanticVersionStringSchema,
 	}),
 	v.readonly(),
 ) as v.GenericSchema<ChoicekitType.SaveData>;
 
+export const ChoicekitSaveRecordSchema: v.GenericSchema<ChoicekitType.SaveRecord> =
+	v.object({
+		data: ChoicekitSaveDataSchema,
+		meta: ChoicekitSaveMetadataSchema,
+	});
+
+export const ChoicekitStoredSaveDataSchema: v.GenericSchema<string> =
+	v.string();
+
 export const ChoicekitExportDataSchema: v.GenericSchema<ChoicekitType.ExportData> =
 	v.object({
 		plugins: PluginSaveDataSchema,
-		saveData: ChoicekitSaveDataSchema,
+		saveData: ChoicekitSaveRecordSchema,
 	});

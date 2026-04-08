@@ -98,19 +98,39 @@ export declare namespace ChoicekitType {
 	 *
 	 * Consists of the engine's name and save slot number
 	 */
-	export type NormalSaveKey = `choicekit-${string}-slot${number}`;
+	export type NormalSaveMetaKey = `choicekit-${string}-slot${number}-meta`;
 
-	export type AutoSaveKey = `choicekit-${string}-autosave`;
+	export type NormalSaveDataKey = `choicekit-${string}-slot${number}-data`;
+
+	export type AutoSaveMetaKey = `choicekit-${string}-autosave-meta`;
+
+	export type AutoSaveDataKey = `choicekit-${string}-autosave-data`;
 
 	export type PluginSaveKey = `choicekit-${string}-plugin-${string}`;
 
-	export type SaveKey = AutoSaveKey | NormalSaveKey;
+	export type SaveMetaKey = AutoSaveMetaKey | NormalSaveMetaKey;
+
+	export type SaveDataKey = AutoSaveDataKey | NormalSaveDataKey;
+
+	export type SaveKey = SaveMetaKey | SaveDataKey;
 
 	export type AnyKey = SaveKey | PluginSaveKey;
 
-	/** Data structure used for saving the state of the engine
+	/** Lightweight metadata for listing and sorting saves without materializing the full payload. */
+	export type SaveMetadata = Readonly<{
+		/** When the save was created */
+		savedOn: Date;
+
+		/** ID of the last passage that was navigated to */
+		lastPassageId: string;
+
+		/** The version of the story associated with this save */
+		version: ChoicekitSemanticVersionString;
+	}>;
+
+	/** Core story data used to restore the engine state.
 	 *
-	 * Contains initial state, snapshots, current story index and other relevant metadata
+	 * This is the heavy payload that may be large.
 	 */
 	export type SaveData<
 		TChoicekitVariables extends
@@ -121,22 +141,15 @@ export declare namespace ChoicekitType {
 		snapshots: Partial<TChoicekitVariables & SnapshotMetadata>[];
 
 		storyIndex: number;
+	}>;
 
-		// Save metadata
-		/** When the save was created */
-		savedOn: Date;
-
-		/** ID of the last passage that was navigated to */
-		lastPassageId: string;
-
-		/** A user-provided description for the save. TODO */
-		// description?: string;
-
-		/** Total play time in seconds. TODO */
-		// playtimeInSeconds: number;
-
-		/** The version of the story associated with this save */
-		version: ChoicekitSemanticVersionString;
+	/** Full save record stored in persistence and export payloads. */
+	export type SaveRecord<
+		TChoicekitVariables extends
+			GenericSerializableObject = GenericSerializableObject,
+	> = Readonly<{
+		data: SaveData<TChoicekitVariables>;
+		meta: SaveMetadata;
 	}>;
 
 	/** Export data structure used for saving the state of the engine to disk.
@@ -146,7 +159,7 @@ export declare namespace ChoicekitType {
 	export type ExportData<
 		TSaveData extends GenericSerializableObject = GenericSerializableObject,
 	> = {
-		saveData: SaveData<TSaveData>;
+		saveData: SaveRecord<TSaveData>;
 
 		/** Plugin data that should be unaltered when the user saves or loads save-data.
 		 *
