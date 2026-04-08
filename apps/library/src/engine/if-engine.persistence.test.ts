@@ -253,15 +253,15 @@ describe("ChoicekitEngine persistence", () => {
 
 		await engine.saveToSaveSlot(2);
 
-		let saveData: ChoicekitType.SaveData | null = null;
+		let saveMeta: ChoicekitType.SaveMetadata | null = null;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 2) {
-				saveData = await save.getData();
+				saveMeta = save.meta;
 				break;
 			}
 		}
 
-		expect(saveData?.version).toBe("3.1.4");
+		expect(saveMeta?.version).toBe("3.1.4");
 	});
 
 	it("should honor strict vs liberal saveCompat rules", async () => {
@@ -279,22 +279,29 @@ describe("ChoicekitEngine persistence", () => {
 		await strictEngine.saveToSaveSlot(0);
 
 		let strictSaveData: ChoicekitType.SaveData<{ hp: number }> | null = null;
+		let strictSaveMeta: ChoicekitType.SaveMetadata | null = null;
 		for await (const save of strictEngine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
+				strictSaveMeta = save.meta;
 				strictSaveData = await save.getData();
 				break;
 			}
 		}
 
 		expect(strictSaveData).not.toBeNull();
+		if (!strictSaveData || !strictSaveMeta) {
+			throw Error("Missing save data for strict compatibility test");
+		}
 
-		expect(() =>
-			// @ts-expect-error Intentionally tampering with save version to test runtime compatibility mode handling
-			strictEngine.loadFromObject({
-				...(strictSaveData as ChoicekitType.SaveData<{ hp: number }>),
+		const tamperedStrictRecord = {
+			data: strictSaveData,
+			meta: {
+				...strictSaveMeta,
 				version: "1.1.0",
-			}),
-		).toThrow();
+			},
+		} as unknown as Parameters<typeof strictEngine.loadFromObject>[0];
+
+		expect(() => strictEngine.loadFromObject(tamperedStrictRecord)).toThrow();
 
 		const liberalEngine = await new ChoicekitEngineBuilder()
 			.withName("LiberalCompat")
@@ -308,24 +315,28 @@ describe("ChoicekitEngine persistence", () => {
 			.build();
 
 		liberalEngine.loadFromObject({
-			initialState: {
-				$$id: "main",
-				$$plugins: new Map(),
-				$$seed: 123,
-				hp: 42,
-			},
-			lastPassageId: "main",
-			savedOn: new Date(),
-			snapshots: [
-				{
+			data: {
+				initialState: {
 					$$id: "main",
 					$$plugins: new Map(),
 					$$seed: 123,
 					hp: 42,
 				},
-			],
-			storyIndex: 0,
-			version: "1.1.0",
+				snapshots: [
+					{
+						$$id: "main",
+						$$plugins: new Map(),
+						$$seed: 123,
+						hp: 42,
+					},
+				],
+				storyIndex: 0,
+			},
+			meta: {
+				lastPassageId: "main",
+				savedOn: new Date(),
+				version: "1.1.0",
+			},
 		});
 
 		expect(liberalEngine.vars.hp).toBe(42);
@@ -362,10 +373,14 @@ describe("ChoicekitEngine persistence", () => {
 			.build();
 
 		await compressedEngine.saveToSaveSlot(0);
+		const compressedData =
+			compressedStore.get("choicekit-CompressionOn-slot0-data") ?? "";
+		const compressedMeta = deserialize(
+			compressedStore.get("choicekit-CompressionOn-slot0-meta") ?? "{}",
+		) as ChoicekitType.SaveMetadata;
 
-		expect(
-			compressedStore.get("choicekit-CompressionOn-slot0")?.startsWith('{"'),
-		).toBe(false);
+		expect(compressedData.startsWith('{"')).toBe(false);
+		expect(compressedMeta.version).toBeDefined();
 
 		const uncompressedStore = new Map<string, string>();
 		const uncompressedPersistence = {
@@ -395,10 +410,14 @@ describe("ChoicekitEngine persistence", () => {
 			.build();
 
 		await uncompressedEngine.saveToSaveSlot(0);
+		const uncompressedData =
+			uncompressedStore.get("choicekit-CompressionOff-slot0-data") ?? "";
+		const uncompressedMeta = deserialize(
+			uncompressedStore.get("choicekit-CompressionOff-slot0-meta") ?? "{}",
+		) as ChoicekitType.SaveMetadata;
 
-		expect(
-			uncompressedStore.get("choicekit-CompressionOff-slot0")?.startsWith('{"'),
-		).toBe(true);
+		expect(uncompressedData.startsWith('{"')).toBe(true);
+		expect(uncompressedMeta.version).toBeDefined();
 	});
 
 	it("should autosave on passage changes when autoSave is passage", async () => {
@@ -687,13 +706,25 @@ describe("ChoicekitEngine persistence", () => {
 		await engine.saveToSaveSlot(0);
 
 		let saveData: ChoicekitType.SaveData | undefined;
+		let saveMeta: ChoicekitType.SaveMetadata | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
+				saveMeta = save.meta;
 				saveData = await save.getData();
 			}
 		}
 
 		expect(saveData).toBeDefined();
+		if (!saveData || !saveMeta) {
+			throw Error("Missing save data for loadFromObject test");
+		}
+
+		const saveRecord = {
+			data: saveData,
+			meta: {
+				...saveMeta,
+			},
+		} as unknown as Parameters<typeof engine.loadFromObject>[0];
 
 		engine.setVars((v) => {
 			v.hp = 100;
@@ -701,8 +732,7 @@ describe("ChoicekitEngine persistence", () => {
 		});
 		engine.navigateTo("town");
 
-		//@ts-expect-error Can't be bothered to copy out the full type :p
-		await engine.loadFromObject(saveData);
+		await engine.loadFromObject(saveRecord);
 
 		expect(engine.vars.hp).toBe(6);
 		expect(engine.vars.mana).toBe(2);
@@ -851,19 +881,28 @@ describe("ChoicekitEngine persistence", () => {
 		await engine.saveToSaveSlot(0);
 
 		let saveData: ChoicekitType.SaveData | undefined;
+		let saveMeta: ChoicekitType.SaveMetadata | undefined;
 		for await (const save of engine.getSaves()) {
 			if (save.type === "normal" && save.slot === 0) {
+				saveMeta = save.meta;
 				saveData = await save.getData();
 			}
 		}
 
 		expect(saveData).toBeDefined();
+		if (!saveData || !saveMeta) {
+			throw Error("Missing save data for migration test");
+		}
 
-		//@ts-expect-error Can't be bothered to copy out the full type :p
-		await engine.loadFromObject({
-			...saveData,
-			version: "1.0.0",
-		});
+		const migrationRecord = {
+			data: saveData,
+			meta: {
+				...saveMeta,
+				version: "1.0.0",
+			},
+		} as unknown as Parameters<typeof engine.loadFromObject>[0];
+
+		await engine.loadFromObject(migrationRecord);
 
 		expect(engine.vars.hp).toBe(17);
 	});
@@ -1015,7 +1054,7 @@ describe("ChoicekitEngine persistence", () => {
 		expect(exportData.plugins.has("timeline")).toBe(false);
 
 		const snapshot =
-			exportData.saveData.snapshots[exportData.saveData.storyIndex];
+			exportData.saveData.data.snapshots[exportData.saveData.data.storyIndex];
 		expect(snapshot?.$$plugins?.get("timeline")?.data).toEqual({ value: 11 });
 		expect(snapshot?.$$plugins?.has("globalSettings")).toBe(false);
 	});

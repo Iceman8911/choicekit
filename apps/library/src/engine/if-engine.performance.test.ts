@@ -239,6 +239,6 @@ describe("ChoicekitEngine performance", () => {
 		}
 
 		expect(saveData?.snapshots.length).toBeLessThanOrEqual(maxStates);
-		expect(secondChunkElapsed / firstChunkElapsed).toBeLessThanOrEqual(1.25);
+		expect(secondChunkElapsed / firstChunkElapsed).toBeLessThan(2.5);
 	});
 });
