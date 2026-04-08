@@ -57,21 +57,28 @@ Choicekit supports:
 Manual save/load:
 
 ```ts
-await engine.saveToSaveSlot(2);
-await engine.loadFromSaveSlot(2);
+const saveResult = await engine.saveToSaveSlot(2);
+if (!saveResult.success) showErrorFallback(saveResult.err);
+
+const loadResult = await engine.loadFromSaveSlot(2);
+if (!loadResult.success) showErrorFallback(loadResult.err);
 ```
 
 Autosave slot shortcuts:
 
 ```ts
-await engine.saveToSaveSlot();
-await engine.loadFromSaveSlot();
+const autosaveResult = await engine.saveToSaveSlot();
+if (!autosaveResult.success) showErrorFallback(autosaveResult.err);
+
+const autosaveLoadResult = await engine.loadFromSaveSlot();
+if (!autosaveLoadResult.success) showErrorFallback(autosaveLoadResult.err);
 ```
 
 Load best available recent save:
 
 ```ts
-await engine.loadRecentSave();
+const recentSaveResult = await engine.loadRecentSave();
+if (!recentSaveResult.success) throw recentSaveResult.err;
 ```
 
 ## Listing and deleting saves
@@ -110,10 +117,14 @@ await engine.deleteAllSaveSlots();
 For cloud backup/share flows:
 
 ```ts
-const exported = await engine.saveToExport();
+const exportResult = await engine.saveToExport();
+
+if (!exportResult.success) showErrorFallback(exportResult.err);
+else saveExportedDataSomewhere(exportResult.data);
 
 // later, same device or another device
-await engine.loadFromExport(exported);
+const importResult = await engine.loadFromExport(exportResult.data);
+if (!importResult.success) showErrorFallback(importResult.err);
 ```
 
 This is useful for player support, migration between devices, and beta testing reproduction.

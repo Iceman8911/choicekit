@@ -50,6 +50,8 @@ Use `setVars` for all state writes. Avoid direct mutation of `engine.vars`.
 8. `deleteAllSaveSlots()`
 9. `loadFromObject(saveRecord)`
 
+These methods return a result object with `success: true` and `data` on success, or `success: false` and `err` on operational failure.
+
 `getSaves()` is an async generator and works well for rendering save menus.
 
 ```ts
@@ -91,7 +93,7 @@ These are the main read surfaces for rendering and game logic.
 3. Need undo/redo: `backward` and `forward`
 4. Need save slots: `saveToSaveSlot`, `loadFromSaveSlot`, `getSaves`
 5. Need cross-device/import flow: `saveToExport`, `loadFromExport`
-6. Need reactiveness: `on`/`once`/`off`
+6. Need reactivity: `on`/`once`/`off`
 
 ## Related pages
 
