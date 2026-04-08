@@ -4,10 +4,7 @@
 
 ## HIGH PRIORITY
 
-- [ ] Add validation around story state initialization and mutation.
-- [ ] Add save recovery for corrupted or incompatible saves.
 - [ ] Add clearer choice and branch helpers for interactive fiction UI layers.
-- [ ] Detect and surface plugin dependency cycles during plugin mounting.
 - [x] Add regression tests for save/load, passage navigation, and large-history performance.
 
 ---
@@ -21,16 +18,24 @@
 	- [ ] Add examples for conditional passages, branch filtering, and stat checks.
 	- [ ] Document passage data types and custom serialization constraints.
 - [ ] Add framework adapters or example bindings for react, vue, svelte, and solidjs.
+- [ ] Detect and surface plugin dependency cycles during plugin mounting.
+	- [ ] Keep this warning-based for now; revisit strict failure once `onOverride` semantics are cleaner.
+- [ ] Add save recovery for corrupted or incompatible saves.
+	- [ ] Keep strict load methods throwing by default.
+	- [ ] Make recovery explicit and opt-in so repaired data is visible to the caller.
 - [x] Use maps instead of records where possible.
 - [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
 - [x] Add an example cache adapter or lightweight cache package.
+- [ ] See if bundle size reductions can be achieved without losing functionality or ergonomics.
 
 ---
 
 ## LOW PRIORITY
 
-- [x] Add tags to passages and query methods for passages based off their properties.
-- [ ] Add external validation support via Standard Schema-compatible libraries such as zod, valibot, arktype, or typebox.
+- [ ] Add validation around story state initialization and mutation.
+	- [ ] Focus this on boundary validation hooks rather than validating every internal mutation.
+	- [ ] Consider Standard Schema support only if it stays optional and lightweight.
+- [x] Add tags to passages and query methods for passages based off their properties. 
 - [ ] Consider a complementary module-scoped API alongside the class-based API.
 - [ ] Evaluate patch-based snapshot generation only if profiling shows a real bottleneck.
 - [ ] Define the right persistence adapter surface before adding more methods like `has`.
