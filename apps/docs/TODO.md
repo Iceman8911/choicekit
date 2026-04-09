@@ -1,4 +1,5 @@
-- [ ] Add more examples for different passage types, plus practical ways of adding links.
-- [ ] Add plugin guide examples for conditional passages, branch filtering, and stat checks.
-- [ ] Add scenario-driven examples for inventory-gated choices, quest-gated progression, and relationship-gated dialogue.
-- [ ] Add a guide section for passage data types and custom serialization constraints.
+- [ ] Expand practical guide coverage for passage authoring and IF helpers.
+	- [ ] Add more examples for different passage types, plus practical ways of adding links.
+	- [ ] Add plugin guide examples for conditional passages, branch filtering, and stat checks.
+	- [ ] Add scenario-driven examples for inventory-gated choices, quest-gated progression, and relationship-gated dialogue.
+	- [ ] Add a guide section for passage data types and custom serialization constraints.
