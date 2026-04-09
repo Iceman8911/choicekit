@@ -29,8 +29,8 @@
       },
     },
     "apps/library": {
-      "name": "@apps/library",
-      "version": "0.8.0",
+      "name": "choicekit",
+      "version": "0.9.1",
       "dependencies": {
         "@iceman8911/tiny-prng": "^0.2.0",
         "@packages/event-emitter": "workspace:*",
@@ -113,8 +113,6 @@
   },
   "packages": {
     "@apps/docs": ["@apps/docs@workspace:apps/docs"],
-
-    "@apps/library": ["@apps/library@workspace:apps/library"],
 
     "@astrojs/compiler": ["@astrojs/compiler@3.0.1", "", {}, "sha512-z97oYbdebO5aoWzuJ/8q5hLK232+17KcLZ7cJ8BCWk6+qNzVxn/gftC0KzMBUTD8WAaBkPpNSQK6PXLnNrZ0CA=="],
 
@@ -657,6 +655,8 @@
     "character-entities-legacy": ["character-entities-legacy@3.0.0", "", {}, "sha512-RpPp0asT/6ufRm//AJVwpViZbGM/MkjQFxJccQRHmISF/22NBtsHqAWmL+/pmkPWoIUJdWyeVleTl1wydHATVQ=="],
 
     "character-reference-invalid": ["character-reference-invalid@2.0.1", "", {}, "sha512-iBZ4F4wRbyORVsu0jPV7gXkOsGYjGHPmAyv+HiHG8gi5PtC9KI2j1+v8/tlibRvjoWX027ypmG/n0HtO5t7unw=="],
+
+    "choicekit": ["choicekit@workspace:apps/library"],
 
     "chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
 
