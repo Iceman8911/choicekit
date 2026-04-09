@@ -63,7 +63,7 @@
 		"dist"
 	],
 	"license": "MIT",
-	"name": "@apps/library",
+	"name": "choicekit",
 	"peerDependencies": {
 		"typescript": ">=4.5.0"
 	},

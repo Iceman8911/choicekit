@@ -3,12 +3,12 @@
 	"extends": ["//"],
 	"tasks": {
 		"build": {
-			"dependsOn": ["@apps/library#build"],
+			"dependsOn": ["choicekit#build"],
 			"outputs": ["dist/**", ".output/**", "generated/**"]
 		},
 		"dev": {
 			"cache": false,
-			"dependsOn": ["@apps/library#build"],
+			"dependsOn": ["choicekit#build"],
 			"inputs": ["$TURBO_DEFAULT$", "../library/**.ts"],
 			"persistent": true
 		}
