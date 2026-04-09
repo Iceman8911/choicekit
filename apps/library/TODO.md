@@ -13,9 +13,23 @@
 - [ ] Define a passage authoring and registration workflow.
 - [ ] Add a turn-based event system for delayed callbacks.
 - [x] Add `getVisitCount` for determining how many times a passage has been navigated to.
-- [ ] Add a focused set of interactive fiction helper plugins.
-	- [ ] Add examples for conditional passages, branch filtering, and stat checks.
-	- [ ] Document passage data types and custom serialization constraints.
+- [ ] Add an interactive fiction helper toolkit (plugins + choice/branch UI helpers + practical docs).
+	- [ ] Choice/branch UI helpers.
+		- [ ] Add a choice-evaluation helper with explicit availability states (`available | hidden | locked`) and reason keys.
+		- [ ] Add deterministic branch-ranking helper support (priority + weighted conditions + stable tie-breaking) for reproducible QA.
+		- [ ] Add branch cooldown/anti-repeat helper support for ambient events and scene rotation.
+		- [ ] Add UI-ready grouping helpers for primary/secondary/locked choice buckets.
+	- [ ] Focused helper plugins.
+		- [ ] Inventory plugin: text adventure/RPG item pickup, equip/unequip, consume, and combine checks that gate choices.
+		- [ ] Conversation-state plugin: VN/dialogue trees with per-NPC node visits and trust values for reply availability.
+		- [ ] Relationship plugin: affinity/faction alignment affecting route eligibility and ending branches.
+		- [ ] Quest plugin: staged objectives and quest status that unlock or block story progression.
+		- [ ] Location-state plugin: persistent world state per location (visited, looted, mutated room flags) across revisits.
+		- [ ] Codex/journal plugin: lore/clue/NPC discovery that unlocks context-sensitive options and summaries.
+		- [ ] Deliverables per plugin: `src/plugins/examples/{plugin}.ts` + `src/plugins/examples/{plugin}.test.ts` + one practical guide scenario.
+	- [ ] Documentation coverage.
+		- [ ] Add examples for conditional passages, branch filtering, and stat checks.
+		- [ ] Document passage data types and custom serialization constraints.
 - [ ] Add framework adapters or example bindings for react, vue, svelte, and solidjs.
 - [ ] Detect and surface plugin dependency cycles during plugin mounting.
 	- [ ] Keep this warning-based for now; revisit strict failure once `onOverride` semantics are cleaner.
@@ -23,7 +37,6 @@
 - [x] Remove the redundant readmes in the `library` repo since `docs` is the single source of truth.
 - [x] Add an example cache adapter or lightweight cache package.
 - [ ] See if bundle size reductions can be achieved without losing functionality or ergonomics.
-- [ ] Add clearer choice and branch helpers for interactive fiction UI layers.
 
 ---
 

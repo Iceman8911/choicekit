@@ -1,1 +1,2 @@
-- Perhaps add an optional `migrations` property to the plugin interface.
+- [ ] Add an optional `migrations` property to the plugin interface for versioned plugin state upgrades.
+- [ ] Keep plugin implementation checklist centralized in `apps/library/TODO.md` under the interactive fiction helper toolkit section.
